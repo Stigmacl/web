@@ -2,7 +2,6 @@ src/components/BannerManager/*
 src/components/ClanProfile/*
 src/components/Contact/*
 src/components/DynamicBanner/*
-src/components/Forum/*
 src/components/Home/*
 src/components/Navigation/*
 src/components/Players/*
