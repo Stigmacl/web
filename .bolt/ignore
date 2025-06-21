@@ -18,3 +18,5 @@ api/forum/*
 api/messages/*
 api/news/*
 api/post/*
+api/*
+src/*
