@@ -32,7 +32,7 @@ try {
         CREATE TABLE IF NOT EXISTS `tournament_participants` (
           `id` int(11) NOT NULL AUTO_INCREMENT,
           `tournament_id` int(11) NOT NULL,
-          `participant_type` enum('user','clan') NOT NULL,
+          `participant_type` enum('user','clan','team') NOT NULL,
           `participant_id` varchar(50) NOT NULL,
           `team_name` varchar(255) DEFAULT NULL,
           `team_members` text DEFAULT NULL,
@@ -56,10 +56,12 @@ try {
                CASE 
                    WHEN tp.participant_type = 'user' THEN u.username
                    WHEN tp.participant_type = 'clan' THEN c.name
+                   WHEN tp.participant_type = 'team' THEN tp.team_name
                END as participant_name,
                CASE 
                    WHEN tp.participant_type = 'user' THEN u.avatar
                    WHEN tp.participant_type = 'clan' THEN c.logo
+                   ELSE NULL
                END as participant_avatar,
                CASE 
                    WHEN tp.participant_type = 'clan' THEN c.tag
@@ -87,7 +89,19 @@ try {
         if (!empty($row['team_members'])) {
             $decodedMembers = json_decode($row['team_members'], true);
             if (is_array($decodedMembers)) {
-                $teamMembers = $decodedMembers;
+                // Obtener nombres de los miembros del equipo
+                $memberNames = [];
+                foreach ($decodedMembers as $memberId) {
+                    $memberQuery = "SELECT username FROM users WHERE id = :id";
+                    $memberStmt = $db->prepare($memberQuery);
+                    $memberStmt->bindParam(':id', $memberId);
+                    $memberStmt->execute();
+                    $member = $memberStmt->fetch();
+                    if ($member) {
+                        $memberNames[] = $member['username'];
+                    }
+                }
+                $teamMembers = $memberNames;
             }
         }
 

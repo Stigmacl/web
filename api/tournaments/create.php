@@ -50,7 +50,7 @@ try {
           `id` int(11) NOT NULL AUTO_INCREMENT,
           `name` varchar(255) NOT NULL,
           `description` text DEFAULT NULL,
-          `type` enum('individual','clan') NOT NULL DEFAULT 'individual',
+          `type` enum('individual','clan','team') NOT NULL DEFAULT 'individual',
           `team_size` int(11) DEFAULT 1,
           `max_participants` int(11) NOT NULL,
           `participant_count` int(11) DEFAULT 0,
@@ -83,6 +83,25 @@ try {
         ], 400);
     }
 
+    // Validar tipo de torneo y tamaño de equipo
+    $validTypes = ['individual', 'clan', 'team'];
+    $type = isset($data['type']) && in_array($data['type'], $validTypes) ? $data['type'] : 'individual';
+    
+    // Validar tamaño de equipo según el tipo
+    $teamSize = 1;
+    if (isset($data['teamSize'])) {
+        $teamSize = (int)$data['teamSize'];
+        
+        // Validaciones específicas por tipo
+        if ($type === 'individual' && $teamSize !== 1) {
+            $teamSize = 1;
+        } elseif ($type === 'clan' && !in_array($teamSize, [1, 3, 5])) {
+            $teamSize = 1;
+        } elseif ($type === 'team' && !in_array($teamSize, [2, 3, 4, 5])) {
+            $teamSize = 3;
+        }
+    }
+
     // Insertar torneo
     $query = "
         INSERT INTO tournaments (
@@ -99,8 +118,8 @@ try {
     $stmt = $db->prepare($query);
     $stmt->bindValue(':name', $data['name']);
     $stmt->bindValue(':description', $data['description'] ?? '');
-    $stmt->bindValue(':type', $data['type'] ?? 'individual');
-    $stmt->bindValue(':team_size', $data['teamSize'] ?? 1, PDO::PARAM_INT);
+    $stmt->bindValue(':type', $type);
+    $stmt->bindValue(':team_size', $teamSize, PDO::PARAM_INT);
     $stmt->bindValue(':max_participants', $data['maxParticipants'], PDO::PARAM_INT);
     $stmt->bindValue(':status', $data['status'] ?? 'draft');
     $stmt->bindValue(':start_date', $data['startDate'] ?? null);

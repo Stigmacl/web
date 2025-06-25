@@ -6,7 +6,7 @@ interface Tournament {
   id: string;
   name: string;
   description: string;
-  type: 'individual' | 'clan';
+  type: 'individual' | 'clan' | 'team';
   teamSize: number;
   maxParticipants: number;
   participantCount: number;
@@ -23,7 +23,7 @@ interface Tournament {
 
 interface Participant {
   id: string;
-  participantType: 'user' | 'clan';
+  participantType: 'user' | 'clan' | 'team';
   participantId: string;
   participantName: string;
   participantAvatar?: string;
@@ -170,6 +170,11 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
     loadTournamentData();
   };
 
+  const handleBracketRegenerate = () => {
+    // Recargar datos del torneo
+    loadTournamentData();
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft': return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
@@ -237,6 +242,15 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
     }
   };
 
+  const getTypeText = (type: string, teamSize: number) => {
+    switch (type) {
+      case 'individual': return 'Individual (1v1)';
+      case 'clan': return teamSize > 1 ? `Por Clanes (${teamSize}v${teamSize})` : 'Por Clanes (1v1)';
+      case 'team': return `Por Equipos (${teamSize}v${teamSize})`;
+      default: return type;
+    }
+  };
+
   // Convertir participantes al formato esperado por TournamentBracket
   const bracketParticipants = participants.map(p => ({
     id: p.id,
@@ -245,7 +259,8 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
     participantName: p.participantName,
     participantAvatar: p.participantAvatar,
     clanTag: p.clanTag,
-    teamName: p.teamName
+    teamName: p.teamName,
+    teamMembers: p.teamMembers
   }));
 
   // Convertir matches al formato esperado por TournamentBracket
@@ -255,7 +270,7 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
     matchNumber: m.matchNumber,
     participant1: m.participant1 ? {
       id: m.participant1.id,
-      participantType: m.participant1.type as 'user' | 'clan',
+      participantType: m.participant1.type as 'user' | 'clan' | 'team',
       participantId: m.participant1.id,
       participantName: m.participant1.name,
       participantAvatar: m.participant1.avatar,
@@ -264,7 +279,7 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
     } : undefined,
     participant2: m.participant2 ? {
       id: m.participant2.id,
-      participantType: m.participant2.type as 'user' | 'clan',
+      participantType: m.participant2.type as 'user' | 'clan' | 'team',
       participantId: m.participant2.id,
       participantName: m.participant2.name,
       participantAvatar: m.participant2.avatar,
@@ -277,6 +292,8 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
     status: m.status,
     scheduledAt: m.scheduledAt,
     completedAt: m.completedAt,
+    mapPlayed: m.mapPlayed,
+    notes: m.notes,
     position: { x: 0, y: 0 } // Se calculará en el componente TournamentBracket
   }));
 
@@ -350,18 +367,28 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
               <div className={`flex items-center space-x-2 px-2 py-1 rounded-full text-xs font-medium ${
                 tournament.type === 'individual' 
                   ? 'bg-blue-500/20 text-blue-300' 
-                  : 'bg-purple-500/20 text-purple-300'
+                  : tournament.type === 'clan'
+                    ? 'bg-purple-500/20 text-purple-300'
+                    : 'bg-green-500/20 text-green-300'
               }`}>
                 {tournament.type === 'individual' ? (
                   <>
                     <User className="w-3 h-3" />
                     <span>Individual</span>
                   </>
-                ) : (
+                ) : tournament.type === 'clan' ? (
                   <>
                     <Shield className="w-3 h-3" />
                     <span>Por Clanes</span>
                   </>
+                ) : (
+                  <>
+                    <Users className="w-3 h-3" />
+                    <span>Por Equipos</span>
+                  </>
+                )}
+                {tournament.teamSize > 1 && (
+                  <span>({tournament.teamSize}v{tournament.teamSize})</span>
                 )}
               </div>
               
@@ -460,11 +487,14 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
       {activeTab === 'bracket' && (
         <TournamentBracket
           tournamentId={tournamentId}
+          tournamentType={tournament.type}
+          teamSize={tournament.teamSize}
           participants={bracketParticipants}
           matches={bracketMatches}
           bracketType={tournament.bracketType}
           isAdmin={true} // TODO: Verificar si el usuario es admin
           onMatchUpdate={handleMatchUpdate}
+          onBracketRegenerate={handleBracketRegenerate}
         />
       )}
 
@@ -520,15 +550,26 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
                             
                             <div>
                               <div className="flex items-center space-x-2">
-                                <span className="font-bold text-white text-lg">{participant.participantName}</span>
+                                <span className="font-bold text-white text-lg">
+                                  {participant.participantType === 'team' && participant.teamName 
+                                    ? participant.teamName 
+                                    : participant.participantName}
+                                </span>
                                 {participant.clanTag && (
                                   <span className="px-2 py-1 bg-purple-600/20 text-purple-300 rounded text-sm font-mono">
                                     [{participant.clanTag}]
                                   </span>
                                 )}
+                                {participant.participantType === 'team' && tournament.teamSize > 1 && (
+                                  <span className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-sm">
+                                    {tournament.teamSize}v{tournament.teamSize}
+                                  </span>
+                                )}
                               </div>
-                              {participant.teamName && (
-                                <p className="text-blue-300 text-sm">{participant.teamName}</p>
+                              {participant.teamMembers.length > 0 && (
+                                <p className="text-blue-300 text-sm">
+                                  Miembros: {participant.teamMembers.join(', ')}
+                                </p>
                               )}
                               <p className="text-blue-400 text-xs">
                                 Registrado: {formatDate(participant.registeredAt)}
@@ -590,7 +631,9 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
             <div className="space-y-6">
               {Object.entries(
                 matches.reduce((acc, match) => {
-                  const round = `Ronda ${match.round}`;
+                  const round = tournament.bracketType === 'round_robin' 
+                    ? 'Round Robin' 
+                    : `Ronda ${match.round}`;
                   if (!acc[round]) acc[round] = [];
                   acc[round].push(match);
                   return acc;
@@ -623,7 +666,7 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
                                   )}
                                   <div className="flex-1">
                                     <span className="text-white font-medium block">
-                                      {match.participant1.name}
+                                      {match.participant1.teamName || match.participant1.name}
                                     </span>
                                     {match.participant1.clanTag && (
                                       <span className="text-purple-300 text-sm">[{match.participant1.clanTag}]</span>
@@ -645,7 +688,9 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
                                 </div>
                               </div>
                               
-                              <div className="text-blue-400 text-xl">-</div>
+                              <div className="text-blue-400 text-xl">
+                                {tournament.teamSize > 1 ? `${tournament.teamSize}v${tournament.teamSize}` : '-'}
+                              </div>
                               
                               <div className="text-center">
                                 <div className={`text-2xl font-bold ${
@@ -662,7 +707,7 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
                                 <>
                                   <div className="flex-1 text-right">
                                     <span className="text-white font-medium block">
-                                      {match.participant2.name}
+                                      {match.participant2.teamName || match.participant2.name}
                                     </span>
                                     {match.participant2.clanTag && (
                                       <span className="text-purple-300 text-sm">[{match.participant2.clanTag}]</span>
@@ -755,16 +800,9 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
                   <div className="flex justify-between">
                     <span className="text-blue-400">Tipo:</span>
                     <span className="text-white font-medium">
-                      {tournament.type === 'individual' ? 'Individual' : 'Por Clanes'}
+                      {getTypeText(tournament.type, tournament.teamSize)}
                     </span>
                   </div>
-                  
-                  {tournament.type === 'clan' && tournament.teamSize > 1 && (
-                    <div className="flex justify-between">
-                      <span className="text-blue-400">Tamaño de Equipo:</span>
-                      <span className="text-white font-medium">{tournament.teamSize} jugadores</span>
-                    </div>
-                  )}
                   
                   <div className="flex justify-between">
                     <span className="text-blue-400">Formato:</span>

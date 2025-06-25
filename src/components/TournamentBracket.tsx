@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Users, Calendar, Crown, Target, Play, CheckCircle, Clock, ArrowRight, Zap, Award, Medal } from 'lucide-react';
+import { Trophy, Users, Calendar, Crown, Target, Play, CheckCircle, Clock, ArrowRight, Zap, Award, Medal, Edit, Save, X, Plus, Trash2, Shuffle, RotateCcw } from 'lucide-react';
 
 interface Participant {
   id: string;
-  participantType: 'user' | 'clan';
+  participantType: 'user' | 'clan' | 'team';
   participantId: string;
   participantName: string;
   participantAvatar?: string;
   clanTag?: string;
   teamName?: string;
+  teamMembers?: string[];
   seed?: number;
 }
 
@@ -24,6 +25,8 @@ interface Match {
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   scheduledAt?: string;
   completedAt?: string;
+  mapPlayed?: string;
+  notes?: string;
   position: {
     x: number;
     y: number;
@@ -32,11 +35,15 @@ interface Match {
 
 interface TournamentBracketProps {
   tournamentId: string;
+  tournamentType: 'individual' | 'clan' | 'team';
+  teamSize: number;
   participants: Participant[];
   matches: Match[];
   bracketType: 'single_elimination' | 'double_elimination' | 'round_robin';
   isAdmin?: boolean;
   onMatchUpdate?: (matchId: string, updates: any) => void;
+  onParticipantUpdate?: (participantId: string, updates: any) => void;
+  onBracketRegenerate?: () => void;
 }
 
 // Detectar automáticamente la URL base de la API
@@ -60,11 +67,15 @@ const API_BASE_URL = getApiBaseUrl();
 
 const TournamentBracket: React.FC<TournamentBracketProps> = ({
   tournamentId,
+  tournamentType,
+  teamSize,
   participants,
   matches,
   bracketType,
   isAdmin = false,
-  onMatchUpdate
+  onMatchUpdate,
+  onParticipantUpdate,
+  onBracketRegenerate
 }) => {
   const [bracketData, setBracketData] = useState<{
     rounds: Match[][];
@@ -80,6 +91,25 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
 
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [showMatchModal, setShowMatchModal] = useState(false);
+  const [showEditParticipantModal, setShowEditParticipantModal] = useState(false);
+  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
+  const [editingMatch, setEditingMatch] = useState<{
+    participant1Id: string;
+    participant2Id: string;
+    winnerId: string;
+    score1: number;
+    score2: number;
+    mapPlayed: string;
+    notes: string;
+  }>({
+    participant1Id: '',
+    participant2Id: '',
+    winnerId: '',
+    score1: 0,
+    score2: 0,
+    mapPlayed: '',
+    notes: ''
+  });
 
   useEffect(() => {
     if (participants.length > 0) {
@@ -92,6 +122,8 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
       generateSingleEliminationBracket();
     } else if (bracketType === 'double_elimination') {
       generateDoubleEliminationBracket();
+    } else if (bracketType === 'round_robin') {
+      generateRoundRobinBracket();
     }
   };
 
@@ -100,54 +132,23 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
     const maxRounds = Math.ceil(Math.log2(participantCount));
     const rounds: Match[][] = [];
 
-    // Crear estructura de rondas
+    // Crear estructura de rondas basada en las partidas existentes
     for (let round = 1; round <= maxRounds; round++) {
+      const roundMatches = matches.filter(m => m.round === round);
+      
+      // Calcular posiciones para las partidas
       const matchesInRound = Math.pow(2, maxRounds - round);
-      const roundMatches: Match[] = [];
-
-      for (let matchNum = 1; matchNum <= matchesInRound; matchNum++) {
-        const existingMatch = matches.find(m => m.round === round && m.matchNumber === matchNum);
-        
-        if (existingMatch) {
-          roundMatches.push({
-            ...existingMatch,
-            position: {
-              x: (round - 1) * 300 + 50,
-              y: (matchNum - 1) * 120 + 50
-            }
-          });
-        } else {
-          // Crear match placeholder
-          roundMatches.push({
-            id: `placeholder-${round}-${matchNum}`,
-            round,
-            matchNumber: matchNum,
-            score1: 0,
-            score2: 0,
-            status: 'pending',
-            position: {
-              x: (round - 1) * 300 + 50,
-              y: (matchNum - 1) * 120 + 50
-            }
-          });
-        }
-      }
+      const spacing = 120;
+      const startY = 50;
+      
+      roundMatches.forEach((match, index) => {
+        match.position = {
+          x: (round - 1) * 300 + 50,
+          y: startY + (index * spacing * Math.pow(2, round - 1))
+        };
+      });
 
       rounds.push(roundMatches);
-    }
-
-    // Asignar participantes a la primera ronda
-    if (rounds.length > 0) {
-      const firstRound = rounds[0];
-      const shuffledParticipants = [...participants].sort(() => Math.random() - 0.5);
-      
-      firstRound.forEach((match, index) => {
-        const participant1 = shuffledParticipants[index * 2];
-        const participant2 = shuffledParticipants[index * 2 + 1];
-        
-        if (participant1) match.participant1 = participant1;
-        if (participant2) match.participant2 = participant2;
-      });
     }
 
     setBracketData({
@@ -159,61 +160,60 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
   };
 
   const generateDoubleEliminationBracket = () => {
-    const participantCount = participants.length;
-    const winnersRounds = Math.ceil(Math.log2(participantCount));
-    const losersRounds = (winnersRounds - 1) * 2;
+    // Implementación básica - se puede expandir
+    generateSingleEliminationBracket();
+  };
+
+  const generateRoundRobinBracket = () => {
+    // Para round robin, todas las partidas están en la "ronda 1"
+    const roundRobinMatches = matches.filter(m => m.round === 1);
     
-    const winnersBracket: Match[][] = [];
-    const losersBracket: Match[][] = [];
-
-    // Generar Winners Bracket
-    for (let round = 1; round <= winnersRounds; round++) {
-      const matchesInRound = Math.pow(2, winnersRounds - round);
-      const roundMatches: Match[] = [];
-
-      for (let matchNum = 1; matchNum <= matchesInRound; matchNum++) {
-        const existingMatch = matches.find(m => m.round === round && m.matchNumber === matchNum);
-        
-        roundMatches.push(existingMatch || {
-          id: `winners-${round}-${matchNum}`,
-          round,
-          matchNumber: matchNum,
-          score1: 0,
-          score2: 0,
-          status: 'pending',
-          position: {
-            x: (round - 1) * 280 + 50,
-            y: (matchNum - 1) * 100 + 50
-          }
-        });
-      }
-
-      winnersBracket.push(roundMatches);
-    }
-
-    // Generar Losers Bracket
-    for (let round = 1; round <= losersRounds; round++) {
-      const roundMatches: Match[] = [];
-      // Lógica más compleja para losers bracket
-      losersBracket.push(roundMatches);
-    }
+    // Organizar en una cuadrícula
+    const matchesPerRow = Math.ceil(Math.sqrt(roundRobinMatches.length));
+    roundRobinMatches.forEach((match, index) => {
+      const row = Math.floor(index / matchesPerRow);
+      const col = index % matchesPerRow;
+      
+      match.position = {
+        x: col * 280 + 50,
+        y: row * 150 + 50
+      };
+    });
 
     setBracketData({
-      rounds: winnersBracket,
-      maxRounds: winnersRounds,
-      winnersBracket,
-      losersBracket
+      rounds: [roundRobinMatches],
+      maxRounds: 1,
+      winnersBracket: [roundRobinMatches],
+      losersBracket: []
     });
   };
 
   const handleMatchClick = (match: Match) => {
-    if (isAdmin && match.participant1 && match.participant2) {
+    if (isAdmin) {
       setSelectedMatch(match);
+      setEditingMatch({
+        participant1Id: match.participant1?.id || '',
+        participant2Id: match.participant2?.id || '',
+        winnerId: match.winnerId || '',
+        score1: match.score1,
+        score2: match.score2,
+        mapPlayed: match.mapPlayed || '',
+        notes: match.notes || ''
+      });
       setShowMatchModal(true);
     }
   };
 
-  const updateMatchResult = async (matchId: string, winnerId: string, score1: number, score2: number) => {
+  const handleParticipantClick = (participant: Participant) => {
+    if (isAdmin) {
+      setSelectedParticipant(participant);
+      setShowEditParticipantModal(true);
+    }
+  };
+
+  const updateMatchResult = async () => {
+    if (!selectedMatch) return;
+
     try {
       const response = await fetch(`${API_BASE_URL}/tournaments/update-match.php`, {
         method: 'POST',
@@ -222,23 +222,62 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
         },
         credentials: 'include',
         body: JSON.stringify({
-          matchId,
-          winnerId,
-          score1,
-          score2,
-          status: 'completed'
+          matchId: selectedMatch.id,
+          winnerId: editingMatch.winnerId || null,
+          score1: editingMatch.score1,
+          score2: editingMatch.score2,
+          mapPlayed: editingMatch.mapPlayed || null,
+          status: editingMatch.winnerId ? 'completed' : selectedMatch.status,
+          notes: editingMatch.notes || null
         })
       });
 
       const data = await response.json();
       
       if (data.success && onMatchUpdate) {
-        onMatchUpdate(matchId, { winnerId, score1, score2, status: 'completed' });
+        onMatchUpdate(selectedMatch.id, {
+          winnerId: editingMatch.winnerId,
+          score1: editingMatch.score1,
+          score2: editingMatch.score2,
+          mapPlayed: editingMatch.mapPlayed,
+          status: editingMatch.winnerId ? 'completed' : selectedMatch.status,
+          notes: editingMatch.notes
+        });
         setShowMatchModal(false);
         setSelectedMatch(null);
       }
     } catch (error) {
       console.error('Error updating match:', error);
+    }
+  };
+
+  const swapParticipants = async (match: Match) => {
+    if (!isAdmin || !match.participant1 || !match.participant2) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/tournaments/update-match.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          matchId: match.id,
+          participant1Id: match.participant2.id,
+          participant2Id: match.participant1.id
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success && onMatchUpdate) {
+        onMatchUpdate(match.id, {
+          participant1: match.participant2,
+          participant2: match.participant1
+        });
+      }
+    } catch (error) {
+      console.error('Error swapping participants:', error);
     }
   };
 
@@ -260,6 +299,25 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
     }
   };
 
+  const getTeamDisplayName = (participant: Participant) => {
+    if (participant.participantType === 'team') {
+      return participant.teamName || 'Equipo';
+    } else if (participant.participantType === 'clan') {
+      return `[${participant.clanTag}] ${participant.participantName}`;
+    } else {
+      return participant.participantName;
+    }
+  };
+
+  const getTeamMembers = (participant: Participant) => {
+    if (participant.participantType === 'team' && participant.teamMembers) {
+      return participant.teamMembers.join(', ');
+    } else if (participant.participantType === 'clan' && teamSize > 1) {
+      return `Equipo ${teamSize}v${teamSize}`;
+    }
+    return null;
+  };
+
   const renderMatch = (match: Match, roundIndex: number) => {
     const StatusIcon = getStatusIcon(match.status);
     const isWinner1 = match.winnerId === match.participant1?.id;
@@ -269,10 +327,10 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
       <div
         key={match.id}
         className={`
-          relative bg-slate-800/60 backdrop-blur-sm rounded-lg border-2 p-3 min-w-[240px] cursor-pointer
+          relative bg-slate-800/60 backdrop-blur-sm rounded-lg border-2 p-3 min-w-[280px] cursor-pointer
           transition-all duration-300 hover:scale-105 hover:shadow-lg
           ${getMatchStatusColor(match.status)}
-          ${isAdmin && match.participant1 && match.participant2 ? 'hover:border-blue-400' : ''}
+          ${isAdmin ? 'hover:border-blue-400' : ''}
         `}
         onClick={() => handleMatchClick(match)}
         style={{
@@ -286,21 +344,52 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
           <div className="flex items-center space-x-2">
             <StatusIcon className="w-4 h-4 text-blue-400" />
             <span className="text-xs font-medium text-blue-300">
-              R{match.round} - M{match.matchNumber}
+              {bracketType === 'round_robin' ? `Partida ${match.matchNumber}` : `R${match.round} - M${match.matchNumber}`}
             </span>
           </div>
-          {match.status === 'completed' && (
-            <Trophy className="w-4 h-4 text-yellow-400" />
-          )}
+          <div className="flex items-center space-x-1">
+            {match.status === 'completed' && (
+              <Trophy className="w-4 h-4 text-yellow-400" />
+            )}
+            {isAdmin && (
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    swapParticipants(match);
+                  }}
+                  className="p-1 hover:bg-blue-600/20 rounded text-blue-400 transition-colors"
+                  title="Intercambiar participantes"
+                >
+                  <Shuffle className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMatchClick(match);
+                  }}
+                  className="p-1 hover:bg-green-600/20 rounded text-green-400 transition-colors"
+                  title="Editar partida"
+                >
+                  <Edit className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Participants */}
         <div className="space-y-2">
           {/* Participant 1 */}
           <div className={`
-            flex items-center justify-between p-2 rounded border
+            flex items-center justify-between p-2 rounded border cursor-pointer
             ${isWinner1 ? 'border-green-400 bg-green-400/20' : 'border-slate-600 bg-slate-700/40'}
-          `}>
+            ${isAdmin ? 'hover:bg-slate-600/60' : ''}
+          `}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (match.participant1) handleParticipantClick(match.participant1);
+          }}>
             <div className="flex items-center space-x-2 flex-1 min-w-0">
               {match.participant1 ? (
                 <>
@@ -315,11 +404,11 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
                     <span className={`text-sm font-medium truncate block ${
                       isWinner1 ? 'text-green-200' : 'text-white'
                     }`}>
-                      {match.participant1.participantName}
+                      {getTeamDisplayName(match.participant1)}
                     </span>
-                    {match.participant1.clanTag && (
-                      <span className="text-xs text-purple-300">
-                        [{match.participant1.clanTag}]
+                    {getTeamMembers(match.participant1) && (
+                      <span className="text-xs text-blue-300 truncate block">
+                        {getTeamMembers(match.participant1)}
                       </span>
                     )}
                   </div>
@@ -339,15 +428,22 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
           {/* VS Divider */}
           <div className="flex items-center justify-center">
             <div className="w-full h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent"></div>
-            <span className="px-2 text-xs font-bold text-blue-400 bg-slate-800 rounded">VS</span>
+            <span className="px-2 text-xs font-bold text-blue-400 bg-slate-800 rounded">
+              {tournamentType === 'team' && teamSize > 1 ? `${teamSize}v${teamSize}` : 'VS'}
+            </span>
             <div className="w-full h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent"></div>
           </div>
 
           {/* Participant 2 */}
           <div className={`
-            flex items-center justify-between p-2 rounded border
+            flex items-center justify-between p-2 rounded border cursor-pointer
             ${isWinner2 ? 'border-green-400 bg-green-400/20' : 'border-slate-600 bg-slate-700/40'}
-          `}>
+            ${isAdmin ? 'hover:bg-slate-600/60' : ''}
+          `}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (match.participant2) handleParticipantClick(match.participant2);
+          }}>
             <div className="flex items-center space-x-2 flex-1 min-w-0">
               {match.participant2 ? (
                 <>
@@ -362,11 +458,11 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
                     <span className={`text-sm font-medium truncate block ${
                       isWinner2 ? 'text-green-200' : 'text-white'
                     }`}>
-                      {match.participant2.participantName}
+                      {getTeamDisplayName(match.participant2)}
                     </span>
-                    {match.participant2.clanTag && (
-                      <span className="text-xs text-purple-300">
-                        [{match.participant2.clanTag}]
+                    {getTeamMembers(match.participant2) && (
+                      <span className="text-xs text-blue-300 truncate block">
+                        {getTeamMembers(match.participant2)}
                       </span>
                     )}
                   </div>
@@ -385,8 +481,13 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
         </div>
 
         {/* Match Info */}
-        {(match.scheduledAt || match.completedAt) && (
-          <div className="mt-2 pt-2 border-t border-slate-600">
+        <div className="mt-2 space-y-1">
+          {match.mapPlayed && (
+            <div className="text-xs text-orange-300">
+              Mapa: {match.mapPlayed}
+            </div>
+          )}
+          {(match.scheduledAt || match.completedAt) && (
             <div className="flex items-center space-x-2 text-xs text-blue-400">
               <Calendar className="w-3 h-3" />
               <span>
@@ -398,13 +499,20 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
                 }
               </span>
             </div>
-          </div>
-        )}
+          )}
+          {match.notes && (
+            <div className="text-xs text-gray-400 italic truncate">
+              {match.notes}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
 
   const renderConnectors = () => {
+    if (bracketType === 'round_robin') return null;
+    
     const connectors: JSX.Element[] = [];
     
     bracketData.rounds.forEach((round, roundIndex) => {
@@ -416,7 +524,7 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
           const nextMatch = nextRound[nextMatchIndex];
           
           if (nextMatch) {
-            const startX = match.position.x + 240;
+            const startX = match.position.x + 280;
             const startY = match.position.y + 60;
             const endX = nextMatch.position.x;
             const endY = nextMatch.position.y + 60;
@@ -464,6 +572,21 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
   };
 
   const renderRoundHeaders = () => {
+    if (bracketType === 'round_robin') {
+      return (
+        <div
+          className="absolute bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg"
+          style={{
+            left: 50,
+            top: 10,
+            zIndex: 10
+          }}
+        >
+          Round Robin - Todos vs Todos
+        </div>
+      );
+    }
+
     return bracketData.rounds.map((round, index) => {
       const roundNames = {
         [bracketData.maxRounds]: 'Final',
@@ -500,8 +623,12 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
     );
   }
 
-  const bracketWidth = bracketData.maxRounds * 300 + 100;
-  const bracketHeight = Math.max(600, bracketData.rounds[0]?.length * 120 + 100);
+  const bracketWidth = bracketType === 'round_robin' 
+    ? Math.ceil(Math.sqrt(matches.length)) * 280 + 100
+    : bracketData.maxRounds * 300 + 100;
+  const bracketHeight = bracketType === 'round_robin'
+    ? Math.ceil(matches.length / Math.ceil(Math.sqrt(matches.length))) * 150 + 100
+    : Math.max(600, bracketData.rounds[0]?.length * 120 + 100);
 
   return (
     <div className="space-y-6">
@@ -512,10 +639,15 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
             <Trophy className="w-6 h-6 text-yellow-400" />
             <div>
               <h3 className="text-lg font-bold text-white">
-                Bracket - {bracketType === 'single_elimination' ? 'Eliminación Simple' : 'Eliminación Doble'}
+                Bracket {tournamentType === 'team' && teamSize > 1 ? `${teamSize}v${teamSize}` : ''} - {
+                  bracketType === 'single_elimination' ? 'Eliminación Simple' :
+                  bracketType === 'double_elimination' ? 'Eliminación Doble' :
+                  'Round Robin'
+                }
               </h3>
               <p className="text-blue-300 text-sm">
-                {participants.length} participantes • {bracketData.maxRounds} rondas
+                {participants.length} participantes • {matches.length} partidas
+                {tournamentType === 'team' && teamSize > 1 && ` • Equipos de ${teamSize} jugadores`}
               </p>
             </div>
           </div>
@@ -533,9 +665,36 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
               <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
               <span className="text-blue-300">Pendiente</span>
             </div>
+            {isAdmin && (
+              <div className="flex items-center space-x-2">
+                <Edit className="w-3 h-3 text-purple-400" />
+                <span className="text-purple-300">Editable</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Admin Controls */}
+      {isAdmin && (
+        <div className="bg-slate-800/40 backdrop-blur-lg rounded-xl border border-blue-700/30 p-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-lg font-bold text-white">Controles de Administrador</h4>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={onBracketRegenerate}
+                className="flex items-center space-x-2 px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 rounded-lg text-blue-300 transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Regenerar Bracket</span>
+              </button>
+            </div>
+          </div>
+          <p className="text-blue-400 text-sm mt-2">
+            Haz clic en las partidas para editarlas, en los participantes para cambiarlos, o usa los controles para reorganizar el bracket.
+          </p>
+        </div>
+      )}
 
       {/* Bracket Visualization */}
       <div className="bg-slate-800/40 backdrop-blur-lg rounded-xl border border-blue-700/30 p-6 overflow-auto">
@@ -559,7 +718,7 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
           )}
           
           {/* Winner Podium */}
-          {bracketData.rounds.length > 0 && bracketData.rounds[bracketData.rounds.length - 1][0]?.winnerId && (
+          {bracketType !== 'round_robin' && bracketData.rounds.length > 0 && bracketData.rounds[bracketData.rounds.length - 1][0]?.winnerId && (
             <div
               className="absolute bg-gradient-to-r from-yellow-600 to-orange-600 rounded-xl p-4 border-2 border-yellow-400"
               style={{
@@ -578,20 +737,27 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
                     : finalMatch.participant2;
                   
                   return winner ? (
-                    <div className="flex items-center space-x-3">
-                      {winner.participantAvatar && (
-                        <img
-                          src={winner.participantAvatar}
-                          alt={winner.participantName}
-                          className="w-12 h-12 rounded-full border-2 border-yellow-400"
-                        />
-                      )}
-                      <div>
-                        <p className="font-bold text-yellow-200">{winner.participantName}</p>
-                        {winner.clanTag && (
-                          <p className="text-sm text-yellow-300">[{winner.clanTag}]</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-center space-x-3">
+                        {winner.participantAvatar && (
+                          <img
+                            src={winner.participantAvatar}
+                            alt={winner.participantName}
+                            className="w-12 h-12 rounded-full border-2 border-yellow-400"
+                          />
                         )}
+                        <div>
+                          <p className="font-bold text-yellow-200">{getTeamDisplayName(winner)}</p>
+                          {getTeamMembers(winner) && (
+                            <p className="text-sm text-yellow-300">{getTeamMembers(winner)}</p>
+                          )}
+                        </div>
                       </div>
+                      {tournamentType === 'team' && teamSize > 1 && (
+                        <div className="text-xs text-yellow-400">
+                          Equipo {teamSize}v{teamSize}
+                        </div>
+                      )}
                     </div>
                   ) : null;
                 })()}
@@ -605,6 +771,9 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
       {showMatchModal && selectedMatch && (
         <MatchUpdateModal
           match={selectedMatch}
+          editingMatch={editingMatch}
+          setEditingMatch={setEditingMatch}
+          participants={participants}
           onClose={() => {
             setShowMatchModal(false);
             setSelectedMatch(null);
@@ -619,22 +788,23 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
 // Modal para actualizar resultados de matches
 interface MatchUpdateModalProps {
   match: Match;
+  editingMatch: any;
+  setEditingMatch: (data: any) => void;
+  participants: Participant[];
   onClose: () => void;
-  onUpdate: (matchId: string, winnerId: string, score1: number, score2: number) => void;
+  onUpdate: () => void;
 }
 
-const MatchUpdateModal: React.FC<MatchUpdateModalProps> = ({ match, onClose, onUpdate }) => {
-  const [score1, setScore1] = useState(match.score1);
-  const [score2, setScore2] = useState(match.score2);
-  const [selectedWinner, setSelectedWinner] = useState<string>(match.winnerId || '');
-
+const MatchUpdateModal: React.FC<MatchUpdateModalProps> = ({ 
+  match, 
+  editingMatch, 
+  setEditingMatch, 
+  participants, 
+  onClose, 
+  onUpdate 
+}) => {
   const handleSubmit = () => {
-    if (!selectedWinner) {
-      alert('Selecciona un ganador');
-      return;
-    }
-    
-    onUpdate(match.id, selectedWinner, score1, score2);
+    onUpdate();
   };
 
   return (
@@ -646,7 +816,7 @@ const MatchUpdateModal: React.FC<MatchUpdateModalProps> = ({ match, onClose, onU
             onClick={onClose}
             className="p-2 hover:bg-slate-700 rounded-lg text-blue-300 transition-colors"
           >
-            ×
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -654,20 +824,20 @@ const MatchUpdateModal: React.FC<MatchUpdateModalProps> = ({ match, onClose, onU
           {/* Participant 1 */}
           <div className="space-y-2">
             <label className="block text-blue-300 text-sm font-medium">
-              {match.participant1?.participantName}
+              {match.participant1?.participantName || 'Participante 1'}
             </label>
             <div className="flex items-center space-x-3">
               <input
                 type="number"
                 min="0"
-                value={score1}
-                onChange={(e) => setScore1(parseInt(e.target.value) || 0)}
+                value={editingMatch.score1}
+                onChange={(e) => setEditingMatch({ ...editingMatch, score1: parseInt(e.target.value) || 0 })}
                 className="flex-1 px-3 py-2 bg-slate-700/40 border border-blue-600/30 rounded-lg text-white"
               />
               <button
-                onClick={() => setSelectedWinner(match.participant1?.id || '')}
+                onClick={() => setEditingMatch({ ...editingMatch, winnerId: match.participant1?.id || '' })}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  selectedWinner === match.participant1?.id
+                  editingMatch.winnerId === match.participant1?.id
                     ? 'bg-green-600 text-white'
                     : 'bg-slate-600 text-gray-300 hover:bg-slate-500'
                 }`}
@@ -680,20 +850,20 @@ const MatchUpdateModal: React.FC<MatchUpdateModalProps> = ({ match, onClose, onU
           {/* Participant 2 */}
           <div className="space-y-2">
             <label className="block text-blue-300 text-sm font-medium">
-              {match.participant2?.participantName}
+              {match.participant2?.participantName || 'Participante 2'}
             </label>
             <div className="flex items-center space-x-3">
               <input
                 type="number"
                 min="0"
-                value={score2}
-                onChange={(e) => setScore2(parseInt(e.target.value) || 0)}
+                value={editingMatch.score2}
+                onChange={(e) => setEditingMatch({ ...editingMatch, score2: parseInt(e.target.value) || 0 })}
                 className="flex-1 px-3 py-2 bg-slate-700/40 border border-blue-600/30 rounded-lg text-white"
               />
               <button
-                onClick={() => setSelectedWinner(match.participant2?.id || '')}
+                onClick={() => setEditingMatch({ ...editingMatch, winnerId: match.participant2?.id || '' })}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  selectedWinner === match.participant2?.id
+                  editingMatch.winnerId === match.participant2?.id
                     ? 'bg-green-600 text-white'
                     : 'bg-slate-600 text-gray-300 hover:bg-slate-500'
                 }`}
@@ -701,6 +871,30 @@ const MatchUpdateModal: React.FC<MatchUpdateModalProps> = ({ match, onClose, onU
                 Ganador
               </button>
             </div>
+          </div>
+
+          {/* Map Played */}
+          <div>
+            <label className="block text-blue-300 text-sm font-medium mb-2">Mapa Jugado</label>
+            <input
+              type="text"
+              value={editingMatch.mapPlayed}
+              onChange={(e) => setEditingMatch({ ...editingMatch, mapPlayed: e.target.value })}
+              className="w-full px-3 py-2 bg-slate-700/40 border border-blue-600/30 rounded-lg text-white placeholder-blue-300"
+              placeholder="Nombre del mapa"
+            />
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-blue-300 text-sm font-medium mb-2">Notas</label>
+            <textarea
+              value={editingMatch.notes}
+              onChange={(e) => setEditingMatch({ ...editingMatch, notes: e.target.value })}
+              rows={3}
+              className="w-full px-3 py-2 bg-slate-700/40 border border-blue-600/30 rounded-lg text-white placeholder-blue-300 resize-none"
+              placeholder="Notas adicionales..."
+            />
           </div>
 
           <div className="flex space-x-3 pt-4">

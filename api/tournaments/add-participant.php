@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $data = getJsonInput();
 
-if (!isset($data['tournamentId']) || !isset($data['participantType']) || !isset($data['participantId'])) {
+if (!isset($data['tournamentId']) || !isset($data['participantType'])) {
     jsonResponse([
         'success' => false,
         'message' => 'Datos de participante requeridos'
@@ -49,7 +49,7 @@ try {
         CREATE TABLE IF NOT EXISTS `tournament_participants` (
           `id` int(11) NOT NULL AUTO_INCREMENT,
           `tournament_id` int(11) NOT NULL,
-          `participant_type` enum('user','clan') NOT NULL,
+          `participant_type` enum('user','clan','team') NOT NULL,
           `participant_id` varchar(50) NOT NULL,
           `team_name` varchar(255) DEFAULT NULL,
           `team_members` text DEFAULT NULL,
@@ -75,7 +75,7 @@ try {
     }
 
     // Verificar que el torneo existe y obtener información
-    $tournamentQuery = "SELECT max_participants, COALESCE(participant_count, 0) as participant_count, status FROM tournaments WHERE id = :id";
+    $tournamentQuery = "SELECT max_participants, COALESCE(participant_count, 0) as participant_count, status, type, team_size FROM tournaments WHERE id = :id";
     $tournamentStmt = $db->prepare($tournamentQuery);
     $tournamentStmt->bindParam(':id', $data['tournamentId']);
     $tournamentStmt->execute();
@@ -104,23 +104,55 @@ try {
         ], 400);
     }
 
-    // Verificar que el participante existe
-    if ($data['participantType'] === 'user') {
-        $checkQuery = "SELECT id, username FROM users WHERE id = :id AND is_active = 1";
-    } else {
-        $checkQuery = "SELECT id, name FROM clans WHERE id = :id";
-    }
-    
-    $checkStmt = $db->prepare($checkQuery);
-    $checkStmt->bindParam(':id', $data['participantId']);
-    $checkStmt->execute();
-    $participant = $checkStmt->fetch();
-
-    if (!$participant) {
+    // Validar tipo de participante según el tipo de torneo
+    $validParticipantTypes = ['user', 'clan', 'team'];
+    if (!in_array($data['participantType'], $validParticipantTypes)) {
         jsonResponse([
             'success' => false,
-            'message' => 'Participante no encontrado o inactivo'
-        ], 404);
+            'message' => 'Tipo de participante inválido'
+        ], 400);
+    }
+
+    // Para equipos personalizados, generar un ID único
+    $participantId = $data['participantId'] ?? null;
+    if ($data['participantType'] === 'team') {
+        $participantId = 'team_' . uniqid();
+    }
+
+    if (!$participantId && $data['participantType'] !== 'team') {
+        jsonResponse([
+            'success' => false,
+            'message' => 'ID de participante requerido'
+        ], 400);
+    }
+
+    // Verificar que el participante existe (excepto para equipos personalizados)
+    if ($data['participantType'] === 'user') {
+        $checkQuery = "SELECT id, username FROM users WHERE id = :id AND is_active = 1";
+        $checkStmt = $db->prepare($checkQuery);
+        $checkStmt->bindParam(':id', $participantId);
+        $checkStmt->execute();
+        $participant = $checkStmt->fetch();
+
+        if (!$participant) {
+            jsonResponse([
+                'success' => false,
+                'message' => 'Usuario no encontrado o inactivo'
+            ], 404);
+        }
+    } elseif ($data['participantType'] === 'clan') {
+        $checkQuery = "SELECT id, name FROM clans WHERE id = :id";
+        $checkStmt = $db->prepare($checkQuery);
+        $checkStmt->bindParam(':id', $participantId);
+        $checkStmt->execute();
+        $participant = $checkStmt->fetch();
+
+        if (!$participant) {
+            jsonResponse([
+                'success' => false,
+                'message' => 'Clan no encontrado'
+            ], 404);
+        }
     }
 
     // Verificar que el participante no esté ya registrado
@@ -128,7 +160,7 @@ try {
     $duplicateStmt = $db->prepare($duplicateQuery);
     $duplicateStmt->bindParam(':tournament_id', $data['tournamentId']);
     $duplicateStmt->bindParam(':participant_type', $data['participantType']);
-    $duplicateStmt->bindParam(':participant_id', $data['participantId']);
+    $duplicateStmt->bindParam(':participant_id', $participantId);
     $duplicateStmt->execute();
 
     if ($duplicateStmt->fetch()) {
@@ -138,20 +170,50 @@ try {
         ], 400);
     }
 
+    // Para equipos, validar miembros
+    $teamMembers = null;
+    if ($data['participantType'] === 'team' && isset($data['teamMembers']) && is_array($data['teamMembers'])) {
+        // Verificar que el número de miembros coincida con el tamaño del equipo
+        if (count($data['teamMembers']) !== $tournament['team_size']) {
+            jsonResponse([
+                'success' => false,
+                'message' => "El equipo debe tener exactamente {$tournament['team_size']} miembros"
+            ], 400);
+        }
+
+        // Verificar que todos los miembros existan y estén activos
+        foreach ($data['teamMembers'] as $memberId) {
+            $memberQuery = "SELECT id FROM users WHERE id = :id AND is_active = 1";
+            $memberStmt = $db->prepare($memberQuery);
+            $memberStmt->bindParam(':id', $memberId);
+            $memberStmt->execute();
+            
+            if (!$memberStmt->fetch()) {
+                jsonResponse([
+                    'success' => false,
+                    'message' => 'Uno o más miembros del equipo no son válidos'
+                ], 400);
+            }
+        }
+
+        $teamMembers = json_encode($data['teamMembers']);
+    }
+
     // Insertar participante
     $insertQuery = "
         INSERT INTO tournament_participants (
-            tournament_id, participant_type, participant_id, team_name, status
+            tournament_id, participant_type, participant_id, team_name, team_members, status
         ) VALUES (
-            :tournament_id, :participant_type, :participant_id, :team_name, 'registered'
+            :tournament_id, :participant_type, :participant_id, :team_name, :team_members, 'registered'
         )
     ";
 
     $insertStmt = $db->prepare($insertQuery);
     $insertStmt->bindParam(':tournament_id', $data['tournamentId']);
     $insertStmt->bindParam(':participant_type', $data['participantType']);
-    $insertStmt->bindParam(':participant_id', $data['participantId']);
+    $insertStmt->bindParam(':participant_id', $participantId);
     $insertStmt->bindParam(':team_name', $data['teamName'] ?? null);
+    $insertStmt->bindParam(':team_members', $teamMembers);
     $insertStmt->execute();
 
     // Actualizar contador de participantes
