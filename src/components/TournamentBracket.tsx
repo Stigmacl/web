@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Trophy, Users, Calendar, Crown, Target, Play, CheckCircle, Clock, ArrowRight, Zap, Award, Medal, Edit, Save, X, Plus, Trash2, Shuffle, RotateCcw, User, Shield, Move, Lock, Unlock } from 'lucide-react';
+import { Trophy, Users, Target, Edit, Save, X, Plus, Trash2, Settings, Crown, Shield, Star, Zap, AlertTriangle, CheckCircle, MapPin, Calendar, Clock, RefreshCw, Eye, EyeOff, Move, Lock, Unlock, Type, Tag, Award, Medal, UserCheck } from 'lucide-react';
 
 interface Participant {
   id: string;
@@ -9,8 +9,7 @@ interface Participant {
   participantAvatar?: string;
   clanTag?: string;
   teamName?: string;
-  teamMembers?: string[];
-  seed?: number;
+  teamMembers: string[];
 }
 
 interface Match {
@@ -19,7 +18,10 @@ interface Match {
   matchNumber: number;
   participant1?: Participant;
   participant2?: Participant;
+  team1Participants?: Participant[];
+  team2Participants?: Participant[];
   winnerId?: string;
+  winnerTeam?: number;
   score1: number;
   score2: number;
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
@@ -27,11 +29,9 @@ interface Match {
   completedAt?: string;
   mapPlayed?: string;
   notes?: string;
-  position: {
-    x: number;
-    y: number;
-  };
-  isLocked?: boolean; // Nueva propiedad para bloquear posición
+  position: { x: number; y: number };
+  team1CustomName?: string;
+  team2CustomName?: string;
 }
 
 interface TournamentBracketProps {
@@ -40,12 +40,11 @@ interface TournamentBracketProps {
   teamSize: number;
   participants: Participant[];
   matches: Match[];
-  bracketType: 'single_elimination' | 'double_elimination' | 'round_robin';
-  isAdmin?: boolean;
-  onMatchUpdate?: (matchId: string, updates: any) => void;
-  onParticipantUpdate?: (participantId: string, updates: any) => void;
-  onBracketRegenerate?: () => void;
-  onRefreshData?: () => void;
+  bracketType: 'single_elimination' | 'double_elimination' | 'round_robin' | 'swiss';
+  isAdmin: boolean;
+  onMatchUpdate: (matchId: string, updates: any) => void;
+  onBracketRegenerate: () => void;
+  onRefreshData: () => void;
 }
 
 // Detectar automáticamente la URL base de la API
@@ -74,400 +73,99 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
   participants,
   matches,
   bracketType,
-  isAdmin = false,
+  isAdmin,
   onMatchUpdate,
-  onParticipantUpdate,
   onBracketRegenerate,
   onRefreshData
 }) => {
-  const [bracketData, setBracketData] = useState<{
-    rounds: Match[][];
-    maxRounds: number;
-    winnersBracket: Match[][];
-    losersBracket: Match[][];
-  }>({
-    rounds: [],
-    maxRounds: 0,
-    winnersBracket: [],
-    losersBracket: []
-  });
-
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-  const [showMatchModal, setShowMatchModal] = useState(false);
-  const [editingMatch, setEditingMatch] = useState<{
-    participant1Id: string;
-    participant2Id: string;
-    winnerId: string;
-    score1: number;
-    score2: number;
-    mapPlayed: string;
-    notes: string;
-    status: string;
-  }>({
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showTeamNamesModal, setShowTeamNamesModal] = useState(false);
+  const [showRoundTitleModal, setShowRoundTitleModal] = useState(false);
+  const [showMatchEditModal, setShowMatchEditModal] = useState(false);
+  const [showChampionModal, setShowChampionModal] = useState(false);
+  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
+  const [editingTeamNames, setEditingTeamNames] = useState<{matchId: string, team1Name: string, team2Name: string} | null>(null);
+  const [editingRoundTitle, setEditingRoundTitle] = useState<{round: number, title: string} | null>(null);
+  const [roundTitles, setRoundTitles] = useState<Record<number, string>>({});
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [draggedMatch, setDraggedMatch] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [showPositionControls, setShowPositionControls] = useState(false);
+  const [manualChampion, setManualChampion] = useState<{
+    type: 'individual' | 'team';
+    participantId?: string;
+    teamParticipants?: string[];
+    name: string;
+  } | null>(null);
+  const bracketRef = useRef<HTMLDivElement>(null);
+
+  const [newMatch, setNewMatch] = useState({
+    round: 1,
+    matchNumber: 1,
     participant1Id: '',
     participant2Id: '',
-    winnerId: '',
-    score1: 0,
-    score2: 0,
+    team1Participants: [] as string[],
+    team2Participants: [] as string[],
     mapPlayed: '',
-    notes: '',
-    status: 'pending'
+    scheduledAt: '',
+    notes: ''
   });
 
-  // Estados para drag & drop
-  const [isDragging, setIsDragging] = useState(false);
-  const [draggedMatch, setDraggedMatch] = useState<Match | null>(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [localMatches, setLocalMatches] = useState<Match[]>([]);
-  const [isEditMode, setIsEditMode] = useState(false);
+  // Estado para editar partida
+  const [editMatchData, setEditMatchData] = useState({
+    score1: 0,
+    score2: 0,
+    winnerId: '',
+    winnerTeam: 0,
+    status: 'pending' as 'pending' | 'in_progress' | 'completed' | 'cancelled',
+    mapPlayed: '',
+    notes: '',
+    participant1Id: '',
+    participant2Id: '',
+    team1Participants: [] as string[],
+    team2Participants: [] as string[]
+  });
 
-  // Referencias para el scroll automático
-  const bracketContainerRef = useRef<HTMLDivElement>(null);
-  const [bracketDimensions, setBracketDimensions] = useState({ width: 0, height: 0 });
-
-  // Sincronizar matches locales con props
   useEffect(() => {
-    setLocalMatches(matches.map(match => ({
-      ...match,
-      isLocked: match.isLocked || false
-    })));
-  }, [matches]);
+    loadRoundTitles();
+    loadManualChampion();
+  }, [tournamentId]);
 
-  // Regenerar bracket cada vez que cambien las partidas o participantes
-  useEffect(() => {
-    console.log('🔄 Regenerando bracket - Partidas:', localMatches.length, 'Participantes:', participants.length);
-    if (localMatches.length > 0 || participants.length > 0) {
-      generateBracket();
-    }
-  }, [participants, localMatches, bracketType]);
-
-  // Auto-refresh cada 30 segundos para mantener sincronizado
-  useEffect(() => {
-    if (!isAdmin) return; // Solo para admins
-
-    const interval = setInterval(() => {
-      console.log('🔄 Auto-refresh del bracket');
-      if (onRefreshData) {
-        onRefreshData();
-      }
-    }, 30000); // 30 segundos
-
-    return () => clearInterval(interval);
-  }, [isAdmin, onRefreshData]);
-
-  // Ajustar scroll automáticamente cuando cambie el bracket - EMPEZAR DESDE LA IZQUIERDA
-  useEffect(() => {
-    if (bracketContainerRef.current && bracketData.rounds.length > 0) {
-      const container = bracketContainerRef.current;
-      
-      // SIEMPRE empezar desde la izquierda (scroll horizontal = 0)
-      container.scrollLeft = 0;
-      
-      // Centrar verticalmente
-      const scrollTop = Math.max(0, (bracketDimensions.height - container.clientHeight) / 2);
-      container.scrollTop = scrollTop;
-    }
-  }, [bracketData, bracketDimensions]);
-
-  const generateBracket = () => {
-    console.log('🏆 Generando bracket:', bracketType);
-    if (bracketType === 'single_elimination') {
-      generateSingleEliminationBracket();
-    } else if (bracketType === 'double_elimination') {
-      generateDoubleEliminationBracket();
-    } else if (bracketType === 'round_robin') {
-      generateRoundRobinBracket();
-    }
-  };
-
-  const generateSingleEliminationBracket = () => {
-    console.log('🎯 Generando bracket de eliminación simple');
-    
-    if (localMatches.length === 0) {
-      console.log('⚠️ No hay partidas para generar bracket');
-      setBracketData({
-        rounds: [],
-        maxRounds: 0,
-        winnersBracket: [],
-        losersBracket: []
-      });
-      return;
-    }
-
-    // Agrupar partidas por ronda
-    const roundsMap = new Map<number, Match[]>();
-    localMatches.forEach(match => {
-      if (!roundsMap.has(match.round)) {
-        roundsMap.set(match.round, []);
-      }
-      roundsMap.get(match.round)!.push(match);
-    });
-
-    // Convertir a array y ordenar
-    const rounds: Match[][] = [];
-    const sortedRounds = Array.from(roundsMap.keys()).sort((a, b) => a - b);
-    const maxRounds = Math.max(...sortedRounds);
-
-    console.log('📊 Rondas encontradas:', sortedRounds, 'Max rondas:', maxRounds);
-
-    // Calcular dimensiones del bracket - EMPEZAR DESDE LA IZQUIERDA
-    const matchWidth = 350;
-    const matchHeight = 200;
-    const roundSpacing = 400;
-    const baseVerticalSpacing = 140;
-
-    let totalWidth = 0;
-    let totalHeight = 0;
-
-    sortedRounds.forEach(roundNumber => {
-      const roundMatches = roundsMap.get(roundNumber)!;
-      
-      // Ordenar partidas por número de partida
-      roundMatches.sort((a, b) => a.matchNumber - b.matchNumber);
-      
-      // Calcular posiciones para las partidas - EMPEZAR DESDE LA IZQUIERDA
-      const roundIndex = roundNumber - 1;
-      const verticalSpacing = baseVerticalSpacing * Math.pow(2, roundIndex);
-      const startY = 100;
-      
-      roundMatches.forEach((match, index) => {
-        // Si la partida no tiene posición personalizada o no está en modo edición, usar posición calculada
-        if (!match.position || (!isEditMode && !match.isLocked)) {
-          // POSICIÓN X: Empezar desde la izquierda (50px de margen)
-          const x = roundIndex * roundSpacing + 50;
-          const y = startY + (index * verticalSpacing);
-          
-          match.position = { x, y };
-        }
-        
-        // Actualizar dimensiones totales
-        totalWidth = Math.max(totalWidth, match.position.x + matchWidth);
-        totalHeight = Math.max(totalHeight, match.position.y + matchHeight);
-      });
-
-      rounds.push(roundMatches);
-    });
-
-    // Agregar padding
-    totalWidth += 100;
-    totalHeight += 200;
-
-    console.log('✅ Bracket generado con', rounds.length, 'rondas');
-    console.log('📐 Dimensiones:', totalWidth, 'x', totalHeight);
-
-    setBracketData({
-      rounds,
-      maxRounds,
-      winnersBracket: rounds,
-      losersBracket: []
-    });
-
-    setBracketDimensions({ width: totalWidth, height: totalHeight });
-  };
-
-  const generateDoubleEliminationBracket = () => {
-    console.log('🎯 Generando bracket de eliminación doble');
-    // Por ahora, usar la misma lógica que eliminación simple
-    // TODO: Implementar lógica específica para doble eliminación
-    generateSingleEliminationBracket();
-  };
-
-  const generateRoundRobinBracket = () => {
-    console.log('🎯 Generando bracket round robin');
-    
-    if (localMatches.length === 0) {
-      setBracketData({
-        rounds: [],
-        maxRounds: 0,
-        winnersBracket: [],
-        losersBracket: []
-      });
-      return;
-    }
-
-    // Para round robin, todas las partidas están en la "ronda 1" o se organizan por grupos
-    const roundRobinMatches = [...localMatches];
-    
-    // Organizar en una cuadrícula más compacta - EMPEZAR DESDE LA IZQUIERDA
-    const matchesPerRow = Math.ceil(Math.sqrt(roundRobinMatches.length));
-    const matchWidth = 350;
-    const matchHeight = 200;
-    const horizontalSpacing = 370;
-    const verticalSpacing = 220;
-    
-    let totalWidth = 0;
-    let totalHeight = 0;
-    
-    roundRobinMatches.forEach((match, index) => {
-      // Si la partida no tiene posición personalizada o no está en modo edición, usar posición calculada
-      if (!match.position || (!isEditMode && !match.isLocked)) {
-        const row = Math.floor(index / matchesPerRow);
-        const col = index % matchesPerRow;
-        
-        // EMPEZAR DESDE LA IZQUIERDA
-        const x = col * horizontalSpacing + 50;
-        const y = row * verticalSpacing + 100;
-        
-        match.position = { x, y };
-      }
-      
-      totalWidth = Math.max(totalWidth, match.position.x + matchWidth);
-      totalHeight = Math.max(totalHeight, match.position.y + matchHeight);
-    });
-
-    // Agregar padding
-    totalWidth += 100;
-    totalHeight += 200;
-
-    setBracketData({
-      rounds: [roundRobinMatches],
-      maxRounds: 1,
-      winnersBracket: [roundRobinMatches],
-      losersBracket: []
-    });
-
-    setBracketDimensions({ width: totalWidth, height: totalHeight });
-  };
-
-  // Funciones de drag & drop
-  const handleMouseDown = (e: React.MouseEvent, match: Match) => {
-    if (!isAdmin || !isEditMode || match.isLocked) return;
-    
-    e.preventDefault();
-    setIsDragging(true);
-    setDraggedMatch(match);
-    
-    const rect = e.currentTarget.getBoundingClientRect();
-    const containerRect = bracketContainerRef.current?.getBoundingClientRect();
-    
-    if (containerRect) {
-      setDragOffset({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      });
-    }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !draggedMatch || !bracketContainerRef.current) return;
-    
-    const containerRect = bracketContainerRef.current.getBoundingClientRect();
-    const newX = e.clientX - containerRect.left - dragOffset.x + bracketContainerRef.current.scrollLeft;
-    const newY = e.clientY - containerRect.top - dragOffset.y + bracketContainerRef.current.scrollTop;
-    
-    // Actualizar posición local
-    setLocalMatches(prev => prev.map(match => 
-      match.id === draggedMatch.id 
-        ? { ...match, position: { x: Math.max(0, newX), y: Math.max(0, newY) } }
-        : match
-    ));
-  };
-
-  const handleMouseUp = async () => {
-    if (!isDragging || !draggedMatch) return;
-    
-    setIsDragging(false);
-    
-    // Guardar nueva posición en la base de datos
-    const updatedMatch = localMatches.find(m => m.id === draggedMatch.id);
-    if (updatedMatch && onMatchUpdate) {
-      try {
-        await saveMatchPosition(updatedMatch);
-      } catch (error) {
-        console.error('Error saving match position:', error);
-      }
-    }
-    
-    setDraggedMatch(null);
-  };
-
-  const saveMatchPosition = async (match: Match) => {
+  const loadRoundTitles = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/tournaments/update-match-position.php`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          matchId: match.id,
-          position: match.position,
-          isLocked: match.isLocked
-        })
+      const response = await fetch(`${API_BASE_URL}/tournaments/get-round-titles.php?tournamentId=${tournamentId}`, {
+        credentials: 'include'
       });
-
       const data = await response.json();
       
-      if (!data.success) {
-        console.error('Error saving match position:', data.message);
+      if (data.success) {
+        setRoundTitles(data.roundTitles);
       }
     } catch (error) {
-      console.error('Error saving match position:', error);
+      console.error('Error loading round titles:', error);
     }
   };
 
-  const toggleMatchLock = async (match: Match) => {
-    const updatedMatch = { ...match, isLocked: !match.isLocked };
-    
-    setLocalMatches(prev => prev.map(m => 
-      m.id === match.id ? updatedMatch : m
-    ));
-    
-    await saveMatchPosition(updatedMatch);
-  };
-
-  const resetMatchPositions = () => {
-    if (confirm('¿Estás seguro de que quieres resetear todas las posiciones de las partidas?')) {
-      setLocalMatches(prev => prev.map(match => ({
-        ...match,
-        position: { x: 0, y: 0 },
-        isLocked: false
-      })));
-      
-      // Regenerar posiciones automáticas
-      generateBracket();
-    }
-  };
-
-  const handleMatchClick = (match: Match) => {
-    if (isAdmin && !isDragging) {
-      setSelectedMatch(match);
-      setEditingMatch({
-        participant1Id: match.participant1?.id || '',
-        participant2Id: match.participant2?.id || '',
-        winnerId: match.winnerId || '',
-        score1: match.score1,
-        score2: match.score2,
-        mapPlayed: match.mapPlayed || '',
-        notes: match.notes || '',
-        status: match.status
-      });
-      setShowMatchModal(true);
-    }
-  };
-
-  const updateMatchResult = async () => {
-    if (!selectedMatch) return;
-
+  const loadManualChampion = async () => {
     try {
-      // Calcular puntos según el nuevo sistema
-      let participant1Points = 0;
-      let participant2Points = 0;
+      const response = await fetch(`${API_BASE_URL}/tournaments/get-champion.php?tournamentId=${tournamentId}`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
       
-      if (editingMatch.score1 > editingMatch.score2) {
-        // Participante 1 gana
-        participant1Points = 3;
-        participant2Points = 0;
-      } else if (editingMatch.score2 > editingMatch.score1) {
-        // Participante 2 gana
-        participant1Points = 0;
-        participant2Points = 3;
-      } else {
-        // Empate
-        participant1Points = 1;
-        participant2Points = 1;
+      if (data.success && data.champion) {
+        setManualChampion(data.champion);
       }
+    } catch (error) {
+      console.error('Error loading manual champion:', error);
+    }
+  };
 
+  const updateMatch = async (matchId: string, updates: any) => {
+    try {
+      setIsUpdating(true);
       const response = await fetch(`${API_BASE_URL}/tournaments/update-match.php`, {
         method: 'POST',
         headers: {
@@ -475,994 +173,1366 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
         },
         credentials: 'include',
         body: JSON.stringify({
-          matchId: selectedMatch.id,
-          winnerId: editingMatch.winnerId || null,
-          score1: editingMatch.score1,
-          score2: editingMatch.score2,
-          mapPlayed: editingMatch.mapPlayed || null,
-          status: editingMatch.status,
-          notes: editingMatch.notes || null,
-          participant1Points,
-          participant2Points
+          matchId,
+          ...updates
         })
       });
-
+      
       const data = await response.json();
       
-      if (data.success && onMatchUpdate) {
-        onMatchUpdate(selectedMatch.id, {
-          winnerId: editingMatch.winnerId,
-          score1: editingMatch.score1,
-          score2: editingMatch.score2,
-          mapPlayed: editingMatch.mapPlayed,
-          status: editingMatch.status,
-          notes: editingMatch.notes
-        });
-        setShowMatchModal(false);
-        setSelectedMatch(null);
+      if (data.success) {
+        // Actualizar el match localmente
+        onMatchUpdate(matchId, updates);
         
-        // Refrescar datos para regenerar bracket
-        if (onRefreshData) {
-          setTimeout(() => onRefreshData(), 500);
-        }
+        // Refrescar datos
+        onRefreshData();
+        
+        setShowMatchEditModal(false);
+        setEditingMatch(null);
+        
+        return true;
       } else {
-        alert('Error al actualizar la partida: ' + (data.message || 'Error desconocido'));
+        alert(data.message || 'Error al actualizar la partida');
+        return false;
       }
     } catch (error) {
       console.error('Error updating match:', error);
       alert('Error al actualizar la partida');
+      return false;
+    } finally {
+      setIsUpdating(false);
     }
   };
 
-  const swapParticipants = async (match: Match) => {
-    if (!isAdmin || !match.participant1 || !match.participant2) return;
+  const deleteMatch = async (matchId: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar esta partida? Esta acción no se puede deshacer.')) {
+      return;
+    }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/tournaments/update-match.php`, {
+      setIsUpdating(true);
+      const response = await fetch(`${API_BASE_URL}/tournaments/delete-match.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ matchId })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Refrescar datos
+        onRefreshData();
+        alert('Partida eliminada exitosamente');
+      } else {
+        alert(data.message || 'Error al eliminar la partida');
+      }
+    } catch (error) {
+      console.error('Error deleting match:', error);
+      alert('Error al eliminar la partida');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const deleteRound = async (round: number) => {
+    const roundMatches = matches.filter(m => m.round === round);
+    
+    if (roundMatches.length === 0) {
+      alert('No hay partidas en esta ronda para eliminar');
+      return;
+    }
+
+    if (!confirm(`¿Estás seguro de que quieres eliminar toda la ronda ${round}? Se eliminarán ${roundMatches.length} partida(s). Esta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    try {
+      setIsUpdating(true);
+      
+      // Eliminar todas las partidas de la ronda
+      for (const match of roundMatches) {
+        const response = await fetch(`${API_BASE_URL}/tournaments/delete-match.php`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify({ matchId: match.id })
+        });
+        
+        const data = await response.json();
+        if (!data.success) {
+          console.error(`Error deleting match ${match.id}:`, data.message);
+        }
+      }
+      
+      // Refrescar datos
+      onRefreshData();
+      alert(`Ronda ${round} eliminada exitosamente`);
+    } catch (error) {
+      console.error('Error deleting round:', error);
+      alert('Error al eliminar la ronda');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const setManualChampionData = async (championData: any) => {
+    try {
+      setIsUpdating(true);
+      const response = await fetch(`${API_BASE_URL}/tournaments/set-champion.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
         body: JSON.stringify({
-          matchId: match.id,
-          participant1Id: match.participant2.id,
-          participant2Id: match.participant1.id
+          tournamentId,
+          ...championData
         })
       });
-
+      
       const data = await response.json();
       
-      if (data.success && onMatchUpdate) {
-        onMatchUpdate(match.id, {
-          participant1: match.participant2,
-          participant2: match.participant1
+      if (data.success) {
+        setManualChampion(championData);
+        setShowChampionModal(false);
+        onRefreshData();
+        alert('Campeón designado exitosamente');
+      } else {
+        alert(data.message || 'Error al designar campeón');
+      }
+    } catch (error) {
+      console.error('Error setting champion:', error);
+      alert('Error al designar campeón');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const clearManualChampion = async () => {
+    if (!confirm('¿Estás seguro de que quieres quitar la designación manual del campeón?')) {
+      return;
+    }
+
+    try {
+      setIsUpdating(true);
+      const response = await fetch(`${API_BASE_URL}/tournaments/clear-champion.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ tournamentId })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setManualChampion(null);
+        onRefreshData();
+        alert('Designación de campeón eliminada');
+      } else {
+        alert(data.message || 'Error al quitar designación de campeón');
+      }
+    } catch (error) {
+      console.error('Error clearing champion:', error);
+      alert('Error al quitar designación de campeón');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const updateTeamNames = async (matchId: string, team1Name: string, team2Name: string) => {
+    try {
+      setIsUpdating(true);
+      const response = await fetch(`${API_BASE_URL}/tournaments/update-match-teams.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          matchId,
+          team1Name,
+          team2Name
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Actualizar el match localmente
+        onMatchUpdate(matchId, {
+          team1CustomName: team1Name,
+          team2CustomName: team2Name
         });
         
         // Refrescar datos
-        if (onRefreshData) {
-          setTimeout(() => onRefreshData(), 500);
-        }
+        onRefreshData();
+        
+        setShowTeamNamesModal(false);
+        setEditingTeamNames(null);
+      } else {
+        alert(data.message || 'Error al actualizar nombres de equipos');
       }
     } catch (error) {
-      console.error('Error swapping participants:', error);
+      console.error('Error updating team names:', error);
+      alert('Error al actualizar nombres de equipos');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
-  const handleBracketRegenerate = () => {
-    console.log('🔄 Regenerando bracket manualmente');
-    if (onBracketRegenerate) {
-      onBracketRegenerate();
-    }
-    // También refrescar datos
-    if (onRefreshData) {
-      setTimeout(() => onRefreshData(), 1000);
+  const updateRoundTitle = async (round: number, title: string) => {
+    try {
+      setIsUpdating(true);
+      const response = await fetch(`${API_BASE_URL}/tournaments/update-round-title.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          tournamentId,
+          round,
+          title
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Actualizar títulos localmente
+        setRoundTitles(prev => ({
+          ...prev,
+          [round]: title
+        }));
+        
+        setShowRoundTitleModal(false);
+        setEditingRoundTitle(null);
+      } else {
+        alert(data.message || 'Error al actualizar título de ronda');
+      }
+    } catch (error) {
+      console.error('Error updating round title:', error);
+      alert('Error al actualizar título de ronda');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
-  const getMatchStatusColor = (status: string) => {
+  const handleEditMatch = (match: Match) => {
+    setEditingMatch(match);
+    
+    // Preparar datos para edición
+    setEditMatchData({
+      score1: match.score1,
+      score2: match.score2,
+      winnerId: match.winnerId || '',
+      winnerTeam: match.winnerTeam || 0,
+      status: match.status,
+      mapPlayed: match.mapPlayed || '',
+      notes: match.notes || '',
+      participant1Id: match.participant1?.id || '',
+      participant2Id: match.participant2?.id || '',
+      team1Participants: match.team1Participants?.map(p => p.id) || [],
+      team2Participants: match.team2Participants?.map(p => p.id) || []
+    });
+    
+    setShowMatchEditModal(true);
+  };
+
+  const handleEditTeamNames = (match: Match) => {
+    setEditingTeamNames({
+      matchId: match.id,
+      team1Name: match.team1CustomName || getTeamDisplayName(match, 1),
+      team2Name: match.team2CustomName || getTeamDisplayName(match, 2)
+    });
+    setShowTeamNamesModal(true);
+  };
+
+  const handleEditRoundTitle = (round: number) => {
+    setEditingRoundTitle({
+      round,
+      title: roundTitles[round] || `Ronda ${round}`
+    });
+    setShowRoundTitleModal(true);
+  };
+
+  const handleSaveMatch = async () => {
+    if (!editingMatch) return;
+
+    const updates: any = {
+      score1: editMatchData.score1,
+      score2: editMatchData.score2,
+      status: editMatchData.status,
+      mapPlayed: editMatchData.mapPlayed,
+      notes: editMatchData.notes
+    };
+
+    // Determinar ganador basado en el puntaje y tipo de torneo
+    if (editMatchData.status === 'completed') {
+      if (teamSize > 1) {
+        // Para equipos múltiples, usar winnerTeam
+        if (editMatchData.score1 > editMatchData.score2) {
+          updates.winnerTeam = 1;
+        } else if (editMatchData.score2 > editMatchData.score1) {
+          updates.winnerTeam = 2;
+        } else {
+          updates.winnerTeam = null; // Empate
+        }
+        updates.winnerId = null; // Limpiar winnerId para equipos
+      } else {
+        // Para 1v1, usar winnerId
+        if (editMatchData.score1 > editMatchData.score2) {
+          updates.winnerId = editingMatch.participant1?.id || null;
+        } else if (editMatchData.score2 > editMatchData.score1) {
+          updates.winnerId = editingMatch.participant2?.id || null;
+        } else {
+          updates.winnerId = null; // Empate
+        }
+        updates.winnerTeam = null; // Limpiar winnerTeam para 1v1
+      }
+    } else {
+      // Si no está completada, limpiar ganadores
+      updates.winnerId = null;
+      updates.winnerTeam = null;
+    }
+
+    // Actualizar participantes si es necesario
+    if (teamSize > 1) {
+      if (editMatchData.team1Participants.length > 0) {
+        updates.team1Participants = editMatchData.team1Participants;
+      }
+      if (editMatchData.team2Participants.length > 0) {
+        updates.team2Participants = editMatchData.team2Participants;
+      }
+    } else {
+      if (editMatchData.participant1Id) {
+        updates.participant1Id = editMatchData.participant1Id;
+      }
+      if (editMatchData.participant2Id) {
+        updates.participant2Id = editMatchData.participant2Id;
+      }
+    }
+
+    await updateMatch(editingMatch.id, updates);
+  };
+
+  const getTeamDisplayName = (match: Match, teamNumber: 1 | 2) => {
+    if (teamNumber === 1) {
+      if (match.team1CustomName) return match.team1CustomName;
+      
+      if (teamSize > 1 && match.team1Participants && match.team1Participants.length > 0) {
+        const firstParticipant = match.team1Participants[0];
+        if (tournamentType === 'clan' && firstParticipant.clanTag) {
+          return `Equipo [${firstParticipant.clanTag}]`;
+        }
+        return firstParticipant.teamName || `Equipo ${firstParticipant.participantName}`;
+      }
+      
+      if (match.participant1) {
+        if (match.participant1.clanTag) {
+          return `[${match.participant1.clanTag}] ${match.participant1.participantName}`;
+        }
+        return match.participant1.teamName || match.participant1.participantName;
+      }
+      
+      return 'Equipo 1';
+    } else {
+      if (match.team2CustomName) return match.team2CustomName;
+      
+      if (teamSize > 1 && match.team2Participants && match.team2Participants.length > 0) {
+        const firstParticipant = match.team2Participants[0];
+        if (tournamentType === 'clan' && firstParticipant.clanTag) {
+          return `Equipo [${firstParticipant.clanTag}]`;
+        }
+        return firstParticipant.teamName || `Equipo ${firstParticipant.participantName}`;
+      }
+      
+      if (match.participant2) {
+        if (match.participant2.clanTag) {
+          return `[${match.participant2.clanTag}] ${match.participant2.participantName}`;
+        }
+        return match.participant2.teamName || match.participant2.participantName;
+      }
+      
+      return 'Equipo 2';
+    }
+  };
+
+  const getTeamMembers = (match: Match, teamNumber: 1 | 2) => {
+    if (teamSize === 1) return null;
+    
+    if (teamNumber === 1 && match.team1Participants && match.team1Participants.length > 0) {
+      return match.team1Participants.map(p => p.participantName).join(', ');
+    } else if (teamNumber === 2 && match.team2Participants && match.team2Participants.length > 0) {
+      return match.team2Participants.map(p => p.participantName).join(', ');
+    }
+    
+    return null;
+  };
+
+  const getMatchFormat = () => {
+    return teamSize === 1 ? '1v1' : `${teamSize}v${teamSize}`;
+  };
+
+  const getRoundTitle = (round: number) => {
+    return roundTitles[round] || `Ronda ${round}`;
+  };
+
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'border-green-500 bg-green-500/10';
-      case 'in_progress': return 'border-yellow-500 bg-yellow-500/10';
-      case 'pending': return 'border-blue-500 bg-blue-500/10';
-      default: return 'border-gray-500 bg-gray-500/10';
+      case 'completed': return 'bg-green-500/20 text-green-300 border-green-500/30';
+      case 'in_progress': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+      case 'cancelled': return 'bg-red-500/20 text-red-300 border-red-500/30';
+      default: return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed': return CheckCircle;
-      case 'in_progress': return Play;
-      case 'pending': return Clock;
+      case 'in_progress': return Clock;
+      case 'cancelled': return AlertTriangle;
       default: return Target;
     }
   };
 
-  // Función mejorada para determinar el ganador por puntuación
-  const getWinnerByScore = (score1: number, score2: number) => {
-    if (score1 > score2) return 1;
-    if (score2 > score1) return 2;
-    return 0; // Empate
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-CL', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
-  // Función mejorada para obtener nombres de equipos
-  const getTeamDisplayName = (participant: Participant | undefined) => {
-    if (!participant) {
-      return `Por definir`;
+  // Organizar matches por rondas
+  const matchesByRound = matches.reduce((acc, match) => {
+    if (!acc[match.round]) acc[match.round] = [];
+    acc[match.round].push(match);
+    return acc;
+  }, {} as Record<number, Match[]>);
+
+  const rounds = Object.keys(matchesByRound).map(Number).sort((a, b) => a - b);
+
+  // Determinar si hay un campeón (manual o automático)
+  const getChampion = () => {
+    // Priorizar campeón manual
+    if (manualChampion) {
+      return {
+        ...manualChampion,
+        isManual: true
+      };
     }
 
-    if (participant.participantType === 'team') {
-      // Para equipos personalizados, mostrar el nombre del equipo y los miembros
-      if (participant.teamName && participant.teamMembers && participant.teamMembers.length > 0) {
-        return `${participant.teamName}`;
+    // Campeón automático basado en resultados
+    if (bracketType === 'single_elimination' && rounds.length > 0) {
+      const finalRound = Math.max(...rounds);
+      const finalMatches = matchesByRound[finalRound];
+      const finalMatch = finalMatches?.find(m => m.status === 'completed');
+      
+      if (finalMatch) {
+        if (teamSize > 1) {
+          // Para equipos múltiples
+          if (finalMatch.winnerTeam === 1) {
+            return {
+              type: 'team',
+              name: getTeamDisplayName(finalMatch, 1),
+              participants: finalMatch.team1Participants || [],
+              score: `${finalMatch.score1} - ${finalMatch.score2}`,
+              isManual: false
+            };
+          } else if (finalMatch.winnerTeam === 2) {
+            return {
+              type: 'team',
+              name: getTeamDisplayName(finalMatch, 2),
+              participants: finalMatch.team2Participants || [],
+              score: `${finalMatch.score1} - ${finalMatch.score2}`,
+              isManual: false
+            };
+          }
+        } else {
+          // Para 1v1
+          if (finalMatch.winnerId === finalMatch.participant1?.id) {
+            return {
+              type: 'individual',
+              name: getTeamDisplayName(finalMatch, 1),
+              participant: finalMatch.participant1,
+              score: `${finalMatch.score1} - ${finalMatch.score2}`,
+              isManual: false
+            };
+          } else if (finalMatch.winnerId === finalMatch.participant2?.id) {
+            return {
+              type: 'individual',
+              name: getTeamDisplayName(finalMatch, 2),
+              participant: finalMatch.participant2,
+              score: `${finalMatch.score1} - ${finalMatch.score2}`,
+              isManual: false
+            };
+          }
+        }
       }
-      return participant.teamName || `Equipo ${participant.participantName}`;
-    } else if (participant.participantType === 'clan') {
-      return `[${participant.clanTag}] ${participant.participantName}`;
-    } else {
-      if (teamSize > 1) {
-        return `Equipo ${participant.participantName}`;
-      }
-      return participant.participantName;
-    }
-  };
-
-  const getTeamMembers = (participant: Participant | undefined) => {
-    if (!participant) return null;
-    
-    if (participant.participantType === 'team' && participant.teamMembers) {
-      return participant.teamMembers.join(', ');
-    } else if (participant.participantType === 'clan' && teamSize > 1) {
-      return `Equipo ${teamSize}v${teamSize}`;
-    } else if (participant.participantType === 'user' && teamSize > 1) {
-      return `Jugador individual en ${teamSize}v${teamSize}`;
     }
     return null;
   };
 
-  const getMatchFormat = () => {
-    if (teamSize === 1) {
-      return '1v1';
-    }
-    return `${teamSize}v${teamSize}`;
-  };
+  const champion = getChampion();
 
-  const renderMatch = (match: Match, roundIndex: number) => {
-    const StatusIcon = getStatusIcon(match.status);
-    const winnerByScore = getWinnerByScore(match.score1, match.score2);
-    const isWinner1 = winnerByScore === 1;
-    const isWinner2 = winnerByScore === 2;
-    const isTie = winnerByScore === 0 && match.status === 'completed';
-
-    // Generar nombres de equipos mejorados
-    const team1Name = getTeamDisplayName(match.participant1);
-    const team2Name = getTeamDisplayName(match.participant2);
-
+  if (matches.length === 0) {
     return (
-      <div
-        key={match.id}
-        className={`
-          relative bg-slate-800/60 backdrop-blur-sm rounded-lg border-2 p-4 min-w-[330px] transition-all duration-300
-          ${getMatchStatusColor(match.status)}
-          ${isAdmin && isEditMode ? 'hover:border-blue-400 cursor-move' : isAdmin ? 'cursor-pointer hover:scale-105 hover:shadow-lg' : ''}
-          ${isDragging && draggedMatch?.id === match.id ? 'opacity-50 scale-105' : ''}
-          ${match.isLocked ? 'ring-2 ring-yellow-400/50' : ''}
-        `}
-        style={{
-          position: 'absolute',
-          left: match.position.x,
-          top: match.position.y,
-          zIndex: isDragging && draggedMatch?.id === match.id ? 1000 : 1
-        }}
-        onMouseDown={(e) => handleMouseDown(e, match)}
-        onClick={() => !isEditMode && handleMatchClick(match)}
-      >
-        {/* Match Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2">
-            <StatusIcon className="w-4 h-4 text-blue-400" />
-            <span className="text-xs font-medium text-blue-300">
-              {bracketType === 'round_robin' ? `Partida ${match.matchNumber}` : `R${match.round} - M${match.matchNumber}`}
-            </span>
-            <span className="text-xs font-bold text-orange-400 bg-orange-500/20 px-2 py-1 rounded">
-              {getMatchFormat()}
-            </span>
-          </div>
-          <div className="flex items-center space-x-1">
-            {match.status === 'completed' && (
-              <Trophy className="w-4 h-4 text-yellow-400" />
-            )}
-            {isAdmin && (
-              <div className="flex items-center space-x-1">
-                {isEditMode && (
-                  <>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleMatchLock(match);
-                      }}
-                      className={`p-1 hover:bg-yellow-600/20 rounded transition-colors ${
-                        match.isLocked ? 'text-yellow-400' : 'text-gray-400'
-                      }`}
-                      title={match.isLocked ? 'Desbloquear posición' : 'Bloquear posición'}
-                    >
-                      {match.isLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                    </button>
-                    <Move className="w-3 h-3 text-blue-400" title="Arrastrar para mover" />
-                  </>
-                )}
-                {!isEditMode && (
-                  <>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        swapParticipants(match);
-                      }}
-                      className="p-1 hover:bg-blue-600/20 rounded text-blue-400 transition-colors"
-                      title="Intercambiar participantes"
-                    >
-                      <Shuffle className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMatchClick(match);
-                      }}
-                      className="p-1 hover:bg-green-600/20 rounded text-green-400 transition-colors"
-                      title="Editar partida"
-                    >
-                      <Edit className="w-3 h-3" />
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Participants */}
-        <div className="space-y-3">
-          {/* Participant 1 */}
-          <div className={`
-            flex items-center justify-between p-3 rounded border transition-all duration-300
-            ${isWinner1 ? 'border-green-400 bg-green-400/20 shadow-lg shadow-green-400/20' : 
-              isTie ? 'border-yellow-400 bg-yellow-400/20' :
-              'border-slate-600 bg-slate-700/40'}
-          `}>
-            <div className="flex items-center space-x-3 flex-1 min-w-0">
-              {match.participant1?.participantAvatar && (
-                <img
-                  src={match.participant1.participantAvatar}
-                  alt={match.participant1.participantName}
-                  className="w-8 h-8 rounded-full border border-blue-500/30"
-                />
-              )}
-              {match.participant1?.participantType === 'clan' && (
-                <Shield className="w-6 h-6 text-purple-400" />
-              )}
-              {match.participant1?.participantType === 'user' && (
-                <User className="w-6 h-6 text-blue-400" />
-              )}
-              <div className="flex-1 min-w-0">
-                <span className={`text-sm font-medium truncate block ${
-                  isWinner1 ? 'text-green-200 font-bold' : 
-                  isTie ? 'text-yellow-200' :
-                  'text-white'
-                }`}>
-                  {team1Name}
-                </span>
-                {match.participant1 && getTeamMembers(match.participant1) && (
-                  <span className="text-xs text-blue-300 truncate block">
-                    {getTeamMembers(match.participant1)}
-                  </span>
-                )}
-                {match.participant1?.clanTag && (
-                  <span className="text-xs text-purple-300 font-mono">
-                    [{match.participant1.clanTag}]
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className={`
-              px-3 py-1 rounded text-sm font-bold min-w-[32px] text-center transition-all duration-300
-              ${isWinner1 ? 'bg-green-500 text-white shadow-lg' : 
-                isTie ? 'bg-yellow-500 text-white' :
-                'bg-slate-600 text-gray-300'}
-            `}>
-              {match.score1}
-            </div>
-          </div>
-
-          {/* VS Divider */}
-          <div className="flex items-center justify-center">
-            <div className="w-full h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent"></div>
-            <span className="px-3 text-xs font-bold text-blue-400 bg-slate-800 rounded">
-              VS
-            </span>
-            <div className="w-full h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent"></div>
-          </div>
-
-          {/* Participant 2 */}
-          <div className={`
-            flex items-center justify-between p-3 rounded border transition-all duration-300
-            ${isWinner2 ? 'border-green-400 bg-green-400/20 shadow-lg shadow-green-400/20' : 
-              isTie ? 'border-yellow-400 bg-yellow-400/20' :
-              'border-slate-600 bg-slate-700/40'}
-          `}>
-            <div className="flex items-center space-x-3 flex-1 min-w-0">
-              {match.participant2?.participantAvatar && (
-                <img
-                  src={match.participant2.participantAvatar}
-                  alt={match.participant2.participantName}
-                  className="w-8 h-8 rounded-full border border-blue-500/30"
-                />
-              )}
-              {match.participant2?.participantType === 'clan' && (
-                <Shield className="w-6 h-6 text-purple-400" />
-              )}
-              {match.participant2?.participantType === 'user' && (
-                <User className="w-6 h-6 text-blue-400" />
-              )}
-              <div className="flex-1 min-w-0">
-                <span className={`text-sm font-medium truncate block ${
-                  isWinner2 ? 'text-green-200 font-bold' : 
-                  isTie ? 'text-yellow-200' :
-                  'text-white'
-                }`}>
-                  {team2Name}
-                </span>
-                {match.participant2 && getTeamMembers(match.participant2) && (
-                  <span className="text-xs text-blue-300 truncate block">
-                    {getTeamMembers(match.participant2)}
-                  </span>
-                )}
-                {match.participant2?.clanTag && (
-                  <span className="text-xs text-purple-300 font-mono">
-                    [{match.participant2.clanTag}]
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className={`
-              px-3 py-1 rounded text-sm font-bold min-w-[32px] text-center transition-all duration-300
-              ${isWinner2 ? 'bg-green-500 text-white shadow-lg' : 
-                isTie ? 'bg-yellow-500 text-white' :
-                'bg-slate-600 text-gray-300'}
-            `}>
-              {match.score2}
-            </div>
-          </div>
-        </div>
-
-        {/* Match Info */}
-        <div className="mt-3 space-y-1">
-          {match.mapPlayed && (
-            <div className="text-xs text-orange-300">
-              Mapa: {match.mapPlayed}
-            </div>
-          )}
-          {(match.scheduledAt || match.completedAt) && (
-            <div className="flex items-center space-x-2 text-xs text-blue-400">
-              <Calendar className="w-3 h-3" />
-              <span>
-                {match.completedAt 
-                  ? `Finalizado: ${new Date(match.completedAt).toLocaleDateString()}`
-                  : match.scheduledAt 
-                    ? `Programado: ${new Date(match.scheduledAt).toLocaleDateString()}`
-                    : 'Sin programar'
-                }
-              </span>
-            </div>
-          )}
-          {match.notes && (
-            <div className="text-xs text-gray-400 italic truncate">
-              {match.notes}
-            </div>
-          )}
+      <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-8 shadow-2xl">
+        <div className="text-center py-12">
+          <Trophy className="w-16 h-16 text-blue-400 mx-auto mb-4 opacity-50" />
+          <h3 className="text-xl font-bold text-white mb-2">Bracket no generado</h3>
+          <p className="text-blue-300 mb-6">
+            {bracketType === 'round_robin' 
+              ? 'Las partidas se generarán automáticamente cuando haya suficientes participantes'
+              : 'El bracket se generará automáticamente cuando comience el torneo'
+            }
+          </p>
           
-          {/* Indicador de puntos */}
-          {match.status === 'completed' && (
-            <div className="flex items-center justify-center space-x-2 text-xs mt-2 pt-2 border-t border-slate-600">
-              <span className={`px-2 py-1 rounded ${
-                isWinner1 ? 'bg-green-500/20 text-green-300' :
-                isTie ? 'bg-yellow-500/20 text-yellow-300' :
-                'bg-gray-500/20 text-gray-300'
-              }`}>
-                {isWinner1 ? '3 pts' : isTie ? '1 pt' : '0 pts'}
-              </span>
-              <span className="text-slate-400">-</span>
-              <span className={`px-2 py-1 rounded ${
-                isWinner2 ? 'bg-green-500/20 text-green-300' :
-                isTie ? 'bg-yellow-500/20 text-yellow-300' :
-                'bg-gray-500/20 text-gray-300'
-              }`}>
-                {isWinner2 ? '3 pts' : isTie ? '1 pt' : '0 pts'}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const renderConnectors = () => {
-    if (bracketType === 'round_robin') return null;
-    
-    const connectors: JSX.Element[] = [];
-    
-    bracketData.rounds.forEach((round, roundIndex) => {
-      if (roundIndex < bracketData.rounds.length - 1) {
-        const nextRound = bracketData.rounds[roundIndex + 1];
-        
-        round.forEach((match, matchIndex) => {
-          const nextMatchIndex = Math.floor(matchIndex / 2);
-          const nextMatch = nextRound[nextMatchIndex];
-          
-          if (nextMatch) {
-            const startX = match.position.x + 330;
-            const startY = match.position.y + 80;
-            const endX = nextMatch.position.x;
-            const endY = nextMatch.position.y + 80;
-            const midX = startX + (endX - startX) / 2;
-            
-            connectors.push(
-              <svg
-                key={`connector-${match.id}-${nextMatch.id}`}
-                className="absolute pointer-events-none"
-                style={{
-                  left: 0,
-                  top: 0,
-                  width: '100%',
-                  height: '100%',
-                  zIndex: 1
-                }}
+          {isAdmin && (
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={onBracketRegenerate}
+                className="flex items-center space-x-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-white font-medium transition-colors"
               >
-                <path
-                  d={`M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`}
-                  stroke="rgba(59, 130, 246, 0.5)"
-                  strokeWidth="2"
-                  fill="none"
-                  className="transition-all duration-300"
-                />
-                <circle
-                  cx={midX}
-                  cy={startY}
-                  r="3"
-                  fill="rgba(59, 130, 246, 0.7)"
-                />
-                <circle
-                  cx={midX}
-                  cy={endY}
-                  r="3"
-                  fill="rgba(59, 130, 246, 0.7)"
-                />
-              </svg>
-            );
-          }
-        });
-      }
-    });
-    
-    return connectors;
-  };
+                <RefreshCw className="w-5 h-5" />
+                <span>Generar Bracket</span>
+              </button>
+              
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center space-x-2 px-6 py-3 bg-green-600 hover:bg-green-700 rounded-xl text-white font-medium transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Crear Partida Manual</span>
+              </button>
 
-  const renderRoundHeaders = () => {
-    if (bracketType === 'round_robin') {
-      return (
-        <div
-          className="absolute bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg"
-          style={{
-            left: 50,
-            top: 10,
-            zIndex: 10
-          }}
-        >
-          Round Robin - Todos vs Todos ({getMatchFormat()})
+              <button
+                onClick={() => setShowChampionModal(true)}
+                className="flex items-center space-x-2 px-6 py-3 bg-yellow-600 hover:bg-yellow-700 rounded-xl text-white font-medium transition-colors"
+              >
+                <Crown className="w-5 h-5" />
+                <span>Designar Campeón</span>
+              </button>
+            </div>
+          )}
         </div>
-      );
-    }
-
-    return bracketData.rounds.map((round, index) => {
-      const roundNames = {
-        [bracketData.maxRounds]: 'Final',
-        [bracketData.maxRounds - 1]: 'Semifinal',
-        [bracketData.maxRounds - 2]: 'Cuartos de Final',
-        [bracketData.maxRounds - 3]: 'Octavos de Final'
-      };
-      
-      const roundName = roundNames[index + 1] || `Ronda ${index + 1}`;
-      
-      return (
-        <div
-          key={`round-header-${index}`}
-          className="absolute bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg"
-          style={{
-            left: index * 400 + 50,
-            top: 10,
-            zIndex: 10
-          }}
-        >
-          {roundName} ({getMatchFormat()})
-        </div>
-      );
-    });
-  };
-
-  if (participants.length === 0 && localMatches.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <Users className="w-16 h-16 text-blue-400 mx-auto mb-4 opacity-50" />
-        <h3 className="text-xl font-bold text-white mb-2">Sin Participantes ni Partidas</h3>
-        <p className="text-blue-300">Agrega participantes y crea partidas para generar el bracket</p>
-      </div>
-    );
-  }
-
-  if (localMatches.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <Target className="w-16 h-16 text-blue-400 mx-auto mb-4 opacity-50" />
-        <h3 className="text-xl font-bold text-white mb-2">Sin Partidas Creadas</h3>
-        <p className="text-blue-300">Crea partidas desde la sección de administración para generar el bracket</p>
-        {isAdmin && (
-          <button
-            onClick={handleBracketRegenerate}
-            className="mt-4 flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition-colors mx-auto"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Crear Partidas</span>
-          </button>
-        )}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Bracket Header */}
-      <div className="bg-slate-800/40 backdrop-blur-lg rounded-xl border border-blue-700/30 p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Trophy className="w-6 h-6 text-yellow-400" />
-            <div>
-              <h3 className="text-lg font-bold text-white">
-                Bracket {getMatchFormat()} - {
-                  bracketType === 'single_elimination' ? 'Eliminación Simple' :
-                  bracketType === 'double_elimination' ? 'Eliminación Doble' :
-                  'Round Robin'
-                }
-              </h3>
-              <p className="text-blue-300 text-sm">
-                {participants.length} participantes • {localMatches.length} partidas
-                {teamSize > 1 && ` • Formato ${getMatchFormat()}`}
-              </p>
+    <div className="space-y-8">
+      {/* Campeón */}
+      {champion && (
+        <div className="bg-gradient-to-r from-yellow-600/20 via-yellow-500/20 to-yellow-600/20 backdrop-blur-lg rounded-2xl border border-yellow-500/30 p-8 shadow-2xl">
+          <div className="text-center">
+            <div className="flex items-center justify-center space-x-3 mb-4">
+              <Crown className="w-12 h-12 text-yellow-400" />
+              <h2 className="text-3xl font-bold text-yellow-300">
+                ¡CAMPEÓN{champion.isManual ? ' (DESIGNADO)' : ''}!
+              </h2>
+              <Crown className="w-12 h-12 text-yellow-400" />
             </div>
-          </div>
-          
-          <div className="flex items-center space-x-4 text-sm">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span className="text-green-300">Ganador (3 pts)</span>
+            
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6 max-w-2xl mx-auto">
+              <h3 className="text-2xl font-bold text-white mb-2">{champion.name}</h3>
+              
+              {champion.type === 'team' && champion.participants && champion.participants.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-yellow-300 text-sm mb-2">Miembros del equipo:</p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {champion.participants.map((participant, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-yellow-600/20 text-yellow-200 rounded-lg text-sm"
+                      >
+                        {participant.participantName}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex items-center justify-center space-x-4">
+                <Medal className="w-8 h-8 text-yellow-400" />
+                {champion.score && (
+                  <span className="text-xl font-bold text-yellow-300">
+                    Resultado Final: {champion.score}
+                  </span>
+                )}
+                <Medal className="w-8 h-8 text-yellow-400" />
+              </div>
+
+              {champion.isManual && (
+                <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <p className="text-blue-300 text-sm">
+                    <UserCheck className="w-4 h-4 inline mr-2" />
+                    Campeón designado manualmente por un administrador
+                  </p>
+                </div>
+              )}
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-              <span className="text-yellow-300">Empate (1 pt)</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-              <span className="text-gray-300">Perdedor (0 pts)</span>
-            </div>
+
+            {/* Controles de administrador para el campeón */}
             {isAdmin && (
-              <div className="flex items-center space-x-2">
-                <Edit className="w-3 h-3 text-purple-400" />
-                <span className="text-purple-300">Editable</span>
+              <div className="flex justify-center space-x-3 mt-6">
+                <button
+                  onClick={() => setShowChampionModal(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 rounded-lg text-blue-300 hover:text-blue-200 transition-colors"
+                >
+                  <Edit className="w-4 h-4" />
+                  <span>Cambiar Campeón</span>
+                </button>
+                
+                {champion.isManual && (
+                  <button
+                    onClick={clearManualChampion}
+                    className="flex items-center space-x-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 rounded-lg text-red-300 hover:text-red-200 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                    <span>Quitar Designación</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Admin Controls */}
+      {/* Controles de administrador */}
       {isAdmin && (
-        <div className="bg-slate-800/40 backdrop-blur-lg rounded-xl border border-blue-700/30 p-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-lg font-bold text-white">Controles de Administrador</h4>
-            <div className="flex items-center space-x-2">
+        <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-6 shadow-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <Settings className="w-6 h-6 text-orange-400" />
+              <h3 className="text-xl font-bold text-white">Controles de Administrador</h3>
+            </div>
+            
+            <div className="flex items-center space-x-3">
               <button
-                onClick={() => setIsEditMode(!isEditMode)}
-                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                  isEditMode 
-                    ? 'bg-orange-600/30 text-orange-300 border border-orange-500/30' 
-                    : 'bg-purple-600/20 hover:bg-purple-600/30 text-purple-300'
+                onClick={() => setShowPositionControls(!showPositionControls)}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  showPositionControls 
+                    ? 'bg-orange-600 text-white' 
+                    : 'bg-orange-600/20 text-orange-300 hover:bg-orange-600/30'
                 }`}
               >
-                <Move className="w-4 h-4" />
-                <span>{isEditMode ? 'Salir del Modo Edición' : 'Modo Edición'}</span>
-              </button>
-              
-              {isEditMode && (
-                <button
-                  onClick={resetMatchPositions}
-                  className="flex items-center space-x-2 px-3 py-2 bg-red-600/20 hover:bg-red-600/30 rounded-lg text-red-300 transition-colors"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>Resetear Posiciones</span>
-                </button>
-              )}
-              
-              <button
-                onClick={() => onRefreshData && onRefreshData()}
-                className="flex items-center space-x-2 px-3 py-2 bg-green-600/20 hover:bg-green-600/30 rounded-lg text-green-300 transition-colors"
-              >
-                <RotateCcw className="w-4 h-4" />
-                <span>Actualizar Datos</span>
+                {showPositionControls ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                <span>{showPositionControls ? 'Bloquear Posiciones' : 'Editar Posiciones'}</span>
               </button>
               
               <button
-                onClick={handleBracketRegenerate}
-                className="flex items-center space-x-2 px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 rounded-lg text-blue-300 transition-colors"
+                onClick={onRefreshData}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 rounded-lg text-blue-300 hover:text-blue-200 transition-colors"
               >
-                <RotateCcw className="w-4 h-4" />
-                <span>Regenerar Bracket</span>
+                <RefreshCw className="w-4 h-4" />
+                <span>Actualizar</span>
               </button>
             </div>
           </div>
-          <div className="mt-3 space-y-2">
-            <p className="text-blue-400 text-sm">
-              <strong>Sistema de Puntuación:</strong> Ganador = 3 puntos, Empate = 1 punto cada uno, Perdedor = 0 puntos
-            </p>
-            <p className="text-blue-400 text-sm">
-              Haz clic en las partidas para editarlas y cambiar su estado. 
-              {isEditMode ? ' En modo edición puedes arrastrar las partidas para reposicionarlas.' : ' Activa el modo edición para mover partidas.'}
-              {teamSize > 1 && ` Todas las partidas son en formato ${getMatchFormat()}.`}
-            </p>
+          
+          <div className="grid md:grid-cols-4 gap-4">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center space-x-3 p-4 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-xl text-green-300 hover:text-green-200 transition-all duration-300"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Crear Partida</span>
+            </button>
+            
+            <button
+              onClick={onBracketRegenerate}
+              className="flex items-center space-x-3 p-4 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-xl text-blue-300 hover:text-blue-200 transition-all duration-300"
+            >
+              <RefreshCw className="w-5 h-5" />
+              <span>Regenerar Bracket</span>
+            </button>
+            
+            <button
+              onClick={() => setShowChampionModal(true)}
+              className="flex items-center space-x-3 p-4 bg-yellow-600/20 hover:bg-yellow-600/30 border border-yellow-500/30 rounded-xl text-yellow-300 hover:text-yellow-200 transition-all duration-300"
+            >
+              <Crown className="w-5 h-5" />
+              <span>Designar Campeón</span>
+            </button>
+            
+            <div className="flex items-center space-x-2 p-4 bg-purple-600/20 border border-purple-500/30 rounded-xl text-purple-300">
+              <Trophy className="w-5 h-5" />
+              <span>Formato: {getMatchFormat()}</span>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Bracket Visualization */}
-      <div className="bg-slate-800/40 backdrop-blur-lg rounded-xl border border-blue-700/30 p-6">
-        <div 
-          ref={bracketContainerRef}
-          className="relative overflow-auto"
-          style={{ 
-            height: '600px',
-            maxHeight: '80vh'
-          }}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-        >
-          <div 
-            className="relative"
-            style={{ 
-              width: bracketDimensions.width || 'auto', 
-              height: bracketDimensions.height || 'auto',
-              minWidth: '100%',
-              minHeight: '100%'
-            }}
-          >
-            {/* Round Headers */}
-            {renderRoundHeaders()}
-            
-            {/* Connectors */}
-            {renderConnectors()}
-            
-            {/* Matches */}
-            {bracketData.rounds.map((round, roundIndex) =>
-              round.map((match) => renderMatch(match, roundIndex))
-            )}
-            
-            {/* Winner Podium */}
-            {bracketType !== 'round_robin' && bracketData.rounds.length > 0 && bracketData.rounds[bracketData.rounds.length - 1][0]?.winnerId && (
-              <div
-                className="absolute bg-gradient-to-r from-yellow-600 to-orange-600 rounded-xl p-4 border-2 border-yellow-400"
-                style={{
-                  left: (bracketData.maxRounds - 1) * 400 + 400,
-                  top: 100,
-                  minWidth: 250
-                }}
-              >
+      {/* Bracket */}
+      <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-8 shadow-2xl">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-3">
+            <Trophy className="w-8 h-8 text-yellow-400" />
+            <div>
+              <h2 className="text-2xl font-bold text-white">Bracket del Torneo</h2>
+              <p className="text-blue-300">Formato: {getMatchFormat()} • {matches.length} partidas</p>
+            </div>
+          </div>
+        </div>
+
+        <div ref={bracketRef} className="relative overflow-x-auto">
+          <div className="flex space-x-12 min-w-max py-8">
+            {rounds.map((round) => (
+              <div key={round} className="flex flex-col space-y-6 min-w-[300px]">
+                {/* Título de la ronda */}
                 <div className="text-center">
-                  <Crown className="w-8 h-8 text-yellow-300 mx-auto mb-2" />
-                  <h4 className="text-lg font-bold text-white mb-2">🏆 CAMPEÓN</h4>
-                  {(() => {
-                    const finalMatch = bracketData.rounds[bracketData.rounds.length - 1][0];
-                    const winner = finalMatch.winnerId === finalMatch.participant1?.id 
-                      ? finalMatch.participant1 
-                      : finalMatch.participant2;
-                    
-                    return winner ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-center space-x-3">
-                          {winner.participantAvatar && (
-                            <img
-                              src={winner.participantAvatar}
-                              alt={winner.participantName}
-                              className="w-12 h-12 rounded-full border-2 border-yellow-400"
-                            />
-                          )}
-                          <div>
-                            <p className="font-bold text-yellow-200">{getTeamDisplayName(winner)}</p>
-                            {getTeamMembers(winner) && (
-                              <p className="text-sm text-yellow-300">{getTeamMembers(winner)}</p>
+                  <div className="flex items-center justify-center space-x-2 mb-4">
+                    <h3 className="text-xl font-bold text-white">
+                      {getRoundTitle(round)}
+                    </h3>
+                    <span className="px-2 py-1 bg-orange-600/20 text-orange-300 rounded text-sm font-bold">
+                      {getMatchFormat()}
+                    </span>
+                    {isAdmin && (
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => handleEditRoundTitle(round)}
+                          className="p-1 bg-blue-600/20 hover:bg-blue-600/40 rounded text-blue-300 hover:text-blue-200 transition-colors"
+                          title="Editar título de ronda"
+                        >
+                          <Type className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteRound(round)}
+                          className="p-1 bg-red-600/20 hover:bg-red-600/40 rounded text-red-300 hover:text-red-200 transition-colors"
+                          title="Eliminar toda la ronda"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent rounded"></div>
+                </div>
+
+                {/* Partidas de la ronda */}
+                <div className="space-y-6">
+                  {matchesByRound[round]
+                    .sort((a, b) => a.matchNumber - b.matchNumber)
+                    .map((match) => {
+                      const StatusIcon = getStatusIcon(match.status);
+                      const team1Name = getTeamDisplayName(match, 1);
+                      const team2Name = getTeamDisplayName(match, 2);
+                      const team1Members = getTeamMembers(match, 1);
+                      const team2Members = getTeamMembers(match, 2);
+                      
+                      return (
+                        <div
+                          key={match.id}
+                          className={`bg-slate-700/40 rounded-xl border border-blue-600/30 p-4 transition-all duration-300 hover:border-blue-500/50 ${
+                            showPositionControls ? 'cursor-move' : 'cursor-pointer'
+                          } ${
+                            draggedMatch === match.id ? 'opacity-50 scale-95' : ''
+                          }`}
+                          onClick={() => !showPositionControls && setSelectedMatch(match)}
+                          draggable={showPositionControls}
+                          onDragStart={(e) => {
+                            setDraggedMatch(match.id);
+                            setIsDragging(true);
+                            e.dataTransfer.effectAllowed = 'move';
+                          }}
+                          onDragEnd={() => {
+                            setDraggedMatch(null);
+                            setIsDragging(false);
+                          }}
+                        >
+                          {/* Header de la partida */}
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-blue-400 font-medium">
+                                Partida #{match.matchNumber}
+                              </span>
+                              <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(match.status)}`}>
+                                <StatusIcon className="w-3 h-3" />
+                                <span>
+                                  {match.status === 'completed' ? 'Completada' :
+                                   match.status === 'in_progress' ? 'En Progreso' :
+                                   match.status === 'cancelled' ? 'Cancelada' :
+                                   'Pendiente'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {isAdmin && (
+                              <div className="flex items-center space-x-1">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditMatch(match);
+                                  }}
+                                  className="p-1 bg-green-600/20 hover:bg-green-600/40 rounded text-green-300 hover:text-green-200 transition-colors"
+                                  title="Editar partida completa"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditTeamNames(match);
+                                  }}
+                                  className="p-1 bg-purple-600/20 hover:bg-purple-600/40 rounded text-purple-300 hover:text-purple-200 transition-colors"
+                                  title="Editar nombres de equipos"
+                                >
+                                  <Tag className="w-4 h-4" />
+                                </button>
+
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteMatch(match.id);
+                                  }}
+                                  className="p-1 bg-red-600/20 hover:bg-red-600/40 rounded text-red-300 hover:text-red-200 transition-colors"
+                                  title="Eliminar partida"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
                             )}
                           </div>
+
+                          {/* Equipos */}
+                          <div className="space-y-3">
+                            {/* Equipo 1 */}
+                            <div className={`flex items-center justify-between p-3 rounded-lg ${
+                              match.winnerId === match.participant1?.id || match.winnerTeam === 1
+                                ? 'bg-green-500/20 border border-green-500/30'
+                                : 'bg-slate-600/40'
+                            }`}>
+                              <div className="flex-1">
+                                <div className="font-medium text-white">
+                                  {team1Name}
+                                </div>
+                                {team1Members && (
+                                  <div className="text-blue-300 text-sm mt-1">
+                                    {team1Members}
+                                  </div>
+                                )}
+                              </div>
+                              <div className={`text-2xl font-bold ${
+                                match.winnerId === match.participant1?.id || match.winnerTeam === 1
+                                  ? 'text-green-400'
+                                  : 'text-white'
+                              }`}>
+                                {match.score1}
+                              </div>
+                            </div>
+
+                            {/* VS */}
+                            <div className="text-center">
+                              <span className="text-blue-400 font-bold text-lg">
+                                {getMatchFormat()}
+                              </span>
+                            </div>
+
+                            {/* Equipo 2 */}
+                            <div className={`flex items-center justify-between p-3 rounded-lg ${
+                              match.winnerId === match.participant2?.id || match.winnerTeam === 2
+                                ? 'bg-green-500/20 border border-green-500/30'
+                                : 'bg-slate-600/40'
+                            }`}>
+                              <div className="flex-1">
+                                <div className="font-medium text-white">
+                                  {team2Name}
+                                </div>
+                                {team2Members && (
+                                  <div className="text-blue-300 text-sm mt-1">
+                                    {team2Members}
+                                  </div>
+                                )}
+                              </div>
+                              <div className={`text-2xl font-bold ${
+                                match.winnerId === match.participant2?.id || match.winnerTeam === 2
+                                  ? 'text-green-400'
+                                  : 'text-white'
+                              }`}>
+                                {match.score2}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Información adicional */}
+                          {(match.mapPlayed || match.scheduledAt) && (
+                            <div className="mt-3 pt-3 border-t border-blue-700/30">
+                              <div className="flex items-center justify-between text-sm">
+                                {match.mapPlayed && (
+                                  <div className="flex items-center space-x-1">
+                                    <MapPin className="w-4 h-4 text-orange-400" />
+                                    <span className="text-orange-300">{match.mapPlayed}</span>
+                                  </div>
+                                )}
+                                
+                                {match.scheduledAt && (
+                                  <div className="flex items-center space-x-1">
+                                    <Calendar className="w-4 h-4 text-blue-400" />
+                                    <span className="text-blue-300">
+                                      {formatDate(match.scheduledAt)}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div className="text-xs text-yellow-400">
-                          Campeón {getMatchFormat()}
-                        </div>
-                      </div>
-                    ) : null;
-                  })()}
+                      );
+                    })}
                 </div>
               </div>
-            )}
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Match Update Modal */}
-      {showMatchModal && selectedMatch && (
-        <MatchUpdateModal
-          match={selectedMatch}
-          editingMatch={editingMatch}
-          setEditingMatch={setEditingMatch}
-          participants={participants}
-          teamSize={teamSize}
-          onClose={() => {
-            setShowMatchModal(false);
-            setSelectedMatch(null);
-          }}
-          onUpdate={updateMatchResult}
-        />
+      {/* Modal para designar campeón */}
+      {showChampionModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-2xl border border-blue-700/30 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white flex items-center space-x-2">
+                <Crown className="w-6 h-6 text-yellow-400" />
+                <span>Designar Campeón</span>
+              </h3>
+              <button
+                onClick={() => setShowChampionModal(false)}
+                className="p-2 hover:bg-slate-700 rounded-lg text-blue-300 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
+                <p className="text-yellow-300 text-sm">
+                  <Crown className="w-4 h-4 inline mr-2" />
+                  Designa manualmente el campeón del torneo. Esta designación tendrá prioridad sobre los resultados automáticos.
+                </p>
+              </div>
+
+              {teamSize === 1 ? (
+                /* Selección individual */
+                <div>
+                  <label className="block text-blue-300 text-sm font-medium mb-3">
+                    Seleccionar Campeón Individual
+                  </label>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {participants.map((participant) => (
+                      <button
+                        key={participant.id}
+                        onClick={() => setManualChampion({
+                          type: 'individual',
+                          participantId: participant.id,
+                          name: participant.participantName
+                        })}
+                        className={`w-full flex items-center space-x-3 p-3 rounded-lg border transition-all ${
+                          manualChampion?.participantId === participant.id
+                            ? 'bg-yellow-600/20 border-yellow-500/30 text-yellow-300'
+                            : 'bg-slate-700/40 border-slate-600/30 text-slate-300 hover:bg-slate-700/60'
+                        }`}
+                      >
+                        {participant.participantAvatar ? (
+                          <img
+                            src={participant.participantAvatar}
+                            alt={participant.participantName}
+                            className="w-10 h-10 rounded-full border border-blue-500/30"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full border border-blue-500/30 bg-slate-600/40 flex items-center justify-center">
+                            <Users className="w-5 h-5 text-blue-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">{participant.participantName}</div>
+                          {participant.clanTag && (
+                            <div className="text-sm opacity-75">[{participant.clanTag}]</div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                /* Selección por equipos */
+                <div>
+                  <label className="block text-blue-300 text-sm font-medium mb-3">
+                    Seleccionar Equipo Campeón
+                  </label>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {participants.map((participant) => (
+                      <button
+                        key={participant.id}
+                        onClick={() => setManualChampion({
+                          type: 'team',
+                          teamParticipants: [participant.id],
+                          name: participant.teamName || participant.participantName
+                        })}
+                        className={`w-full flex items-center space-x-3 p-3 rounded-lg border transition-all ${
+                          manualChampion?.teamParticipants?.includes(participant.id)
+                            ? 'bg-yellow-600/20 border-yellow-500/30 text-yellow-300'
+                            : 'bg-slate-700/40 border-slate-600/30 text-slate-300 hover:bg-slate-700/60'
+                        }`}
+                      >
+                        {participant.participantAvatar ? (
+                          <img
+                            src={participant.participantAvatar}
+                            alt={participant.participantName}
+                            className="w-10 h-10 rounded-full border border-blue-500/30"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full border border-blue-500/30 bg-slate-600/40 flex items-center justify-center">
+                            <Users className="w-5 h-5 text-blue-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">
+                            {participant.teamName || participant.participantName}
+                          </div>
+                          {participant.teamMembers.length > 0 && (
+                            <div className="text-sm opacity-75">
+                              {participant.teamMembers.join(', ')}
+                            </div>
+                          )}
+                          {participant.clanTag && (
+                            <div className="text-sm opacity-75">[{participant.clanTag}]</div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Vista previa del campeón seleccionado */}
+              {manualChampion && (
+                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+                  <h4 className="text-green-300 font-medium mb-2 flex items-center space-x-2">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Campeón Seleccionado</span>
+                  </h4>
+                  <p className="text-green-200 font-bold text-lg">{manualChampion.name}</p>
+                </div>
+              )}
+
+              {/* Botones */}
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={() => manualChampion && setManualChampionData(manualChampion)}
+                  disabled={!manualChampion || isUpdating}
+                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-600/50 rounded-xl text-white font-medium transition-colors"
+                >
+                  <Crown className="w-4 h-4" />
+                  <span>{isUpdating ? 'Designando...' : 'Designar Campeón'}</span>
+                </button>
+                
+                <button
+                  onClick={() => setShowChampionModal(false)}
+                  className="px-6 py-3 bg-slate-600 hover:bg-slate-700 rounded-xl text-white font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
-    </div>
-  );
-};
 
-// Modal para actualizar resultados de matches
-interface MatchUpdateModalProps {
-  match: Match;
-  editingMatch: any;
-  setEditingMatch: (data: any) => void;
-  participants: Participant[];
-  teamSize: number;
-  onClose: () => void;
-  onUpdate: () => void;
-}
+      {/* Modal para editar partida completa */}
+      {showMatchEditModal && editingMatch && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-2xl border border-blue-700/30 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">
+                Editar Partida #{editingMatch.matchNumber}
+              </h3>
+              <button
+                onClick={() => setShowMatchEditModal(false)}
+                className="p-2 hover:bg-slate-700 rounded-lg text-blue-300 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-const MatchUpdateModal: React.FC<MatchUpdateModalProps> = ({ 
-  match, 
-  editingMatch, 
-  setEditingMatch, 
-  participants, 
-  teamSize,
-  onClose, 
-  onUpdate 
-}) => {
-  const handleSubmit = () => {
-    onUpdate();
-  };
-
-  const getMatchFormat = () => {
-    if (teamSize === 1) {
-      return '1v1';
-    }
-    return `${teamSize}v${teamSize}`;
-  };
-
-  // Calcular puntos según el nuevo sistema
-  const calculatePoints = (score1: number, score2: number) => {
-    if (score1 > score2) return { team1: 3, team2: 0 };
-    if (score2 > score1) return { team1: 0, team2: 3 };
-    return { team1: 1, team2: 1 }; // Empate
-  };
-
-  const points = calculatePoints(editingMatch.score1, editingMatch.score2);
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-800 rounded-2xl border border-blue-700/30 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold text-white">
-            Actualizar Resultado ({getMatchFormat()})
-          </h3>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-slate-700 rounded-lg text-blue-300 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="space-y-6">
-          {/* Sistema de puntuación */}
-          <div className="bg-blue-600/10 border border-blue-500/30 rounded-xl p-4">
-            <h4 className="text-blue-300 font-medium mb-2">Sistema de Puntuación</h4>
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div className="text-center">
-                <div className="w-8 h-8 bg-green-500 rounded-full mx-auto mb-1 flex items-center justify-center">
-                  <span className="text-white font-bold text-xs">3</span>
+            <div className="space-y-6">
+              {/* Equipos y Puntajes */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <label className="block text-blue-300 text-sm font-medium">
+                    {getTeamDisplayName(editingMatch, 1)} - Puntaje
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editMatchData.score1}
+                    onChange={(e) => setEditMatchData({
+                      ...editMatchData,
+                      score1: parseInt(e.target.value) || 0
+                    })}
+                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white text-center text-2xl font-bold focus:outline-none focus:border-blue-500 transition-colors"
+                  />
                 </div>
-                <span className="text-green-300">Ganador</span>
+
+                <div className="space-y-3">
+                  <label className="block text-blue-300 text-sm font-medium">
+                    {getTeamDisplayName(editingMatch, 2)} - Puntaje
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editMatchData.score2}
+                    onChange={(e) => setEditMatchData({
+                      ...editMatchData,
+                      score2: parseInt(e.target.value) || 0
+                    })}
+                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white text-center text-2xl font-bold focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                </div>
               </div>
-              <div className="text-center">
-                <div className="w-8 h-8 bg-yellow-500 rounded-full mx-auto mb-1 flex items-center justify-center">
-                  <span className="text-white font-bold text-xs">1</span>
-                </div>
-                <span className="text-yellow-300">Empate</span>
+
+              {/* Estado de la partida */}
+              <div>
+                <label className="block text-blue-300 text-sm font-medium mb-2">
+                  Estado de la Partida
+                </label>
+                <select
+                  value={editMatchData.status}
+                  onChange={(e) => setEditMatchData({
+                    ...editMatchData,
+                    status: e.target.value as any
+                  })}
+                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
+                >
+                  <option value="pending">Pendiente</option>
+                  <option value="in_progress">En Progreso</option>
+                  <option value="completed">Completada</option>
+                  <option value="cancelled">Cancelada</option>
+                </select>
               </div>
-              <div className="text-center">
-                <div className="w-8 h-8 bg-gray-500 rounded-full mx-auto mb-1 flex items-center justify-center">
-                  <span className="text-white font-bold text-xs">0</span>
+
+              {/* Mapa jugado */}
+              <div>
+                <label className="block text-blue-300 text-sm font-medium mb-2">
+                  Mapa Jugado
+                </label>
+                <input
+                  type="text"
+                  value={editMatchData.mapPlayed}
+                  onChange={(e) => setEditMatchData({
+                    ...editMatchData,
+                    mapPlayed: e.target.value
+                  })}
+                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors"
+                  placeholder="Ej: de_dust2"
+                />
+              </div>
+
+              {/* Notas */}
+              <div>
+                <label className="block text-blue-300 text-sm font-medium mb-2">
+                  Notas
+                </label>
+                <textarea
+                  value={editMatchData.notes}
+                  onChange={(e) => setEditMatchData({
+                    ...editMatchData,
+                    notes: e.target.value
+                  })}
+                  rows={3}
+                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                  placeholder="Notas adicionales sobre la partida..."
+                />
+              </div>
+
+              {/* Información del ganador */}
+              {editMatchData.status === 'completed' && (
+                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+                  <h4 className="text-green-300 font-medium mb-2">Ganador Automático</h4>
+                  <p className="text-green-200 text-sm">
+                    {editMatchData.score1 > editMatchData.score2 
+                      ? `${getTeamDisplayName(editingMatch, 1)} gana con ${editMatchData.score1} - ${editMatchData.score2}`
+                      : editMatchData.score2 > editMatchData.score1
+                        ? `${getTeamDisplayName(editingMatch, 2)} gana con ${editMatchData.score2} - ${editMatchData.score1}`
+                        : `Empate ${editMatchData.score1} - ${editMatchData.score2}`
+                    }
+                  </p>
                 </div>
-                <span className="text-gray-300">Perdedor</span>
+              )}
+
+              {/* Botones */}
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={handleSaveMatch}
+                  disabled={isUpdating}
+                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 rounded-xl text-white font-medium transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isUpdating ? 'Guardando...' : 'Guardar Cambios'}</span>
+                </button>
+                
+                <button
+                  onClick={() => setShowMatchEditModal(false)}
+                  className="px-6 py-3 bg-slate-600 hover:bg-slate-700 rounded-xl text-white font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
               </div>
             </div>
-          </div>
-
-          {/* Estado de la partida */}
-          <div>
-            <label className="block text-blue-300 text-sm font-medium mb-2">Estado de la Partida</label>
-            <select
-              value={editingMatch.status}
-              onChange={(e) => setEditingMatch({ ...editingMatch, status: e.target.value })}
-              className="w-full px-3 py-2 bg-slate-700/40 border border-blue-600/30 rounded-lg text-white"
-            >
-              <option value="pending">Pendiente</option>
-              <option value="in_progress">En Progreso</option>
-              <option value="completed">Completada</option>
-              <option value="cancelled">Cancelada</option>
-            </select>
-          </div>
-
-          {/* Equipo 1 */}
-          <div className="space-y-3">
-            <label className="block text-blue-300 text-sm font-medium">
-              Equipo 1: {match.participant1?.participantName || 'Equipo 1'}
-              {teamSize > 1 && <span className="text-orange-400 ml-2">({getMatchFormat()})</span>}
-            </label>
-            
-            <div className="flex items-center space-x-3">
-              <input
-                type="number"
-                min="0"
-                value={editingMatch.score1}
-                onChange={(e) => setEditingMatch({ ...editingMatch, score1: parseInt(e.target.value) || 0 })}
-                className="flex-1 px-3 py-2 bg-slate-700/40 border border-blue-600/30 rounded-lg text-white"
-                placeholder="Puntuación"
-              />
-              <div className={`px-3 py-2 rounded-lg font-medium ${
-                points.team1 === 3 ? 'bg-green-500/20 text-green-300' :
-                points.team1 === 1 ? 'bg-yellow-500/20 text-yellow-300' :
-                'bg-gray-500/20 text-gray-300'
-              }`}>
-                {points.team1} pts
-              </div>
-            </div>
-            
-            {/* Información del participante */}
-            {match.participant1 && (
-              <div className="bg-slate-700/40 rounded-lg p-3">
-                <div className="flex items-center space-x-3">
-                  {match.participant1.participantAvatar && (
-                    <img
-                      src={match.participant1.participantAvatar}
-                      alt={match.participant1.participantName}
-                      className="w-8 h-8 rounded-full border border-blue-500/30"
-                    />
-                  )}
-                  <div>
-                    <p className="text-white font-medium">{match.participant1.participantName}</p>
-                    {match.participant1.teamName && (
-                      <p className="text-blue-300 text-sm">{match.participant1.teamName}</p>
-                    )}
-                    {match.participant1.teamMembers && match.participant1.teamMembers.length > 0 && (
-                      <p className="text-green-300 text-sm">Miembros: {match.participant1.teamMembers.join(', ')}</p>
-                    )}
-                    {match.participant1.clanTag && (
-                      <p className="text-purple-300 text-sm font-mono">[{match.participant1.clanTag}]</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Equipo 2 */}
-          <div className="space-y-3">
-            <label className="block text-blue-300 text-sm font-medium">
-              Equipo 2: {match.participant2?.participantName || 'Equipo 2'}
-              {teamSize > 1 && <span className="text-orange-400 ml-2">({getMatchFormat()})</span>}
-            </label>
-            
-            <div className="flex items-center space-x-3">
-              <input
-                type="number"
-                min="0"
-                value={editingMatch.score2}
-                onChange={(e) => setEditingMatch({ ...editingMatch, score2: parseInt(e.target.value) || 0 })}
-                className="flex-1 px-3 py-2 bg-slate-700/40 border border-blue-600/30 rounded-lg text-white"
-                placeholder="Puntuación"
-              />
-              <div className={`px-3 py-2 rounded-lg font-medium ${
-                points.team2 === 3 ? 'bg-green-500/20 text-green-300' :
-                points.team2 === 1 ? 'bg-yellow-500/20 text-yellow-300' :
-                'bg-gray-500/20 text-gray-300'
-              }`}>
-                {points.team2} pts
-              </div>
-            </div>
-            
-            {/* Información del participante */}
-            {match.participant2 && (
-              <div className="bg-slate-700/40 rounded-lg p-3">
-                <div className="flex items-center space-x-3">
-                  {match.participant2.participantAvatar && (
-                    <img
-                      src={match.participant2.participantAvatar}
-                      alt={match.participant2.participantName}
-                      className="w-8 h-8 rounded-full border border-blue-500/30"
-                    />
-                  )}
-                  <div>
-                    <p className="text-white font-medium">{match.participant2.participantName}</p>
-                    {match.participant2.teamName && (
-                      <p className="text-blue-300 text-sm">{match.participant2.teamName}</p>
-                    )}
-                    {match.participant2.teamMembers && match.participant2.teamMembers.length > 0 && (
-                      <p className="text-green-300 text-sm">Miembros: {match.participant2.teamMembers.join(', ')}</p>
-                    )}
-                    {match.participant2.clanTag && (
-                      <p className="text-purple-300 text-sm font-mono">[{match.participant2.clanTag}]</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Map Played */}
-          <div>
-            <label className="block text-blue-300 text-sm font-medium mb-2">Mapa Jugado</label>
-            <input
-              type="text"
-              value={editingMatch.mapPlayed}
-              onChange={(e) => setEditingMatch({ ...editingMatch, mapPlayed: e.target.value })}
-              className="w-full px-3 py-2 bg-slate-700/40 border border-blue-600/30 rounded-lg text-white placeholder-blue-300"
-              placeholder="Nombre del mapa"
-            />
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-blue-300 text-sm font-medium mb-2">Notas</label>
-            <textarea
-              value={editingMatch.notes}
-              onChange={(e) => setEditingMatch({ ...editingMatch, notes: e.target.value })}
-              rows={3}
-              className="w-full px-3 py-2 bg-slate-700/40 border border-blue-600/30 rounded-lg text-white placeholder-blue-300 resize-none"
-              placeholder="Notas adicionales..."
-            />
-          </div>
-
-          <div className="flex space-x-3 pt-4">
-            <button
-              onClick={handleSubmit}
-              className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 rounded-lg text-white font-medium transition-colors"
-            >
-              Guardar Resultado
-            </button>
-            <button
-              onClick={onClose}
-              className="px-6 py-3 bg-slate-600 hover:bg-slate-700 rounded-lg text-white font-medium transition-colors"
-            >
-              Cancelar
-            </button>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Modal para editar nombres de equipos */}
+      {showTeamNamesModal && editingTeamNames && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-2xl border border-blue-700/30 p-6 max-w-md w-full">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">Editar Nombres de Equipos</h3>
+              <button
+                onClick={() => setShowTeamNamesModal(false)}
+                className="p-2 hover:bg-slate-700 rounded-lg text-blue-300 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-blue-300 text-sm font-medium mb-2">
+                  Nombre del Equipo 1
+                </label>
+                <input
+                  type="text"
+                  value={editingTeamNames.team1Name}
+                  onChange={(e) => setEditingTeamNames({
+                    ...editingTeamNames,
+                    team1Name: e.target.value
+                  })}
+                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors"
+                  placeholder="Ej: Equipo Alpha"
+                />
+              </div>
+
+              <div>
+                <label className="block text-blue-300 text-sm font-medium mb-2">
+                  Nombre del Equipo 2
+                </label>
+                <input
+                  type="text"
+                  value={editingTeamNames.team2Name}
+                  onChange={(e) => setEditingTeamNames({
+                    ...editingTeamNames,
+                    team2Name: e.target.value
+                  })}
+                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors"
+                  placeholder="Ej: Equipo Beta"
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={() => updateTeamNames(
+                    editingTeamNames.matchId,
+                    editingTeamNames.team1Name,
+                    editingTeamNames.team2Name
+                  )}
+                  disabled={isUpdating}
+                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 rounded-xl text-white font-medium transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isUpdating ? 'Guardando...' : 'Guardar'}</span>
+                </button>
+                
+                <button
+                  onClick={() => setShowTeamNamesModal(false)}
+                  className="px-6 py-3 bg-slate-600 hover:bg-slate-700 rounded-xl text-white font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para editar título de ronda */}
+      {showRoundTitleModal && editingRoundTitle && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-2xl border border-blue-700/30 p-6 max-w-md w-full">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">Editar Título de Ronda</h3>
+              <button
+                onClick={() => setShowRoundTitleModal(false)}
+                className="p-2 hover:bg-slate-700 rounded-lg text-blue-300 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-blue-300 text-sm font-medium mb-2">
+                  Título de la Ronda {editingRoundTitle.round}
+                </label>
+                <input
+                  type="text"
+                  value={editingRoundTitle.title}
+                  onChange={(e) => setEditingRoundTitle({
+                    ...editingRoundTitle,
+                    title: e.target.value
+                  })}
+                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors"
+                  placeholder="Ej: Final, Semifinal, Cuartos de Final"
+                />
+              </div>
+
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+                <p className="text-blue-300 text-sm">
+                  <strong>Ejemplos de títulos:</strong><br />
+                  • Final ({getMatchFormat()})<br />
+                  • Semifinal ({getMatchFormat()})<br />
+                  • Cuartos de Final ({getMatchFormat()})<br />
+                  • Octavos de Final ({getMatchFormat()})
+                </p>
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={() => updateRoundTitle(
+                    editingRoundTitle.round,
+                    editingRoundTitle.title
+                  )}
+                  disabled={isUpdating}
+                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 rounded-xl text-white font-medium transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isUpdating ? 'Guardando...' : 'Guardar'}</span>
+                </button>
+                
+                <button
+                  onClick={() => setShowRoundTitleModal(false)}
+                  className="px-6 py-3 bg-slate-600 hover:bg-slate-700 rounded-xl text-white font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

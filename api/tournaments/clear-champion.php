@@ -19,10 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $data = getJsonInput();
 
-if (!isset($data['matchId'])) {
+if (!isset($data['tournamentId'])) {
     jsonResponse([
         'success' => false,
-        'message' => 'ID de partida requerido'
+        'message' => 'ID de torneo requerido'
     ], 400);
 }
 
@@ -40,44 +40,43 @@ try {
     if (!$user || $user['role'] !== 'admin') {
         jsonResponse([
             'success' => false,
-            'message' => 'No tienes permisos para eliminar partidas'
+            'message' => 'No tienes permisos para quitar designaciones de campeón'
         ], 403);
     }
 
-    // Verificar que la partida existe
-    $checkQuery = "SELECT id, tournament_id FROM tournament_matches WHERE id = :id";
-    $checkStmt = $db->prepare($checkQuery);
-    $checkStmt->bindParam(':id', $data['matchId']);
-    $checkStmt->execute();
-    $match = $checkStmt->fetch();
+    // Verificar que el torneo existe
+    $tournamentQuery = "SELECT id FROM tournaments WHERE id = :id";
+    $tournamentStmt = $db->prepare($tournamentQuery);
+    $tournamentStmt->bindParam(':id', $data['tournamentId']);
+    $tournamentStmt->execute();
 
-    if (!$match) {
+    if (!$tournamentStmt->fetch()) {
         jsonResponse([
             'success' => false,
-            'message' => 'Partida no encontrada'
+            'message' => 'Torneo no encontrado'
         ], 404);
     }
 
-    // Eliminar la partida
-    $deleteQuery = "DELETE FROM tournament_matches WHERE id = :id";
+    // Eliminar la designación manual del campeón
+    $deleteQuery = "DELETE FROM tournament_champions WHERE tournament_id = :tournament_id";
     $deleteStmt = $db->prepare($deleteQuery);
-    $deleteStmt->bindParam(':id', $data['matchId']);
-    
+    $deleteStmt->bindParam(':tournament_id', $data['tournamentId']);
+
     if ($deleteStmt->execute()) {
         jsonResponse([
             'success' => true,
-            'message' => 'Partida eliminada exitosamente'
+            'message' => 'Designación de campeón eliminada exitosamente'
         ]);
     } else {
-        error_log("Error SQL al eliminar partida: " . print_r($deleteStmt->errorInfo(), true));
+        error_log("Error SQL al eliminar designación de campeón: " . print_r($deleteStmt->errorInfo(), true));
         jsonResponse([
             'success' => false,
-            'message' => 'Error al eliminar la partida en la base de datos'
+            'message' => 'Error al eliminar la designación en la base de datos'
         ], 500);
     }
 
 } catch (Exception $e) {
-    error_log('Error en delete-match.php: ' . $e->getMessage());
+    error_log('Error en clear-champion.php: ' . $e->getMessage());
     error_log('Stack trace: ' . $e->getTraceAsString());
     jsonResponse([
         'success' => false,

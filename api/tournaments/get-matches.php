@@ -48,6 +48,8 @@ try {
           `scheduled_at` datetime DEFAULT NULL,
           `completed_at` datetime DEFAULT NULL,
           `notes` text DEFAULT NULL,
+          `team1_custom_name` varchar(255) DEFAULT NULL,
+          `team2_custom_name` varchar(255) DEFAULT NULL,
           `position_x` int(11) DEFAULT 0,
           `position_y` int(11) DEFAULT 0,
           `is_position_locked` tinyint(1) DEFAULT 0,
@@ -69,7 +71,7 @@ try {
     ";
     $db->exec($createMatchesTable);
 
-    // Agregar columnas para equipos y posiciones si no existen
+    // Agregar columnas para nombres personalizados si no existen
     $checkColumns = "SHOW COLUMNS FROM tournament_matches";
     $columnsResult = $db->query($checkColumns);
     $existingColumns = [];
@@ -77,6 +79,12 @@ try {
         $existingColumns[] = $column['Field'];
     }
 
+    if (!in_array('team1_custom_name', $existingColumns)) {
+        $db->exec("ALTER TABLE tournament_matches ADD COLUMN team1_custom_name VARCHAR(255) DEFAULT NULL AFTER notes");
+    }
+    if (!in_array('team2_custom_name', $existingColumns)) {
+        $db->exec("ALTER TABLE tournament_matches ADD COLUMN team2_custom_name VARCHAR(255) DEFAULT NULL AFTER team1_custom_name");
+    }
     if (!in_array('team1_participants', $existingColumns)) {
         $db->exec("ALTER TABLE tournament_matches ADD COLUMN team1_participants text DEFAULT NULL AFTER participant2_id");
     }
@@ -87,7 +95,7 @@ try {
         $db->exec("ALTER TABLE tournament_matches ADD COLUMN winner_team int(11) DEFAULT NULL AFTER team2_participants");
     }
     if (!in_array('position_x', $existingColumns)) {
-        $db->exec("ALTER TABLE tournament_matches ADD COLUMN position_x INT DEFAULT 0 AFTER notes");
+        $db->exec("ALTER TABLE tournament_matches ADD COLUMN position_x INT DEFAULT 0 AFTER team2_custom_name");
     }
     if (!in_array('position_y', $existingColumns)) {
         $db->exec("ALTER TABLE tournament_matches ADD COLUMN position_y INT DEFAULT 0 AFTER position_x");
@@ -157,7 +165,7 @@ try {
         return $participants;
     }
 
-    // Obtener matches con información de participantes y posiciones
+    // Obtener matches con información de participantes y nombres personalizados
     $query = "
         SELECT tm.*, 
                p1.participant_type as p1_type,
@@ -305,6 +313,8 @@ try {
             'scheduledAt' => $row['scheduled_at'],
             'completedAt' => $row['completed_at'],
             'notes' => $row['notes'],
+            'team1CustomName' => $row['team1_custom_name'],
+            'team2CustomName' => $row['team2_custom_name'],
             'teamSize' => $tournament['team_size'],
             'position' => [
                 'x' => (int)($row['position_x'] ?? 0),
