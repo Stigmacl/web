@@ -299,6 +299,33 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
     return teamSize === 1 ? '1v1' : `${teamSize}v${teamSize}`;
   };
 
+  // Función mejorada para obtener el nombre principal del equipo/participante
+  const getParticipantDisplayName = (participant: Participant, tournament: Tournament) => {
+    // Si es un equipo personalizado y tiene nombre de equipo, usarlo
+    if (participant.participantType === 'team' && participant.teamName) {
+      return participant.teamName;
+    }
+    
+    // Si es un clan y tiene tag, mostrar el tag del clan
+    if (participant.participantType === 'clan' && participant.clanTag) {
+      return `[${participant.clanTag}] ${participant.participantName}`;
+    }
+    
+    // Para torneos con equipos múltiples (teamSize > 1), crear un nombre descriptivo
+    if (tournament.teamSize > 1) {
+      if (participant.participantType === 'clan') {
+        return participant.clanTag ? `Equipo [${participant.clanTag}]` : `Equipo ${participant.participantName}`;
+      } else if (participant.participantType === 'user') {
+        return `Equipo ${participant.participantName}`;
+      } else {
+        return participant.teamName || `Equipo ${participant.participantName}`;
+      }
+    }
+    
+    // Para 1v1, usar el nombre del participante
+    return participant.participantName;
+  };
+
   // Función mejorada para obtener nombres de equipos en partidas
   const getTeamDisplayName = (participant: any, teamParticipants: any[], tournament: Tournament) => {
     if (!participant && (!teamParticipants || teamParticipants.length === 0)) {
@@ -310,7 +337,7 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
       if (tournament.type === 'clan') {
         // Para clanes, mostrar el tag del clan
         const firstParticipant = teamParticipants[0];
-        return firstParticipant.clanTag ? `[${firstParticipant.clanTag}]` : `Clan ${firstParticipant.name}`;
+        return firstParticipant.clanTag ? `Equipo [${firstParticipant.clanTag}]` : `Equipo ${firstParticipant.name}`;
       } else {
         // Para equipos, mostrar nombre del equipo o "Equipo X"
         const firstParticipant = teamParticipants[0];
@@ -342,6 +369,81 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
     return null;
   };
 
+  // Función para crear un mapa de participantes por ID para búsqueda rápida
+  const createParticipantMap = () => {
+    const participantMap = new Map();
+    participants.forEach(p => {
+      participantMap.set(p.id, p);
+    });
+    return participantMap;
+  };
+
+  // Función para obtener información completa del participante desde el match
+  const getParticipantFromMatch = (matchParticipant: any, participantMap: Map<string, Participant>) => {
+    if (!matchParticipant) return null;
+    
+    // Buscar el participante completo en el mapa
+    const fullParticipant = participantMap.get(matchParticipant.id);
+    
+    if (fullParticipant) {
+      return {
+        id: fullParticipant.id,
+        participantType: fullParticipant.participantType,
+        participantId: fullParticipant.participantId,
+        participantName: fullParticipant.participantName,
+        participantAvatar: fullParticipant.participantAvatar,
+        clanTag: fullParticipant.clanTag,
+        teamName: fullParticipant.teamName,
+        teamMembers: fullParticipant.teamMembers
+      };
+    }
+    
+    // Fallback a los datos del match si no se encuentra el participante completo
+    return {
+      id: matchParticipant.id,
+      participantType: matchParticipant.type as 'user' | 'clan' | 'team',
+      participantId: matchParticipant.id,
+      participantName: matchParticipant.name,
+      participantAvatar: matchParticipant.avatar,
+      clanTag: matchParticipant.clanTag,
+      teamName: matchParticipant.teamName,
+      teamMembers: []
+    };
+  };
+
+  // Función para obtener participantes de equipos múltiples
+  const getTeamParticipantsFromMatch = (teamParticipants: any[], participantMap: Map<string, Participant>) => {
+    if (!teamParticipants || teamParticipants.length === 0) return [];
+    
+    return teamParticipants.map(tp => {
+      const fullParticipant = participantMap.get(tp.id);
+      if (fullParticipant) {
+        return {
+          id: fullParticipant.id,
+          participantType: fullParticipant.participantType,
+          participantId: fullParticipant.participantId,
+          participantName: fullParticipant.participantName,
+          participantAvatar: fullParticipant.participantAvatar,
+          clanTag: fullParticipant.clanTag,
+          teamName: fullParticipant.teamName,
+          teamMembers: fullParticipant.teamMembers
+        };
+      }
+      
+      // Fallback a los datos del match
+      return {
+        id: tp.id,
+        participantType: tp.type as 'user' | 'clan' | 'team',
+        participantId: tp.id,
+        participantName: tp.name,
+        participantAvatar: tp.avatar,
+        clanTag: tp.clanTag,
+        teamName: tp.teamName,
+        teamMembers: []
+      };
+    });
+  };
+
   // Convertir participantes al formato esperado por TournamentBracket
   const bracketParticipants = participants.map(p => ({
     id: p.id,
@@ -354,39 +456,34 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
     teamMembers: p.teamMembers
   }));
 
-  // Convertir matches al formato esperado por TournamentBracket
-  const bracketMatches = matches.map(m => ({
-    id: m.id,
-    round: m.round,
-    matchNumber: m.matchNumber,
-    participant1: m.participant1 ? {
-      id: m.participant1.id,
-      participantType: m.participant1.type as 'user' | 'clan' | 'team',
-      participantId: m.participant1.id,
-      participantName: m.participant1.name,
-      participantAvatar: m.participant1.avatar,
-      clanTag: m.participant1.clanTag,
-      teamName: m.participant1.teamName
-    } : undefined,
-    participant2: m.participant2 ? {
-      id: m.participant2.id,
-      participantType: m.participant2.type as 'user' | 'clan' | 'team',
-      participantId: m.participant2.id,
-      participantName: m.participant2.name,
-      participantAvatar: m.participant2.avatar,
-      clanTag: m.participant2.clanTag,
-      teamName: m.participant2.teamName
-    } : undefined,
-    winnerId: m.winnerId,
-    score1: m.score1,
-    score2: m.score2,
-    status: m.status,
-    scheduledAt: m.scheduledAt,
-    completedAt: m.completedAt,
-    mapPlayed: m.mapPlayed,
-    notes: m.notes,
-    position: { x: 0, y: 0 } // Se calculará en el componente TournamentBracket
-  }));
+  // Convertir matches al formato esperado por TournamentBracket con información completa de participantes
+  const participantMap = createParticipantMap();
+  const bracketMatches = matches.map(m => {
+    const participant1 = getParticipantFromMatch(m.participant1, participantMap);
+    const participant2 = getParticipantFromMatch(m.participant2, participantMap);
+    const team1Participants = getTeamParticipantsFromMatch(m.team1Participants || [], participantMap);
+    const team2Participants = getTeamParticipantsFromMatch(m.team2Participants || [], participantMap);
+
+    return {
+      id: m.id,
+      round: m.round,
+      matchNumber: m.matchNumber,
+      participant1,
+      participant2,
+      team1Participants,
+      team2Participants,
+      winnerId: m.winnerId,
+      winnerTeam: m.winnerTeam,
+      score1: m.score1,
+      score2: m.score2,
+      status: m.status,
+      scheduledAt: m.scheduledAt,
+      completedAt: m.completedAt,
+      mapPlayed: m.mapPlayed,
+      notes: m.notes,
+      position: { x: 0, y: 0 } // Se calculará en el componente TournamentBracket
+    };
+  });
 
   if (isLoading) {
     return (
@@ -647,6 +744,9 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
                   const IconComponent = participant.clanIcon ? getClanIcon(participant.clanIcon).icon : Users;
                   const iconColor = participant.clanIcon ? getClanIcon(participant.clanIcon).color : 'text-blue-400';
                   
+                  // Obtener el nombre principal del equipo/participante
+                  const displayName = getParticipantDisplayName(participant, tournament);
+                  
                   return (
                     <div
                       key={participant.id}
@@ -668,7 +768,7 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
                             {participant.participantAvatar ? (
                               <img
                                 src={participant.participantAvatar}
-                                alt={participant.participantName}
+                                alt={displayName}
                                 className="w-12 h-12 rounded-full border-2 border-blue-500/30"
                               />
                             ) : (
@@ -679,28 +779,50 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
                             
                             <div>
                               <div className="flex items-center space-x-2">
+                                {/* Nombre principal del equipo/participante */}
                                 <span className="font-bold text-white text-lg">
-                                  {participant.participantType === 'team' && participant.teamName 
-                                    ? participant.teamName 
-                                    : participant.participantName}
+                                  {displayName}
                                 </span>
-                                {participant.clanTag && (
-                                  <span className="px-2 py-1 bg-purple-600/20 text-purple-300 rounded text-sm font-mono">
-                                    [{participant.clanTag}]
-                                  </span>
-                                )}
+                                
+                                {/* Formato del torneo */}
                                 <span className="px-2 py-1 bg-orange-600/20 text-orange-300 rounded text-sm font-bold">
                                   {getMatchFormat(tournament.teamSize)}
                                 </span>
+                                
+                                {/* Estado del participante */}
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                  participant.status === 'winner' ? 'bg-yellow-500/20 text-yellow-300' :
+                                  participant.status === 'eliminated' ? 'bg-red-500/20 text-red-300' :
+                                  participant.status === 'active' ? 'bg-green-500/20 text-green-300' :
+                                  'bg-blue-500/20 text-blue-300'
+                                }`}>
+                                  {participant.status === 'winner' ? 'Ganador' :
+                                   participant.status === 'eliminated' ? 'Eliminado' :
+                                   participant.status === 'active' ? 'Activo' :
+                                   'Registrado'}
+                                </span>
                               </div>
+                              
+                              {/* Miembros del equipo */}
                               {participant.teamMembers.length > 0 && (
-                                <p className="text-blue-300 text-sm">
-                                  Miembros: {participant.teamMembers.join(', ')}
+                                <p className="text-blue-300 text-sm mt-1">
+                                  <span className="text-blue-400 font-medium">Miembros:</span> {participant.teamMembers.join(', ')}
                                 </p>
                               )}
-                              <p className="text-blue-400 text-xs">
-                                Registrado: {formatDate(participant.registeredAt)}
-                              </p>
+                              
+                              {/* Información adicional */}
+                              <div className="flex items-center space-x-4 text-xs text-blue-400 mt-1">
+                                <span>Registrado: {formatDate(participant.registeredAt)}</span>
+                                {participant.participantType === 'user' && (
+                                  <span>Jugador Individual</span>
+                                )}
+                                {participant.participantType === 'clan' && participant.clanTag && (
+                                  <span>Clan: [{participant.clanTag}]</span>
+                                )}
+                                {participant.participantType === 'team' && (
+                                  <span>Equipo Personalizado</span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -719,18 +841,6 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
                           <div className="text-center">
                             <p className="text-xl font-bold text-red-400">{participant.losses}</p>
                             <p className="text-blue-300 text-sm">Derrotas</p>
-                          </div>
-                          
-                          <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            participant.status === 'winner' ? 'bg-yellow-500/20 text-yellow-300' :
-                            participant.status === 'eliminated' ? 'bg-red-500/20 text-red-300' :
-                            participant.status === 'active' ? 'bg-green-500/20 text-green-300' :
-                            'bg-blue-500/20 text-blue-300'
-                          }`}>
-                            {participant.status === 'winner' ? 'Ganador' :
-                             participant.status === 'eliminated' ? 'Eliminado' :
-                             participant.status === 'active' ? 'Activo' :
-                             'Registrado'}
                           </div>
                         </div>
                       </div>
