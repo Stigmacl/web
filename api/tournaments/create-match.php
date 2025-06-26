@@ -145,6 +145,77 @@ try {
         $insertData['team2_participants'] = null;
     }
 
+    // Verificar que los participantes existen si se especificaron
+    if ($tournament['team_size'] == 1) {
+        // Para 1v1, verificar participantes individuales
+        if ($insertData['participant1_id']) {
+            $checkP1 = "SELECT id FROM tournament_participants WHERE id = :id AND tournament_id = :tournament_id";
+            $checkP1Stmt = $db->prepare($checkP1);
+            $checkP1Stmt->bindParam(':id', $insertData['participant1_id']);
+            $checkP1Stmt->bindParam(':tournament_id', $data['tournamentId']);
+            $checkP1Stmt->execute();
+            if (!$checkP1Stmt->fetch()) {
+                jsonResponse([
+                    'success' => false,
+                    'message' => 'Participante 1 no válido para este torneo'
+                ], 400);
+            }
+        }
+        
+        if ($insertData['participant2_id']) {
+            $checkP2 = "SELECT id FROM tournament_participants WHERE id = :id AND tournament_id = :tournament_id";
+            $checkP2Stmt = $db->prepare($checkP2);
+            $checkP2Stmt->bindParam(':id', $insertData['participant2_id']);
+            $checkP2Stmt->bindParam(':tournament_id', $data['tournamentId']);
+            $checkP2Stmt->execute();
+            if (!$checkP2Stmt->fetch()) {
+                jsonResponse([
+                    'success' => false,
+                    'message' => 'Participante 2 no válido para este torneo'
+                ], 400);
+            }
+        }
+    } else {
+        // Para equipos múltiples, verificar que los participantes existen
+        if ($insertData['team1_participants']) {
+            $team1Ids = json_decode($insertData['team1_participants'], true);
+            if (is_array($team1Ids)) {
+                foreach ($team1Ids as $participantId) {
+                    $checkP = "SELECT id FROM tournament_participants WHERE id = :id AND tournament_id = :tournament_id";
+                    $checkPStmt = $db->prepare($checkP);
+                    $checkPStmt->bindParam(':id', $participantId);
+                    $checkPStmt->bindParam(':tournament_id', $data['tournamentId']);
+                    $checkPStmt->execute();
+                    if (!$checkPStmt->fetch()) {
+                        jsonResponse([
+                            'success' => false,
+                            'message' => "Participante del equipo 1 (ID: $participantId) no válido para este torneo"
+                        ], 400);
+                    }
+                }
+            }
+        }
+        
+        if ($insertData['team2_participants']) {
+            $team2Ids = json_decode($insertData['team2_participants'], true);
+            if (is_array($team2Ids)) {
+                foreach ($team2Ids as $participantId) {
+                    $checkP = "SELECT id FROM tournament_participants WHERE id = :id AND tournament_id = :tournament_id";
+                    $checkPStmt = $db->prepare($checkP);
+                    $checkPStmt->bindParam(':id', $participantId);
+                    $checkPStmt->bindParam(':tournament_id', $data['tournamentId']);
+                    $checkPStmt->execute();
+                    if (!$checkPStmt->fetch()) {
+                        jsonResponse([
+                            'success' => false,
+                            'message' => "Participante del equipo 2 (ID: $participantId) no válido para este torneo"
+                        ], 400);
+                    }
+                }
+            }
+        }
+    }
+
     // Crear la partida
     $insertQuery = "
         INSERT INTO tournament_matches (
@@ -171,7 +242,13 @@ try {
     $insertStmt->bindParam(':notes', $insertData['notes']);
     $insertStmt->bindParam(':status', $insertData['status']);
     
-    $insertStmt->execute();
+    if (!$insertStmt->execute()) {
+        error_log("Error SQL al crear partida: " . print_r($insertStmt->errorInfo(), true));
+        jsonResponse([
+            'success' => false,
+            'message' => 'Error al crear la partida en la base de datos'
+        ], 500);
+    }
 
     $matchId = $db->lastInsertId();
 

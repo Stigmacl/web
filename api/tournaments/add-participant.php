@@ -155,13 +155,21 @@ try {
         }
     }
 
-    // Verificar que el participante no esté ya registrado
-    $duplicateQuery = "SELECT id FROM tournament_participants WHERE tournament_id = :tournament_id AND participant_type = :participant_type AND participant_id = :participant_id";
-    $duplicateStmt = $db->prepare($duplicateQuery);
-    $duplicateStmt->bindParam(':tournament_id', $data['tournamentId']);
-    $duplicateStmt->bindParam(':participant_type', $data['participantType']);
-    $duplicateStmt->bindParam(':participant_id', $participantId);
-    $duplicateStmt->execute();
+    // Verificar que el participante no esté ya registrado (para equipos, verificar por nombre)
+    if ($data['participantType'] === 'team') {
+        $duplicateQuery = "SELECT id FROM tournament_participants WHERE tournament_id = :tournament_id AND participant_type = 'team' AND team_name = :team_name";
+        $duplicateStmt = $db->prepare($duplicateQuery);
+        $duplicateStmt->bindParam(':tournament_id', $data['tournamentId']);
+        $duplicateStmt->bindParam(':team_name', $data['teamName']);
+        $duplicateStmt->execute();
+    } else {
+        $duplicateQuery = "SELECT id FROM tournament_participants WHERE tournament_id = :tournament_id AND participant_type = :participant_type AND participant_id = :participant_id";
+        $duplicateStmt = $db->prepare($duplicateQuery);
+        $duplicateStmt->bindParam(':tournament_id', $data['tournamentId']);
+        $duplicateStmt->bindParam(':participant_type', $data['participantType']);
+        $duplicateStmt->bindParam(':participant_id', $participantId);
+        $duplicateStmt->execute();
+    }
 
     if ($duplicateStmt->fetch()) {
         jsonResponse([
@@ -184,21 +192,28 @@ try {
         }
 
         // Verificar que todos los miembros existan y estén activos
+        $validMembers = [];
         foreach ($data['teamMembers'] as $memberId) {
             $memberQuery = "SELECT id, username FROM users WHERE id = :id AND is_active = 1";
             $memberStmt = $db->prepare($memberQuery);
             $memberStmt->bindParam(':id', $memberId);
             $memberStmt->execute();
+            $member = $memberStmt->fetch();
             
-            if (!$memberStmt->fetch()) {
+            if (!$member) {
                 jsonResponse([
                     'success' => false,
                     'message' => 'Uno o más miembros del equipo no son válidos'
                 ], 400);
             }
+            
+            $validMembers[] = [
+                'id' => $member['id'],
+                'username' => $member['username']
+            ];
         }
 
-        $teamMembers = json_encode($data['teamMembers']);
+        $teamMembers = json_encode($validMembers);
     } elseif ($tournament['team_size'] > 1 && $data['participantType'] !== 'user') {
         // Si el torneo requiere equipos pero no se proporcionaron miembros
         jsonResponse([
@@ -222,7 +237,14 @@ try {
     $insertStmt->bindParam(':participant_id', $participantId);
     $insertStmt->bindParam(':team_name', $data['teamName'] ?? null);
     $insertStmt->bindParam(':team_members', $teamMembers);
-    $insertStmt->execute();
+    
+    if (!$insertStmt->execute()) {
+        error_log("Error SQL al insertar participante: " . print_r($insertStmt->errorInfo(), true));
+        jsonResponse([
+            'success' => false,
+            'message' => 'Error al insertar el participante en la base de datos'
+        ], 500);
+    }
 
     // Actualizar contador de participantes
     $updateCountQuery = "
@@ -241,11 +263,13 @@ try {
 
     jsonResponse([
         'success' => true,
-        'message' => 'Participante agregado exitosamente'
+        'message' => 'Participante agregado exitosamente',
+        'participantId' => $participantId
     ]);
 
 } catch (Exception $e) {
-    error_log($e->getMessage());
+    error_log('Error en add-participant.php: ' . $e->getMessage());
+    error_log('Stack trace: ' . $e->getTraceAsString());
     jsonResponse([
         'success' => false,
         'message' => 'Error interno del servidor: ' . $e->getMessage()

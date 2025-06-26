@@ -48,6 +48,9 @@ try {
           `scheduled_at` datetime DEFAULT NULL,
           `completed_at` datetime DEFAULT NULL,
           `notes` text DEFAULT NULL,
+          `position_x` int(11) DEFAULT 0,
+          `position_y` int(11) DEFAULT 0,
+          `is_position_locked` tinyint(1) DEFAULT 0,
           `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
           `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
           PRIMARY KEY (`id`),
@@ -66,7 +69,7 @@ try {
     ";
     $db->exec($createMatchesTable);
 
-    // Agregar columnas para equipos si no existen
+    // Agregar columnas para equipos y posiciones si no existen
     $checkColumns = "SHOW COLUMNS FROM tournament_matches";
     $columnsResult = $db->query($checkColumns);
     $existingColumns = [];
@@ -83,6 +86,15 @@ try {
     if (!in_array('winner_team', $existingColumns)) {
         $db->exec("ALTER TABLE tournament_matches ADD COLUMN winner_team int(11) DEFAULT NULL AFTER team2_participants");
     }
+    if (!in_array('position_x', $existingColumns)) {
+        $db->exec("ALTER TABLE tournament_matches ADD COLUMN position_x INT DEFAULT 0 AFTER notes");
+    }
+    if (!in_array('position_y', $existingColumns)) {
+        $db->exec("ALTER TABLE tournament_matches ADD COLUMN position_y INT DEFAULT 0 AFTER position_x");
+    }
+    if (!in_array('is_position_locked', $existingColumns)) {
+        $db->exec("ALTER TABLE tournament_matches ADD COLUMN is_position_locked TINYINT(1) DEFAULT 0 AFTER position_y");
+    }
 
     // Función para obtener información de participantes por IDs
     function getParticipantsByIds($db, $participantIds) {
@@ -90,7 +102,7 @@ try {
         
         $placeholders = str_repeat('?,', count($participantIds) - 1) . '?';
         $query = "
-            SELECT tp.id, tp.participant_type, tp.participant_id, tp.team_name,
+            SELECT tp.id, tp.participant_type, tp.participant_id, tp.team_name, tp.team_members,
                    CASE 
                        WHEN tp.participant_type = 'user' THEN u.username
                        WHEN tp.participant_type = 'clan' THEN c.name
@@ -116,11 +128,27 @@ try {
         
         $participants = [];
         while ($row = $stmt->fetch()) {
+            // Decodificar team_members para obtener nombres
+            $teamMemberNames = [];
+            if (!empty($row['team_members'])) {
+                $decodedMembers = json_decode($row['team_members'], true);
+                if (is_array($decodedMembers)) {
+                    foreach ($decodedMembers as $member) {
+                        if (is_array($member) && isset($member['username'])) {
+                            $teamMemberNames[] = $member['username'];
+                        } elseif (is_string($member)) {
+                            $teamMemberNames[] = $member;
+                        }
+                    }
+                }
+            }
+            
             $participants[] = [
                 'id' => $row['id'],
                 'type' => $row['participant_type'],
                 'name' => $row['participant_name'],
                 'teamName' => $row['team_name'],
+                'teamMembers' => $teamMemberNames,
                 'avatar' => $row['participant_avatar'],
                 'clanTag' => $row['clan_tag']
             ];
@@ -129,17 +157,18 @@ try {
         return $participants;
     }
 
-    // Obtener matches con información de participantes
+    // Obtener matches con información de participantes y posiciones
     $query = "
         SELECT tm.*, 
                p1.participant_type as p1_type,
                p1.participant_id as p1_participant_id,
+               p1.team_name as p1_team_name,
+               p1.team_members as p1_team_members,
                CASE 
                    WHEN p1.participant_type = 'user' THEN u1.username
                    WHEN p1.participant_type = 'clan' THEN c1.name
                    WHEN p1.participant_type = 'team' THEN p1.team_name
                END as p1_name,
-               p1.team_name as p1_team_name,
                CASE 
                    WHEN p1.participant_type = 'user' THEN u1.avatar
                    WHEN p1.participant_type = 'clan' THEN c1.logo
@@ -150,12 +179,13 @@ try {
                END as p1_clan_tag,
                p2.participant_type as p2_type,
                p2.participant_id as p2_participant_id,
+               p2.team_name as p2_team_name,
+               p2.team_members as p2_team_members,
                CASE 
                    WHEN p2.participant_type = 'user' THEN u2.username
                    WHEN p2.participant_type = 'clan' THEN c2.name
                    WHEN p2.participant_type = 'team' THEN p2.team_name
                END as p2_name,
-               p2.team_name as p2_team_name,
                CASE 
                    WHEN p2.participant_type = 'user' THEN u2.avatar
                    WHEN p2.participant_type = 'clan' THEN c2.logo
@@ -204,22 +234,54 @@ try {
         } else {
             // Para 1v1, usar el sistema original
             if ($row['participant1_id']) {
+                // Obtener nombres de miembros del equipo 1
+                $team1MemberNames = [];
+                if (!empty($row['p1_team_members'])) {
+                    $decodedMembers = json_decode($row['p1_team_members'], true);
+                    if (is_array($decodedMembers)) {
+                        foreach ($decodedMembers as $member) {
+                            if (is_array($member) && isset($member['username'])) {
+                                $team1MemberNames[] = $member['username'];
+                            } elseif (is_string($member)) {
+                                $team1MemberNames[] = $member;
+                            }
+                        }
+                    }
+                }
+
                 $participant1 = [
                     'id' => $row['participant1_id'],
                     'type' => $row['p1_type'],
                     'name' => $row['p1_name'],
                     'teamName' => $row['p1_team_name'],
+                    'teamMembers' => $team1MemberNames,
                     'avatar' => $row['p1_avatar'],
                     'clanTag' => $row['p1_clan_tag']
                 ];
             }
 
             if ($row['participant2_id']) {
+                // Obtener nombres de miembros del equipo 2
+                $team2MemberNames = [];
+                if (!empty($row['p2_team_members'])) {
+                    $decodedMembers = json_decode($row['p2_team_members'], true);
+                    if (is_array($decodedMembers)) {
+                        foreach ($decodedMembers as $member) {
+                            if (is_array($member) && isset($member['username'])) {
+                                $team2MemberNames[] = $member['username'];
+                            } elseif (is_string($member)) {
+                                $team2MemberNames[] = $member;
+                            }
+                        }
+                    }
+                }
+
                 $participant2 = [
                     'id' => $row['participant2_id'],
                     'type' => $row['p2_type'],
                     'name' => $row['p2_name'],
                     'teamName' => $row['p2_team_name'],
+                    'teamMembers' => $team2MemberNames,
                     'avatar' => $row['p2_avatar'],
                     'clanTag' => $row['p2_clan_tag']
                 ];
@@ -243,7 +305,12 @@ try {
             'scheduledAt' => $row['scheduled_at'],
             'completedAt' => $row['completed_at'],
             'notes' => $row['notes'],
-            'teamSize' => $tournament['team_size']
+            'teamSize' => $tournament['team_size'],
+            'position' => [
+                'x' => (int)($row['position_x'] ?? 0),
+                'y' => (int)($row['position_y'] ?? 0)
+            ],
+            'isLocked' => (bool)($row['is_position_locked'] ?? false)
         ];
     }
 

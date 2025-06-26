@@ -89,19 +89,30 @@ try {
         if (!empty($row['team_members'])) {
             $decodedMembers = json_decode($row['team_members'], true);
             if (is_array($decodedMembers)) {
-                // Obtener nombres de los miembros del equipo
-                $memberNames = [];
-                foreach ($decodedMembers as $memberId) {
-                    $memberQuery = "SELECT username FROM users WHERE id = :id";
-                    $memberStmt = $db->prepare($memberQuery);
-                    $memberStmt->bindParam(':id', $memberId);
-                    $memberStmt->execute();
-                    $member = $memberStmt->fetch();
-                    if ($member) {
-                        $memberNames[] = $member['username'];
+                // Si los miembros están guardados como objetos con id y username
+                if (isset($decodedMembers[0]) && is_array($decodedMembers[0]) && isset($decodedMembers[0]['username'])) {
+                    $teamMembers = array_map(function($member) {
+                        return $member['username'];
+                    }, $decodedMembers);
+                } else {
+                    // Si son solo IDs, obtener nombres de los miembros del equipo
+                    $memberNames = [];
+                    foreach ($decodedMembers as $memberId) {
+                        if (is_numeric($memberId)) {
+                            $memberQuery = "SELECT username FROM users WHERE id = :id";
+                            $memberStmt = $db->prepare($memberQuery);
+                            $memberStmt->bindParam(':id', $memberId);
+                            $memberStmt->execute();
+                            $member = $memberStmt->fetch();
+                            if ($member) {
+                                $memberNames[] = $member['username'];
+                            }
+                        } else {
+                            $memberNames[] = $memberId; // Si ya es un nombre
+                        }
                     }
+                    $teamMembers = $memberNames;
                 }
-                $teamMembers = $memberNames;
             }
         }
 

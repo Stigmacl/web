@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Trophy, Users, Calendar, Crown, Target, Play, CheckCircle, Clock, ArrowRight, Zap, Award, Medal, Edit, Save, X, Plus, Trash2, Shuffle, RotateCcw, User, Shield } from 'lucide-react';
+import { Trophy, Users, Calendar, Crown, Target, Play, CheckCircle, Clock, ArrowRight, Zap, Award, Medal, Edit, Save, X, Plus, Trash2, Shuffle, RotateCcw, User, Shield, Move, Lock, Unlock } from 'lucide-react';
 
 interface Participant {
   id: string;
@@ -31,6 +31,7 @@ interface Match {
     x: number;
     y: number;
   };
+  isLocked?: boolean; // Nueva propiedad para bloquear posición
 }
 
 interface TournamentBracketProps {
@@ -93,8 +94,6 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
 
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [showMatchModal, setShowMatchModal] = useState(false);
-  const [showEditParticipantModal, setShowEditParticipantModal] = useState(false);
-  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [editingMatch, setEditingMatch] = useState<{
     participant1Id: string;
     participant2Id: string;
@@ -103,8 +102,7 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
     score2: number;
     mapPlayed: string;
     notes: string;
-    teamName1: string;
-    teamName2: string;
+    status: string;
   }>({
     participant1Id: '',
     participant2Id: '',
@@ -113,21 +111,35 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
     score2: 0,
     mapPlayed: '',
     notes: '',
-    teamName1: '',
-    teamName2: ''
+    status: 'pending'
   });
+
+  // Estados para drag & drop
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedMatch, setDraggedMatch] = useState<Match | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [localMatches, setLocalMatches] = useState<Match[]>([]);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Referencias para el scroll automático
   const bracketContainerRef = useRef<HTMLDivElement>(null);
   const [bracketDimensions, setBracketDimensions] = useState({ width: 0, height: 0 });
 
+  // Sincronizar matches locales con props
+  useEffect(() => {
+    setLocalMatches(matches.map(match => ({
+      ...match,
+      isLocked: match.isLocked || false
+    })));
+  }, [matches]);
+
   // Regenerar bracket cada vez que cambien las partidas o participantes
   useEffect(() => {
-    console.log('🔄 Regenerando bracket - Partidas:', matches.length, 'Participantes:', participants.length);
-    if (matches.length > 0 || participants.length > 0) {
+    console.log('🔄 Regenerando bracket - Partidas:', localMatches.length, 'Participantes:', participants.length);
+    if (localMatches.length > 0 || participants.length > 0) {
       generateBracket();
     }
-  }, [participants, matches, bracketType]);
+  }, [participants, localMatches, bracketType]);
 
   // Auto-refresh cada 30 segundos para mantener sincronizado
   useEffect(() => {
@@ -171,7 +183,7 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
   const generateSingleEliminationBracket = () => {
     console.log('🎯 Generando bracket de eliminación simple');
     
-    if (matches.length === 0) {
+    if (localMatches.length === 0) {
       console.log('⚠️ No hay partidas para generar bracket');
       setBracketData({
         rounds: [],
@@ -184,7 +196,7 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
 
     // Agrupar partidas por ronda
     const roundsMap = new Map<number, Match[]>();
-    matches.forEach(match => {
+    localMatches.forEach(match => {
       if (!roundsMap.has(match.round)) {
         roundsMap.set(match.round, []);
       }
@@ -219,15 +231,18 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
       const startY = 100;
       
       roundMatches.forEach((match, index) => {
-        // POSICIÓN X: Empezar desde la izquierda (50px de margen)
-        const x = roundIndex * roundSpacing + 50;
-        const y = startY + (index * verticalSpacing);
-        
-        match.position = { x, y };
+        // Si la partida no tiene posición personalizada o no está en modo edición, usar posición calculada
+        if (!match.position || (!isEditMode && !match.isLocked)) {
+          // POSICIÓN X: Empezar desde la izquierda (50px de margen)
+          const x = roundIndex * roundSpacing + 50;
+          const y = startY + (index * verticalSpacing);
+          
+          match.position = { x, y };
+        }
         
         // Actualizar dimensiones totales
-        totalWidth = Math.max(totalWidth, x + matchWidth);
-        totalHeight = Math.max(totalHeight, y + matchHeight);
+        totalWidth = Math.max(totalWidth, match.position.x + matchWidth);
+        totalHeight = Math.max(totalHeight, match.position.y + matchHeight);
       });
 
       rounds.push(roundMatches);
@@ -260,7 +275,7 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
   const generateRoundRobinBracket = () => {
     console.log('🎯 Generando bracket round robin');
     
-    if (matches.length === 0) {
+    if (localMatches.length === 0) {
       setBracketData({
         rounds: [],
         maxRounds: 0,
@@ -271,7 +286,7 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
     }
 
     // Para round robin, todas las partidas están en la "ronda 1" o se organizan por grupos
-    const roundRobinMatches = [...matches];
+    const roundRobinMatches = [...localMatches];
     
     // Organizar en una cuadrícula más compacta - EMPEZAR DESDE LA IZQUIERDA
     const matchesPerRow = Math.ceil(Math.sqrt(roundRobinMatches.length));
@@ -284,17 +299,20 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
     let totalHeight = 0;
     
     roundRobinMatches.forEach((match, index) => {
-      const row = Math.floor(index / matchesPerRow);
-      const col = index % matchesPerRow;
+      // Si la partida no tiene posición personalizada o no está en modo edición, usar posición calculada
+      if (!match.position || (!isEditMode && !match.isLocked)) {
+        const row = Math.floor(index / matchesPerRow);
+        const col = index % matchesPerRow;
+        
+        // EMPEZAR DESDE LA IZQUIERDA
+        const x = col * horizontalSpacing + 50;
+        const y = row * verticalSpacing + 100;
+        
+        match.position = { x, y };
+      }
       
-      // EMPEZAR DESDE LA IZQUIERDA
-      const x = col * horizontalSpacing + 50;
-      const y = row * verticalSpacing + 100;
-      
-      match.position = { x, y };
-      
-      totalWidth = Math.max(totalWidth, x + matchWidth);
-      totalHeight = Math.max(totalHeight, y + matchHeight);
+      totalWidth = Math.max(totalWidth, match.position.x + matchWidth);
+      totalHeight = Math.max(totalHeight, match.position.y + matchHeight);
     });
 
     // Agregar padding
@@ -311,8 +329,108 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
     setBracketDimensions({ width: totalWidth, height: totalHeight });
   };
 
+  // Funciones de drag & drop
+  const handleMouseDown = (e: React.MouseEvent, match: Match) => {
+    if (!isAdmin || !isEditMode || match.isLocked) return;
+    
+    e.preventDefault();
+    setIsDragging(true);
+    setDraggedMatch(match);
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const containerRect = bracketContainerRef.current?.getBoundingClientRect();
+    
+    if (containerRect) {
+      setDragOffset({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !draggedMatch || !bracketContainerRef.current) return;
+    
+    const containerRect = bracketContainerRef.current.getBoundingClientRect();
+    const newX = e.clientX - containerRect.left - dragOffset.x + bracketContainerRef.current.scrollLeft;
+    const newY = e.clientY - containerRect.top - dragOffset.y + bracketContainerRef.current.scrollTop;
+    
+    // Actualizar posición local
+    setLocalMatches(prev => prev.map(match => 
+      match.id === draggedMatch.id 
+        ? { ...match, position: { x: Math.max(0, newX), y: Math.max(0, newY) } }
+        : match
+    ));
+  };
+
+  const handleMouseUp = async () => {
+    if (!isDragging || !draggedMatch) return;
+    
+    setIsDragging(false);
+    
+    // Guardar nueva posición en la base de datos
+    const updatedMatch = localMatches.find(m => m.id === draggedMatch.id);
+    if (updatedMatch && onMatchUpdate) {
+      try {
+        await saveMatchPosition(updatedMatch);
+      } catch (error) {
+        console.error('Error saving match position:', error);
+      }
+    }
+    
+    setDraggedMatch(null);
+  };
+
+  const saveMatchPosition = async (match: Match) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tournaments/update-match-position.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          matchId: match.id,
+          position: match.position,
+          isLocked: match.isLocked
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        console.error('Error saving match position:', data.message);
+      }
+    } catch (error) {
+      console.error('Error saving match position:', error);
+    }
+  };
+
+  const toggleMatchLock = async (match: Match) => {
+    const updatedMatch = { ...match, isLocked: !match.isLocked };
+    
+    setLocalMatches(prev => prev.map(m => 
+      m.id === match.id ? updatedMatch : m
+    ));
+    
+    await saveMatchPosition(updatedMatch);
+  };
+
+  const resetMatchPositions = () => {
+    if (confirm('¿Estás seguro de que quieres resetear todas las posiciones de las partidas?')) {
+      setLocalMatches(prev => prev.map(match => ({
+        ...match,
+        position: { x: 0, y: 0 },
+        isLocked: false
+      })));
+      
+      // Regenerar posiciones automáticas
+      generateBracket();
+    }
+  };
+
   const handleMatchClick = (match: Match) => {
-    if (isAdmin) {
+    if (isAdmin && !isDragging) {
       setSelectedMatch(match);
       setEditingMatch({
         participant1Id: match.participant1?.id || '',
@@ -322,17 +440,9 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
         score2: match.score2,
         mapPlayed: match.mapPlayed || '',
         notes: match.notes || '',
-        teamName1: getTeamDisplayName(match.participant1, [], { teamSize } as any) || '',
-        teamName2: getTeamDisplayName(match.participant2, [], { teamSize } as any) || ''
+        status: match.status
       });
       setShowMatchModal(true);
-    }
-  };
-
-  const handleParticipantClick = (participant: Participant) => {
-    if (isAdmin) {
-      setSelectedParticipant(participant);
-      setShowEditParticipantModal(true);
     }
   };
 
@@ -340,6 +450,24 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
     if (!selectedMatch) return;
 
     try {
+      // Calcular puntos según el nuevo sistema
+      let participant1Points = 0;
+      let participant2Points = 0;
+      
+      if (editingMatch.score1 > editingMatch.score2) {
+        // Participante 1 gana
+        participant1Points = 3;
+        participant2Points = 0;
+      } else if (editingMatch.score2 > editingMatch.score1) {
+        // Participante 2 gana
+        participant1Points = 0;
+        participant2Points = 3;
+      } else {
+        // Empate
+        participant1Points = 1;
+        participant2Points = 1;
+      }
+
       const response = await fetch(`${API_BASE_URL}/tournaments/update-match.php`, {
         method: 'POST',
         headers: {
@@ -352,8 +480,10 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
           score1: editingMatch.score1,
           score2: editingMatch.score2,
           mapPlayed: editingMatch.mapPlayed || null,
-          status: editingMatch.winnerId ? 'completed' : selectedMatch.status,
-          notes: editingMatch.notes || null
+          status: editingMatch.status,
+          notes: editingMatch.notes || null,
+          participant1Points,
+          participant2Points
         })
       });
 
@@ -365,7 +495,7 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
           score1: editingMatch.score1,
           score2: editingMatch.score2,
           mapPlayed: editingMatch.mapPlayed,
-          status: editingMatch.winnerId ? 'completed' : selectedMatch.status,
+          status: editingMatch.status,
           notes: editingMatch.notes
         });
         setShowMatchModal(false);
@@ -375,9 +505,12 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
         if (onRefreshData) {
           setTimeout(() => onRefreshData(), 500);
         }
+      } else {
+        alert('Error al actualizar la partida: ' + (data.message || 'Error desconocido'));
       }
     } catch (error) {
       console.error('Error updating match:', error);
+      alert('Error al actualizar la partida');
     }
   };
 
@@ -445,13 +578,24 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
     }
   };
 
+  // Función mejorada para determinar el ganador por puntuación
+  const getWinnerByScore = (score1: number, score2: number) => {
+    if (score1 > score2) return 1;
+    if (score2 > score1) return 2;
+    return 0; // Empate
+  };
+
   // Función mejorada para obtener nombres de equipos
-  const getTeamDisplayName = (participant: Participant | undefined, teamParticipants?: any[], tournament?: any) => {
+  const getTeamDisplayName = (participant: Participant | undefined) => {
     if (!participant) {
-      return `Equipo TBD`;
+      return `Por definir`;
     }
 
     if (participant.participantType === 'team') {
+      // Para equipos personalizados, mostrar el nombre del equipo y los miembros
+      if (participant.teamName && participant.teamMembers && participant.teamMembers.length > 0) {
+        return `${participant.teamName}`;
+      }
       return participant.teamName || `Equipo ${participant.participantName}`;
     } else if (participant.participantType === 'clan') {
       return `[${participant.clanTag}] ${participant.participantName}`;
@@ -485,28 +629,33 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
 
   const renderMatch = (match: Match, roundIndex: number) => {
     const StatusIcon = getStatusIcon(match.status);
-    const isWinner1 = match.winnerId === match.participant1?.id;
-    const isWinner2 = match.winnerId === match.participant2?.id;
+    const winnerByScore = getWinnerByScore(match.score1, match.score2);
+    const isWinner1 = winnerByScore === 1;
+    const isWinner2 = winnerByScore === 2;
+    const isTie = winnerByScore === 0 && match.status === 'completed';
 
     // Generar nombres de equipos mejorados
-    const team1Name = getTeamDisplayName(match.participant1) || `Equipo ${match.matchNumber * 2 - 1}`;
-    const team2Name = getTeamDisplayName(match.participant2) || `Equipo ${match.matchNumber * 2}`;
+    const team1Name = getTeamDisplayName(match.participant1);
+    const team2Name = getTeamDisplayName(match.participant2);
 
     return (
       <div
         key={match.id}
         className={`
-          relative bg-slate-800/60 backdrop-blur-sm rounded-lg border-2 p-4 min-w-[330px] cursor-pointer
-          transition-all duration-300 hover:scale-105 hover:shadow-lg
+          relative bg-slate-800/60 backdrop-blur-sm rounded-lg border-2 p-4 min-w-[330px] transition-all duration-300
           ${getMatchStatusColor(match.status)}
-          ${isAdmin ? 'hover:border-blue-400' : ''}
+          ${isAdmin && isEditMode ? 'hover:border-blue-400 cursor-move' : isAdmin ? 'cursor-pointer hover:scale-105 hover:shadow-lg' : ''}
+          ${isDragging && draggedMatch?.id === match.id ? 'opacity-50 scale-105' : ''}
+          ${match.isLocked ? 'ring-2 ring-yellow-400/50' : ''}
         `}
-        onClick={() => handleMatchClick(match)}
         style={{
           position: 'absolute',
           left: match.position.x,
-          top: match.position.y
+          top: match.position.y,
+          zIndex: isDragging && draggedMatch?.id === match.id ? 1000 : 1
         }}
+        onMouseDown={(e) => handleMouseDown(e, match)}
+        onClick={() => !isEditMode && handleMatchClick(match)}
       >
         {/* Match Header */}
         <div className="flex items-center justify-between mb-3">
@@ -525,26 +674,47 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
             )}
             {isAdmin && (
               <div className="flex items-center space-x-1">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    swapParticipants(match);
-                  }}
-                  className="p-1 hover:bg-blue-600/20 rounded text-blue-400 transition-colors"
-                  title="Intercambiar participantes"
-                >
-                  <Shuffle className="w-3 h-3" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleMatchClick(match);
-                  }}
-                  className="p-1 hover:bg-green-600/20 rounded text-green-400 transition-colors"
-                  title="Editar partida"
-                >
-                  <Edit className="w-3 h-3" />
-                </button>
+                {isEditMode && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleMatchLock(match);
+                      }}
+                      className={`p-1 hover:bg-yellow-600/20 rounded transition-colors ${
+                        match.isLocked ? 'text-yellow-400' : 'text-gray-400'
+                      }`}
+                      title={match.isLocked ? 'Desbloquear posición' : 'Bloquear posición'}
+                    >
+                      {match.isLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                    </button>
+                    <Move className="w-3 h-3 text-blue-400" title="Arrastrar para mover" />
+                  </>
+                )}
+                {!isEditMode && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        swapParticipants(match);
+                      }}
+                      className="p-1 hover:bg-blue-600/20 rounded text-blue-400 transition-colors"
+                      title="Intercambiar participantes"
+                    >
+                      <Shuffle className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMatchClick(match);
+                      }}
+                      className="p-1 hover:bg-green-600/20 rounded text-green-400 transition-colors"
+                      title="Editar partida"
+                    >
+                      <Edit className="w-3 h-3" />
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -554,14 +724,11 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
         <div className="space-y-3">
           {/* Participant 1 */}
           <div className={`
-            flex items-center justify-between p-3 rounded border cursor-pointer
-            ${isWinner1 ? 'border-green-400 bg-green-400/20' : 'border-slate-600 bg-slate-700/40'}
-            ${isAdmin ? 'hover:bg-slate-600/60' : ''}
-          `}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (match.participant1) handleParticipantClick(match.participant1);
-          }}>
+            flex items-center justify-between p-3 rounded border transition-all duration-300
+            ${isWinner1 ? 'border-green-400 bg-green-400/20 shadow-lg shadow-green-400/20' : 
+              isTie ? 'border-yellow-400 bg-yellow-400/20' :
+              'border-slate-600 bg-slate-700/40'}
+          `}>
             <div className="flex items-center space-x-3 flex-1 min-w-0">
               {match.participant1?.participantAvatar && (
                 <img
@@ -578,7 +745,9 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
               )}
               <div className="flex-1 min-w-0">
                 <span className={`text-sm font-medium truncate block ${
-                  isWinner1 ? 'text-green-200' : 'text-white'
+                  isWinner1 ? 'text-green-200 font-bold' : 
+                  isTie ? 'text-yellow-200' :
+                  'text-white'
                 }`}>
                   {team1Name}
                 </span>
@@ -595,8 +764,10 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
               </div>
             </div>
             <div className={`
-              px-3 py-1 rounded text-sm font-bold min-w-[32px] text-center
-              ${isWinner1 ? 'bg-green-500 text-white' : 'bg-slate-600 text-gray-300'}
+              px-3 py-1 rounded text-sm font-bold min-w-[32px] text-center transition-all duration-300
+              ${isWinner1 ? 'bg-green-500 text-white shadow-lg' : 
+                isTie ? 'bg-yellow-500 text-white' :
+                'bg-slate-600 text-gray-300'}
             `}>
               {match.score1}
             </div>
@@ -613,14 +784,11 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
 
           {/* Participant 2 */}
           <div className={`
-            flex items-center justify-between p-3 rounded border cursor-pointer
-            ${isWinner2 ? 'border-green-400 bg-green-400/20' : 'border-slate-600 bg-slate-700/40'}
-            ${isAdmin ? 'hover:bg-slate-600/60' : ''}
-          `}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (match.participant2) handleParticipantClick(match.participant2);
-          }}>
+            flex items-center justify-between p-3 rounded border transition-all duration-300
+            ${isWinner2 ? 'border-green-400 bg-green-400/20 shadow-lg shadow-green-400/20' : 
+              isTie ? 'border-yellow-400 bg-yellow-400/20' :
+              'border-slate-600 bg-slate-700/40'}
+          `}>
             <div className="flex items-center space-x-3 flex-1 min-w-0">
               {match.participant2?.participantAvatar && (
                 <img
@@ -637,7 +805,9 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
               )}
               <div className="flex-1 min-w-0">
                 <span className={`text-sm font-medium truncate block ${
-                  isWinner2 ? 'text-green-200' : 'text-white'
+                  isWinner2 ? 'text-green-200 font-bold' : 
+                  isTie ? 'text-yellow-200' :
+                  'text-white'
                 }`}>
                   {team2Name}
                 </span>
@@ -654,8 +824,10 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
               </div>
             </div>
             <div className={`
-              px-3 py-1 rounded text-sm font-bold min-w-[32px] text-center
-              ${isWinner2 ? 'bg-green-500 text-white' : 'bg-slate-600 text-gray-300'}
+              px-3 py-1 rounded text-sm font-bold min-w-[32px] text-center transition-all duration-300
+              ${isWinner2 ? 'bg-green-500 text-white shadow-lg' : 
+                isTie ? 'bg-yellow-500 text-white' :
+                'bg-slate-600 text-gray-300'}
             `}>
               {match.score2}
             </div>
@@ -685,6 +857,27 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
           {match.notes && (
             <div className="text-xs text-gray-400 italic truncate">
               {match.notes}
+            </div>
+          )}
+          
+          {/* Indicador de puntos */}
+          {match.status === 'completed' && (
+            <div className="flex items-center justify-center space-x-2 text-xs mt-2 pt-2 border-t border-slate-600">
+              <span className={`px-2 py-1 rounded ${
+                isWinner1 ? 'bg-green-500/20 text-green-300' :
+                isTie ? 'bg-yellow-500/20 text-yellow-300' :
+                'bg-gray-500/20 text-gray-300'
+              }`}>
+                {isWinner1 ? '3 pts' : isTie ? '1 pt' : '0 pts'}
+              </span>
+              <span className="text-slate-400">-</span>
+              <span className={`px-2 py-1 rounded ${
+                isWinner2 ? 'bg-green-500/20 text-green-300' :
+                isTie ? 'bg-yellow-500/20 text-yellow-300' :
+                'bg-gray-500/20 text-gray-300'
+              }`}>
+                {isWinner2 ? '3 pts' : isTie ? '1 pt' : '0 pts'}
+              </span>
             </div>
           )}
         </div>
@@ -795,7 +988,7 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
     });
   };
 
-  if (participants.length === 0 && matches.length === 0) {
+  if (participants.length === 0 && localMatches.length === 0) {
     return (
       <div className="text-center py-12">
         <Users className="w-16 h-16 text-blue-400 mx-auto mb-4 opacity-50" />
@@ -805,7 +998,7 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
     );
   }
 
-  if (matches.length === 0) {
+  if (localMatches.length === 0) {
     return (
       <div className="text-center py-12">
         <Target className="w-16 h-16 text-blue-400 mx-auto mb-4 opacity-50" />
@@ -840,7 +1033,7 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
                 }
               </h3>
               <p className="text-blue-300 text-sm">
-                {participants.length} participantes • {matches.length} partidas
+                {participants.length} participantes • {localMatches.length} partidas
                 {teamSize > 1 && ` • Formato ${getMatchFormat()}`}
               </p>
             </div>
@@ -849,15 +1042,15 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
           <div className="flex items-center space-x-4 text-sm">
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span className="text-green-300">Completado</span>
+              <span className="text-green-300">Ganador (3 pts)</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-              <span className="text-yellow-300">En Progreso</span>
+              <span className="text-yellow-300">Empate (1 pt)</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span className="text-blue-300">Pendiente</span>
+              <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+              <span className="text-gray-300">Perdedor (0 pts)</span>
             </div>
             {isAdmin && (
               <div className="flex items-center space-x-2">
@@ -876,12 +1069,35 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
             <h4 className="text-lg font-bold text-white">Controles de Administrador</h4>
             <div className="flex items-center space-x-2">
               <button
+                onClick={() => setIsEditMode(!isEditMode)}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
+                  isEditMode 
+                    ? 'bg-orange-600/30 text-orange-300 border border-orange-500/30' 
+                    : 'bg-purple-600/20 hover:bg-purple-600/30 text-purple-300'
+                }`}
+              >
+                <Move className="w-4 h-4" />
+                <span>{isEditMode ? 'Salir del Modo Edición' : 'Modo Edición'}</span>
+              </button>
+              
+              {isEditMode && (
+                <button
+                  onClick={resetMatchPositions}
+                  className="flex items-center space-x-2 px-3 py-2 bg-red-600/20 hover:bg-red-600/30 rounded-lg text-red-300 transition-colors"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Resetear Posiciones</span>
+                </button>
+              )}
+              
+              <button
                 onClick={() => onRefreshData && onRefreshData()}
                 className="flex items-center space-x-2 px-3 py-2 bg-green-600/20 hover:bg-green-600/30 rounded-lg text-green-300 transition-colors"
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>Actualizar Datos</span>
               </button>
+              
               <button
                 onClick={handleBracketRegenerate}
                 className="flex items-center space-x-2 px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 rounded-lg text-blue-300 transition-colors"
@@ -891,11 +1107,16 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
               </button>
             </div>
           </div>
-          <p className="text-blue-400 text-sm mt-2">
-            El bracket se actualiza automáticamente cuando se crean o modifican partidas.
-            Haz clic en las partidas para editarlas, en los participantes para cambiarlos, o usa los controles para regenerar el bracket.
-            {teamSize > 1 && ` Todas las partidas son en formato ${getMatchFormat()}.`}
-          </p>
+          <div className="mt-3 space-y-2">
+            <p className="text-blue-400 text-sm">
+              <strong>Sistema de Puntuación:</strong> Ganador = 3 puntos, Empate = 1 punto cada uno, Perdedor = 0 puntos
+            </p>
+            <p className="text-blue-400 text-sm">
+              Haz clic en las partidas para editarlas y cambiar su estado. 
+              {isEditMode ? ' En modo edición puedes arrastrar las partidas para reposicionarlas.' : ' Activa el modo edición para mover partidas.'}
+              {teamSize > 1 && ` Todas las partidas son en formato ${getMatchFormat()}.`}
+            </p>
+          </div>
         </div>
       )}
 
@@ -908,6 +1129,9 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
             height: '600px',
             maxHeight: '80vh'
           }}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
         >
           <div 
             className="relative"
@@ -1028,6 +1252,15 @@ const MatchUpdateModal: React.FC<MatchUpdateModalProps> = ({
     return `${teamSize}v${teamSize}`;
   };
 
+  // Calcular puntos según el nuevo sistema
+  const calculatePoints = (score1: number, score2: number) => {
+    if (score1 > score2) return { team1: 3, team2: 0 };
+    if (score2 > score1) return { team1: 0, team2: 3 };
+    return { team1: 1, team2: 1 }; // Empate
+  };
+
+  const points = calculatePoints(editingMatch.score1, editingMatch.score2);
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-slate-800 rounded-2xl border border-blue-700/30 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -1044,24 +1277,52 @@ const MatchUpdateModal: React.FC<MatchUpdateModalProps> = ({
         </div>
 
         <div className="space-y-6">
+          {/* Sistema de puntuación */}
+          <div className="bg-blue-600/10 border border-blue-500/30 rounded-xl p-4">
+            <h4 className="text-blue-300 font-medium mb-2">Sistema de Puntuación</h4>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="text-center">
+                <div className="w-8 h-8 bg-green-500 rounded-full mx-auto mb-1 flex items-center justify-center">
+                  <span className="text-white font-bold text-xs">3</span>
+                </div>
+                <span className="text-green-300">Ganador</span>
+              </div>
+              <div className="text-center">
+                <div className="w-8 h-8 bg-yellow-500 rounded-full mx-auto mb-1 flex items-center justify-center">
+                  <span className="text-white font-bold text-xs">1</span>
+                </div>
+                <span className="text-yellow-300">Empate</span>
+              </div>
+              <div className="text-center">
+                <div className="w-8 h-8 bg-gray-500 rounded-full mx-auto mb-1 flex items-center justify-center">
+                  <span className="text-white font-bold text-xs">0</span>
+                </div>
+                <span className="text-gray-300">Perdedor</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Estado de la partida */}
+          <div>
+            <label className="block text-blue-300 text-sm font-medium mb-2">Estado de la Partida</label>
+            <select
+              value={editingMatch.status}
+              onChange={(e) => setEditingMatch({ ...editingMatch, status: e.target.value })}
+              className="w-full px-3 py-2 bg-slate-700/40 border border-blue-600/30 rounded-lg text-white"
+            >
+              <option value="pending">Pendiente</option>
+              <option value="in_progress">En Progreso</option>
+              <option value="completed">Completada</option>
+              <option value="cancelled">Cancelada</option>
+            </select>
+          </div>
+
           {/* Equipo 1 */}
           <div className="space-y-3">
             <label className="block text-blue-300 text-sm font-medium">
               Equipo 1: {match.participant1?.participantName || 'Equipo 1'}
               {teamSize > 1 && <span className="text-orange-400 ml-2">({getMatchFormat()})</span>}
             </label>
-            
-            {/* Nombre personalizado del equipo */}
-            <div>
-              <label className="block text-blue-400 text-xs mb-1">Nombre del Equipo (Personalizado)</label>
-              <input
-                type="text"
-                value={editingMatch.teamName1}
-                onChange={(e) => setEditingMatch({ ...editingMatch, teamName1: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-700/40 border border-blue-600/30 rounded-lg text-white placeholder-blue-300 focus:outline-none focus:border-blue-500"
-                placeholder="Nombre personalizado del equipo 1"
-              />
-            </div>
             
             <div className="flex items-center space-x-3">
               <input
@@ -1072,16 +1333,13 @@ const MatchUpdateModal: React.FC<MatchUpdateModalProps> = ({
                 className="flex-1 px-3 py-2 bg-slate-700/40 border border-blue-600/30 rounded-lg text-white"
                 placeholder="Puntuación"
               />
-              <button
-                onClick={() => setEditingMatch({ ...editingMatch, winnerId: match.participant1?.id || '' })}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  editingMatch.winnerId === match.participant1?.id
-                    ? 'bg-green-600 text-white'
-                    : 'bg-slate-600 text-gray-300 hover:bg-slate-500'
-                }`}
-              >
-                Ganador
-              </button>
+              <div className={`px-3 py-2 rounded-lg font-medium ${
+                points.team1 === 3 ? 'bg-green-500/20 text-green-300' :
+                points.team1 === 1 ? 'bg-yellow-500/20 text-yellow-300' :
+                'bg-gray-500/20 text-gray-300'
+              }`}>
+                {points.team1} pts
+              </div>
             </div>
             
             {/* Información del participante */}
@@ -1097,6 +1355,12 @@ const MatchUpdateModal: React.FC<MatchUpdateModalProps> = ({
                   )}
                   <div>
                     <p className="text-white font-medium">{match.participant1.participantName}</p>
+                    {match.participant1.teamName && (
+                      <p className="text-blue-300 text-sm">{match.participant1.teamName}</p>
+                    )}
+                    {match.participant1.teamMembers && match.participant1.teamMembers.length > 0 && (
+                      <p className="text-green-300 text-sm">Miembros: {match.participant1.teamMembers.join(', ')}</p>
+                    )}
                     {match.participant1.clanTag && (
                       <p className="text-purple-300 text-sm font-mono">[{match.participant1.clanTag}]</p>
                     )}
@@ -1113,18 +1377,6 @@ const MatchUpdateModal: React.FC<MatchUpdateModalProps> = ({
               {teamSize > 1 && <span className="text-orange-400 ml-2">({getMatchFormat()})</span>}
             </label>
             
-            {/* Nombre personalizado del equipo */}
-            <div>
-              <label className="block text-blue-400 text-xs mb-1">Nombre del Equipo (Personalizado)</label>
-              <input
-                type="text"
-                value={editingMatch.teamName2}
-                onChange={(e) => setEditingMatch({ ...editingMatch, teamName2: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-700/40 border border-blue-600/30 rounded-lg text-white placeholder-blue-300 focus:outline-none focus:border-blue-500"
-                placeholder="Nombre personalizado del equipo 2"
-              />
-            </div>
-            
             <div className="flex items-center space-x-3">
               <input
                 type="number"
@@ -1134,16 +1386,13 @@ const MatchUpdateModal: React.FC<MatchUpdateModalProps> = ({
                 className="flex-1 px-3 py-2 bg-slate-700/40 border border-blue-600/30 rounded-lg text-white"
                 placeholder="Puntuación"
               />
-              <button
-                onClick={() => setEditingMatch({ ...editingMatch, winnerId: match.participant2?.id || '' })}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  editingMatch.winnerId === match.participant2?.id
-                    ? 'bg-green-600 text-white'
-                    : 'bg-slate-600 text-gray-300 hover:bg-slate-500'
-                }`}
-              >
-                Ganador
-              </button>
+              <div className={`px-3 py-2 rounded-lg font-medium ${
+                points.team2 === 3 ? 'bg-green-500/20 text-green-300' :
+                points.team2 === 1 ? 'bg-yellow-500/20 text-yellow-300' :
+                'bg-gray-500/20 text-gray-300'
+              }`}>
+                {points.team2} pts
+              </div>
             </div>
             
             {/* Información del participante */}
@@ -1159,6 +1408,12 @@ const MatchUpdateModal: React.FC<MatchUpdateModalProps> = ({
                   )}
                   <div>
                     <p className="text-white font-medium">{match.participant2.participantName}</p>
+                    {match.participant2.teamName && (
+                      <p className="text-blue-300 text-sm">{match.participant2.teamName}</p>
+                    )}
+                    {match.participant2.teamMembers && match.participant2.teamMembers.length > 0 && (
+                      <p className="text-green-300 text-sm">Miembros: {match.participant2.teamMembers.join(', ')}</p>
+                    )}
                     {match.participant2.clanTag && (
                       <p className="text-purple-300 text-sm font-mono">[{match.participant2.clanTag}]</p>
                     )}

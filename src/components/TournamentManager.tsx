@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Plus, Edit, Trash2, Save, X, Users, Calendar, Target, Play, CheckCircle, AlertTriangle, Medal, Crown, Shield, Star, Zap, User, Settings, Eye, MapPin, Award, Clock, TrendingUp, UserPlus, UserMinus, RotateCcw, Shuffle } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { Trophy, Users, Plus, Edit, Trash2, Save, X, Calendar, Award, Target, Shield, User, Crown, Star, Zap, Play, CheckCircle, Clock, AlertTriangle, Eye, Settings, MapPin, RefreshCw } from 'lucide-react';
+import TournamentBracket from './TournamentBracket';
 
 interface Tournament {
   id: string;
@@ -58,22 +58,8 @@ interface Match {
     avatar?: string;
     clanTag?: string;
   };
-  team1Participants?: Array<{
-    id: string;
-    type: string;
-    name: string;
-    teamName?: string;
-    avatar?: string;
-    clanTag?: string;
-  }>;
-  team2Participants?: Array<{
-    id: string;
-    type: string;
-    name: string;
-    teamName?: string;
-    avatar?: string;
-    clanTag?: string;
-  }>;
+  team1Participants?: any[];
+  team2Participants?: any[];
   winnerId?: string;
   winnerTeam?: number;
   score1: number;
@@ -84,6 +70,25 @@ interface Match {
   completedAt?: string;
   notes?: string;
   teamSize?: number;
+}
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  avatar?: string;
+  clan?: string;
+  isActive: boolean;
+}
+
+interface Map {
+  id: string;
+  name: string;
+  displayName: string;
+  description?: string;
+  imageUrl?: string;
+  gameMode?: string;
+  isActive: boolean;
 }
 
 // Detectar automáticamente la URL base de la API
@@ -106,28 +111,26 @@ const getApiBaseUrl = () => {
 const API_BASE_URL = getApiBaseUrl();
 
 const TournamentManager: React.FC = () => {
-  const { user, users, clans } = useAuth();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [maps, setMaps] = useState<Map[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [activeTab, setActiveTab] = useState<'list' | 'participants' | 'matches' | 'bracket'>('list');
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // Modales
+  const [isLoading, setIsLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddParticipantModal, setShowAddParticipantModal] = useState(false);
   const [showCreateMatchModal, setShowCreateMatchModal] = useState(false);
-  const [showEditMatchModal, setShowEditMatchModal] = useState(false);
-  
-  // Estados de formularios
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   const [newTournament, setNewTournament] = useState({
     name: '',
     description: '',
     type: 'individual' as 'individual' | 'clan' | 'team',
     teamSize: 1,
-    maxParticipants: 16,
+    maxParticipants: 8,
     status: 'draft' as 'draft' | 'registration' | 'active' | 'completed' | 'cancelled',
     startDate: '',
     endDate: '',
@@ -155,15 +158,24 @@ const TournamentManager: React.FC = () => {
     notes: ''
   });
 
-  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
+  const [teamCreationMode, setTeamCreationMode] = useState<'single' | 'multiple'>('single');
+  const [multipleTeamsData, setMultipleTeamsData] = useState({
+    numberOfTeams: 4,
+    teamSize: 3,
+    teamNames: ['Equipo 1', 'Equipo 2', 'Equipo 3', 'Equipo 4'],
+    selectedUsers: [] as string[]
+  });
 
   useEffect(() => {
     loadTournaments();
+    loadUsers();
+    loadMaps();
   }, []);
 
   useEffect(() => {
     if (selectedTournament) {
-      loadTournamentData(selectedTournament.id);
+      loadParticipants(selectedTournament.id);
+      loadMatches(selectedTournament.id);
     }
   }, [selectedTournament]);
 
@@ -185,38 +197,84 @@ const TournamentManager: React.FC = () => {
     }
   };
 
-  const loadTournamentData = async (tournamentId: string) => {
+  const loadParticipants = async (tournamentId: string) => {
     try {
-      // Cargar participantes
-      const participantsResponse = await fetch(`${API_BASE_URL}/tournaments/get-participants.php?tournamentId=${tournamentId}`, {
+      const response = await fetch(`${API_BASE_URL}/tournaments/get-participants.php?tournamentId=${tournamentId}`, {
         credentials: 'include'
       });
-      const participantsData = await participantsResponse.json();
+      const data = await response.json();
       
-      if (participantsData.success) {
-        setParticipants(participantsData.participants);
-      }
-
-      // Cargar partidas
-      const matchesResponse = await fetch(`${API_BASE_URL}/tournaments/get-matches.php?tournamentId=${tournamentId}`, {
-        credentials: 'include'
-      });
-      const matchesData = await matchesResponse.json();
-      
-      if (matchesData.success) {
-        setMatches(matchesData.matches);
+      if (data.success) {
+        setParticipants(data.participants);
       }
     } catch (error) {
-      console.error('Error loading tournament data:', error);
+      console.error('Error loading participants:', error);
+    }
+  };
+
+  const loadMatches = async (tournamentId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tournaments/get-matches.php?tournamentId=${tournamentId}`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setMatches(data.matches);
+      }
+    } catch (error) {
+      console.error('Error loading matches:', error);
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/get-all.php`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setUsers(data.users.filter((user: User) => user.isActive));
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
+  };
+
+  const loadMaps = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/maps/get-all.php`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setMaps(data.maps.filter((map: Map) => map.isActive));
+      }
+    } catch (error) {
+      console.error('Error loading maps:', error);
+    }
+  };
+
+  const refreshData = async () => {
+    setIsRefreshing(true);
+    try {
+      await loadTournaments();
+      if (selectedTournament) {
+        await Promise.all([
+          loadParticipants(selectedTournament.id),
+          loadMatches(selectedTournament.id)
+        ]);
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
   const handleCreateTournament = async () => {
-    if (!newTournament.name.trim()) {
-      alert('El nombre del torneo es requerido');
-      return;
-    }
-
     try {
       const response = await fetch(`${API_BASE_URL}/tournaments/create.php`, {
         method: 'POST',
@@ -228,7 +286,7 @@ const TournamentManager: React.FC = () => {
       });
 
       const data = await response.json();
-
+      
       if (data.success) {
         setShowCreateModal(false);
         setNewTournament({
@@ -236,7 +294,7 @@ const TournamentManager: React.FC = () => {
           description: '',
           type: 'individual',
           teamSize: 1,
-          maxParticipants: 16,
+          maxParticipants: 8,
           status: 'draft',
           startDate: '',
           endDate: '',
@@ -246,7 +304,7 @@ const TournamentManager: React.FC = () => {
         });
         await loadTournaments();
       } else {
-        alert(data.message || 'Error al crear el torneo');
+        alert('Error al crear el torneo: ' + data.message);
       }
     } catch (error) {
       console.error('Error creating tournament:', error);
@@ -254,30 +312,156 @@ const TournamentManager: React.FC = () => {
     }
   };
 
-  const handleUpdateTournament = async () => {
+  const handleAddParticipant = async () => {
     if (!selectedTournament) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/tournaments/update.php`, {
+      const response = await fetch(`${API_BASE_URL}/tournaments/add-participant.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify(selectedTournament)
+        body: JSON.stringify({
+          tournamentId: selectedTournament.id,
+          participantType: newParticipant.participantType,
+          participantId: newParticipant.participantId,
+          teamName: newParticipant.teamName,
+          teamMembers: newParticipant.teamMembers
+        })
       });
 
       const data = await response.json();
-
+      
       if (data.success) {
-        setShowEditModal(false);
-        await loadTournaments();
+        setShowAddParticipantModal(false);
+        setNewParticipant({
+          participantType: 'user',
+          participantId: '',
+          teamName: '',
+          teamMembers: []
+        });
+        await loadParticipants(selectedTournament.id);
+        await loadTournaments(); // Actualizar contador
       } else {
-        alert(data.message || 'Error al actualizar el torneo');
+        alert('Error al agregar participante: ' + data.message);
       }
     } catch (error) {
-      console.error('Error updating tournament:', error);
-      alert('Error al actualizar el torneo');
+      console.error('Error adding participant:', error);
+      alert('Error al agregar participante');
+    }
+  };
+
+  const handleCreateMultipleTeams = async () => {
+    if (!selectedTournament) return;
+
+    try {
+      const { numberOfTeams, teamSize, teamNames, selectedUsers } = multipleTeamsData;
+      
+      // Verificar que tengamos suficientes usuarios
+      if (selectedUsers.length < numberOfTeams * teamSize) {
+        alert(`Necesitas seleccionar al menos ${numberOfTeams * teamSize} usuarios para crear ${numberOfTeams} equipos de ${teamSize} jugadores cada uno.`);
+        return;
+      }
+
+      // Crear equipos automáticamente
+      for (let i = 0; i < numberOfTeams; i++) {
+        const teamMembers = selectedUsers.slice(i * teamSize, (i + 1) * teamSize);
+        const teamName = teamNames[i] || `Equipo ${i + 1}`;
+
+        const response = await fetch(`${API_BASE_URL}/tournaments/add-participant.php`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            tournamentId: selectedTournament.id,
+            participantType: 'team',
+            teamName: teamName,
+            teamMembers: teamMembers
+          })
+        });
+
+        const data = await response.json();
+        
+        if (!data.success) {
+          console.error(`Error creando ${teamName}:`, data.message);
+          alert(`Error al crear ${teamName}: ${data.message}`);
+          return;
+        }
+      }
+
+      setShowAddParticipantModal(false);
+      setMultipleTeamsData({
+        numberOfTeams: 4,
+        teamSize: 3,
+        teamNames: ['Equipo 1', 'Equipo 2', 'Equipo 3', 'Equipo 4'],
+        selectedUsers: []
+      });
+      await loadParticipants(selectedTournament.id);
+      await loadTournaments();
+      
+      alert(`Se crearon ${numberOfTeams} equipos exitosamente!`);
+    } catch (error) {
+      console.error('Error creating multiple teams:', error);
+      alert('Error al crear los equipos');
+    }
+  };
+
+  const handleCreateMatch = async () => {
+    if (!selectedTournament) return;
+
+    try {
+      const matchData: any = {
+        tournamentId: selectedTournament.id,
+        round: newMatch.round,
+        matchNumber: newMatch.matchNumber,
+        mapPlayed: newMatch.mapPlayed,
+        scheduledAt: newMatch.scheduledAt,
+        notes: newMatch.notes
+      };
+
+      // Agregar participantes según el tipo de torneo
+      if (selectedTournament.teamSize > 1) {
+        matchData.team1Participants = newMatch.team1Participants;
+        matchData.team2Participants = newMatch.team2Participants;
+      } else {
+        matchData.participant1Id = newMatch.participant1Id;
+        matchData.participant2Id = newMatch.participant2Id;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/tournaments/create-match.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(matchData)
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setShowCreateMatchModal(false);
+        setNewMatch({
+          round: 1,
+          matchNumber: 1,
+          participant1Id: '',
+          participant2Id: '',
+          team1Participants: [],
+          team2Participants: [],
+          mapPlayed: '',
+          scheduledAt: '',
+          notes: ''
+        });
+        await loadMatches(selectedTournament.id);
+      } else {
+        alert('Error al crear la partida: ' + data.message);
+      }
+    } catch (error) {
+      console.error('Error creating match:', error);
+      alert('Error al crear la partida');
     }
   };
 
@@ -297,7 +481,7 @@ const TournamentManager: React.FC = () => {
       });
 
       const data = await response.json();
-
+      
       if (data.success) {
         await loadTournaments();
         if (selectedTournament?.id === tournamentId) {
@@ -305,56 +489,11 @@ const TournamentManager: React.FC = () => {
           setActiveTab('list');
         }
       } else {
-        alert(data.message || 'Error al eliminar el torneo');
+        alert('Error al eliminar el torneo: ' + data.message);
       }
     } catch (error) {
       console.error('Error deleting tournament:', error);
       alert('Error al eliminar el torneo');
-    }
-  };
-
-  const handleAddParticipant = async () => {
-    if (!selectedTournament) return;
-
-    if (!newParticipant.participantId && newParticipant.participantType !== 'team') {
-      alert('Selecciona un participante');
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/tournaments/add-participant.php`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          tournamentId: selectedTournament.id,
-          participantType: newParticipant.participantType,
-          participantId: newParticipant.participantId,
-          teamName: newParticipant.teamName,
-          teamMembers: newParticipant.teamMembers
-        })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setShowAddParticipantModal(false);
-        setNewParticipant({
-          participantType: 'user',
-          participantId: '',
-          teamName: '',
-          teamMembers: []
-        });
-        await loadTournamentData(selectedTournament.id);
-        await loadTournaments();
-      } else {
-        alert(data.message || 'Error al agregar participante');
-      }
-    } catch (error) {
-      console.error('Error adding participant:', error);
-      alert('Error al agregar participante');
     }
   };
 
@@ -374,168 +513,16 @@ const TournamentManager: React.FC = () => {
       });
 
       const data = await response.json();
-
-      if (data.success) {
-        if (selectedTournament) {
-          await loadTournamentData(selectedTournament.id);
-          await loadTournaments();
-        }
+      
+      if (data.success && selectedTournament) {
+        await loadParticipants(selectedTournament.id);
+        await loadTournaments();
       } else {
-        alert(data.message || 'Error al remover participante');
+        alert('Error al remover participante: ' + data.message);
       }
     } catch (error) {
       console.error('Error removing participant:', error);
       alert('Error al remover participante');
-    }
-  };
-
-  const handleCreateMatch = async () => {
-    if (!selectedTournament) return;
-
-    // Validar según el tipo de torneo
-    if (selectedTournament.teamSize > 1) {
-      if (newMatch.team1Participants.length !== selectedTournament.teamSize || 
-          newMatch.team2Participants.length !== selectedTournament.teamSize) {
-        alert(`Cada equipo debe tener exactamente ${selectedTournament.teamSize} participantes`);
-        return;
-      }
-    } else {
-      if (!newMatch.participant1Id || !newMatch.participant2Id) {
-        alert('Selecciona ambos participantes');
-        return;
-      }
-    }
-
-    try {
-      const matchData = {
-        tournamentId: selectedTournament.id,
-        round: newMatch.round,
-        matchNumber: newMatch.matchNumber,
-        mapPlayed: newMatch.mapPlayed,
-        scheduledAt: newMatch.scheduledAt,
-        notes: newMatch.notes
-      };
-
-      // Agregar datos según el tipo de torneo
-      if (selectedTournament.teamSize > 1) {
-        matchData.team1Participants = newMatch.team1Participants;
-        matchData.team2Participants = newMatch.team2Participants;
-      } else {
-        matchData.participant1Id = newMatch.participant1Id;
-        matchData.participant2Id = newMatch.participant2Id;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/tournaments/create-match.php`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify(matchData)
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setShowCreateMatchModal(false);
-        setNewMatch({
-          round: 1,
-          matchNumber: 1,
-          participant1Id: '',
-          participant2Id: '',
-          team1Participants: [],
-          team2Participants: [],
-          mapPlayed: '',
-          scheduledAt: '',
-          notes: ''
-        });
-        await loadTournamentData(selectedTournament.id);
-      } else {
-        alert(data.message || 'Error al crear la partida');
-      }
-    } catch (error) {
-      console.error('Error creating match:', error);
-      alert('Error al crear la partida');
-    }
-  };
-
-  const handleUpdateMatch = async () => {
-    if (!editingMatch) return;
-
-    try {
-      const updateData = {
-        matchId: editingMatch.id,
-        score1: editingMatch.score1,
-        score2: editingMatch.score2,
-        mapPlayed: editingMatch.mapPlayed,
-        status: editingMatch.status,
-        notes: editingMatch.notes
-      };
-
-      // Agregar ganador según el tipo de torneo
-      if (selectedTournament?.teamSize > 1) {
-        if (editingMatch.winnerTeam) {
-          updateData.winnerTeam = editingMatch.winnerTeam;
-        }
-      } else {
-        if (editingMatch.winnerId) {
-          updateData.winnerId = editingMatch.winnerId;
-        }
-      }
-
-      const response = await fetch(`${API_BASE_URL}/tournaments/update-match.php`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify(updateData)
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setShowEditMatchModal(false);
-        setEditingMatch(null);
-        if (selectedTournament) {
-          await loadTournamentData(selectedTournament.id);
-        }
-      } else {
-        alert(data.message || 'Error al actualizar la partida');
-      }
-    } catch (error) {
-      console.error('Error updating match:', error);
-      alert('Error al actualizar la partida');
-    }
-  };
-
-  const handleDeleteMatch = async (matchId: string) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta partida?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/tournaments/delete-match.php`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ matchId })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        if (selectedTournament) {
-          await loadTournamentData(selectedTournament.id);
-        }
-      } else {
-        alert(data.message || 'Error al eliminar la partida');
-      }
-    } catch (error) {
-      console.error('Error deleting match:', error);
-      alert('Error al eliminar la partida');
     }
   };
 
@@ -561,21 +548,6 @@ const TournamentManager: React.FC = () => {
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'draft': return 'Borrador';
-      case 'registration': return 'Registro Abierto';
-      case 'active': return 'En Progreso';
-      case 'completed': return 'Finalizado';
-      case 'cancelled': return 'Cancelado';
-      default: return status;
-    }
-  };
-
-  const getMatchFormat = (teamSize: number) => {
-    return teamSize === 1 ? '1v1' : `${teamSize}v${teamSize}`;
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-CL', {
       year: 'numeric',
@@ -586,207 +558,244 @@ const TournamentManager: React.FC = () => {
     });
   };
 
-  const getClanIcon = (iconId: string) => {
-    const clanIcons = [
-      { id: 'crown', icon: Crown, color: 'text-yellow-400' },
-      { id: 'sword', icon: Shield, color: 'text-red-400' },
-      { id: 'shield', icon: Shield, color: 'text-blue-400' },
-      { id: 'star', icon: Star, color: 'text-purple-400' },
-      { id: 'zap', icon: Zap, color: 'text-green-400' },
-      { id: 'target', icon: Target, color: 'text-orange-400' }
-    ];
-    
-    const clanIcon = clanIcons.find(icon => icon.id === iconId);
-    return clanIcon || clanIcons[0];
+  const getMatchFormat = (teamSize: number) => {
+    return teamSize === 1 ? '1v1' : `${teamSize}v${teamSize}`;
   };
 
-  if (!user || user.role !== 'admin') {
-    return (
-      <div className="text-center py-12">
-        <Shield className="w-16 h-16 text-red-400 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-white mb-2">Acceso Denegado</h2>
-        <p className="text-red-300">No tienes permisos para gestionar torneos</p>
-      </div>
-    );
-  }
+  const getAvailableParticipants = () => {
+    if (!selectedTournament) return [];
+    
+    return participants.filter(p => p.status === 'registered' || p.status === 'active');
+  };
 
-  if (isLoading) {
+  const renderParticipantSelector = (
+    value: string | string[], 
+    onChange: (value: string | string[]) => void, 
+    label: string,
+    isMultiple: boolean = false
+  ) => {
+    const availableParticipants = getAvailableParticipants();
+    
+    if (isMultiple) {
+      return (
+        <div>
+          <label className="block text-blue-300 text-sm font-medium mb-2">{label}</label>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {availableParticipants.map((participant) => (
+              <label key={participant.id} className="flex items-center space-x-3 p-2 bg-slate-700/40 rounded-lg cursor-pointer hover:bg-slate-700/60">
+                <input
+                  type="checkbox"
+                  checked={(value as string[]).includes(participant.id)}
+                  onChange={(e) => {
+                    const currentValue = value as string[];
+                    if (e.target.checked) {
+                      onChange([...currentValue, participant.id]);
+                    } else {
+                      onChange(currentValue.filter(id => id !== participant.id));
+                    }
+                  }}
+                  className="rounded border-blue-600/30"
+                />
+                <div className="flex items-center space-x-2">
+                  {participant.participantAvatar && (
+                    <img
+                      src={participant.participantAvatar}
+                      alt={participant.participantName}
+                      className="w-6 h-6 rounded-full"
+                    />
+                  )}
+                  <span className="text-white">
+                    {participant.participantType === 'team' && participant.teamName 
+                      ? participant.teamName 
+                      : participant.participantName}
+                  </span>
+                  {participant.teamMembers.length > 0 && (
+                    <span className="text-blue-300 text-sm">
+                      ({participant.teamMembers.join(', ')})
+                    </span>
+                  )}
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <div>
+        <label className="block text-blue-300 text-sm font-medium mb-2">{label}</label>
+        <select
+          value={value as string}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500"
+        >
+          <option value="">Seleccionar participante</option>
+          {availableParticipants.map((participant) => (
+            <option key={participant.id} value={participant.id}>
+              {participant.participantType === 'team' && participant.teamName 
+                ? `${participant.teamName} (${participant.teamMembers.join(', ')})` 
+                : `${participant.participantName}${participant.teamMembers.length > 0 ? ` (${participant.teamMembers.join(', ')})` : ''}`}
+            </option>
+          ))}
+        </select>
       </div>
     );
-  }
+  };
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-6 shadow-2xl">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <div className="p-3 bg-yellow-600/20 rounded-xl">
               <Trophy className="w-6 h-6 text-yellow-400" />
             </div>
             <div>
               <h2 className="text-2xl font-bold text-white">Gestión de Torneos</h2>
-              <p className="text-yellow-300">Administra torneos, participantes y partidas</p>
+              <p className="text-blue-300">Administra torneos, participantes y partidas</p>
             </div>
           </div>
           
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white font-medium transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Crear Torneo</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="flex space-x-2 bg-slate-800/40 backdrop-blur-lg rounded-xl p-2 border border-blue-700/30">
-        <button
-          onClick={() => {
-            setActiveTab('list');
-            setSelectedTournament(null);
-          }}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
-            activeTab === 'list'
-              ? 'bg-blue-600 text-white shadow-lg'
-              : 'text-blue-300 hover:bg-blue-600/20 hover:text-blue-200'
-          }`}
-        >
-          <Trophy className="w-4 h-4" />
-          <span>Lista de Torneos</span>
-        </button>
-        
-        {selectedTournament && (
-          <>
+          <div className="flex items-center space-x-3">
             <button
-              onClick={() => setActiveTab('participants')}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
-                activeTab === 'participants'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'text-blue-300 hover:bg-blue-600/20 hover:text-blue-200'
+              onClick={refreshData}
+              disabled={isRefreshing}
+              className={`p-3 rounded-lg transition-all duration-300 ${
+                isRefreshing 
+                  ? 'bg-blue-600/20 text-blue-400 cursor-not-allowed' 
+                  : 'bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200'
               }`}
+              title="Actualizar datos"
             >
-              <Users className="w-4 h-4" />
-              <span>Participantes ({participants.length})</span>
+              <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
             
             <button
-              onClick={() => setActiveTab('matches')}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
-                activeTab === 'matches'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'text-blue-300 hover:bg-blue-600/20 hover:text-blue-200'
-              }`}
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white font-medium transition-colors"
             >
-              <Target className="w-4 h-4" />
-              <span>Partidas ({matches.length})</span>
+              <Plus className="w-4 h-4" />
+              <span>Crear Torneo</span>
             </button>
-          </>
-        )}
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <div className="flex space-x-2">
+          {[
+            { id: 'list', label: 'Lista de Torneos', icon: Trophy },
+            ...(selectedTournament ? [
+              { id: 'participants', label: `Participantes (${participants.length})`, icon: Users },
+              { id: 'matches', label: `Partidas (${matches.length})`, icon: Target },
+              { id: 'bracket', label: 'Bracket', icon: Eye }
+            ] : [])
+          ].map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`
+                  flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-300
+                  ${activeTab === tab.id
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : 'text-blue-300 hover:bg-blue-600/20 hover:text-blue-200'
+                  }
+                `}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Content */}
       {activeTab === 'list' && (
         <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-6 shadow-2xl">
-          <h3 className="text-xl font-bold text-white mb-6">Torneos Creados</h3>
+          <h3 className="text-xl font-bold text-white mb-6">Torneos ({tournaments.length})</h3>
           
-          {tournaments.length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : tournaments.length === 0 ? (
             <div className="text-center py-12">
               <Trophy className="w-16 h-16 text-blue-400 mx-auto mb-4 opacity-50" />
-              <h3 className="text-xl font-bold text-white mb-2">No hay torneos creados</h3>
-              <p className="text-blue-300">Crea el primer torneo para comenzar</p>
+              <h3 className="text-xl font-bold text-white mb-2">No hay torneos</h3>
+              <p className="text-blue-300">Crea tu primer torneo para comenzar</p>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-4">
               {tournaments.map((tournament) => {
                 const StatusIcon = getStatusIcon(tournament.status);
                 
                 return (
                   <div
                     key={tournament.id}
-                    className="bg-slate-700/40 rounded-xl border border-blue-600/20 p-6 hover:border-blue-500/40 transition-all duration-300 cursor-pointer"
-                    onClick={() => {
-                      setSelectedTournament(tournament);
-                      setActiveTab('participants');
-                    }}
+                    className="bg-slate-700/40 rounded-xl p-6 border border-blue-600/20 hover:border-blue-500/40 transition-all duration-300"
                   >
-                    <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <h4 className="font-bold text-white text-lg mb-2">{tournament.name}</h4>
-                        <div className="flex items-center space-x-2 mb-3">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h4 className="text-lg font-bold text-white">{tournament.name}</h4>
                           <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(tournament.status)}`}>
                             <StatusIcon className="w-3 h-3" />
-                            <span>{getStatusText(tournament.status)}</span>
+                            <span>{tournament.status}</span>
                           </div>
-                          
-                          <div className="px-2 py-1 bg-orange-600/20 text-orange-300 rounded-full text-xs font-bold">
+                          <span className="px-2 py-1 bg-orange-600/20 text-orange-300 rounded text-xs font-bold">
                             {getMatchFormat(tournament.teamSize)}
-                          </div>
+                          </span>
                         </div>
                         
                         {tournament.description && (
-                          <p className="text-blue-200 text-sm mb-3 line-clamp-2">{tournament.description}</p>
+                          <p className="text-blue-200 mb-3">{tournament.description}</p>
                         )}
+                        
+                        <div className="flex items-center space-x-6 text-sm text-blue-400">
+                          <div className="flex items-center space-x-1">
+                            <Users className="w-4 h-4" />
+                            <span>{tournament.participantCount}/{tournament.maxParticipants}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Target className="w-4 h-4" />
+                            <span>{tournament.bracketType.replace('_', ' ')}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Calendar className="w-4 h-4" />
+                            <span>{formatDate(tournament.createdAt)}</span>
+                          </div>
+                          {tournament.prizePool && (
+                            <div className="flex items-center space-x-1">
+                              <Award className="w-4 h-4 text-yellow-400" />
+                              <span className="text-yellow-300">{tournament.prizePool}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       
-                      <div className="flex items-center space-x-1 ml-4">
+                      <div className="flex items-center space-x-2">
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
+                          onClick={() => {
                             setSelectedTournament(tournament);
-                            setShowEditModal(true);
+                            setActiveTab('participants');
                           }}
                           className="p-2 bg-blue-600/20 hover:bg-blue-600/40 rounded-lg text-blue-300 transition-colors"
-                          title="Editar torneo"
+                          title="Gestionar torneo"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Eye className="w-4 h-4" />
                         </button>
                         
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteTournament(tournament.id);
-                          }}
+                          onClick={() => handleDeleteTournament(tournament.id)}
                           className="p-2 bg-red-600/20 hover:bg-red-600/40 rounded-lg text-red-300 transition-colors"
                           title="Eliminar torneo"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-blue-400">Participantes:</span>
-                        <span className="text-white font-medium">
-                          {tournament.participantCount}/{tournament.maxParticipants}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-blue-400">Tipo:</span>
-                        <span className="text-white font-medium">
-                          {tournament.type === 'individual' ? 'Individual' : 
-                           tournament.type === 'clan' ? 'Por Clanes' : 'Por Equipos'}
-                        </span>
-                      </div>
-                      
-                      {tournament.prizePool && (
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-blue-400">Premio:</span>
-                          <span className="text-yellow-300 font-medium">{tournament.prizePool}</span>
-                        </div>
-                      )}
-                      
-                      <div className="pt-3 border-t border-blue-700/30">
-                        <div className="flex items-center justify-between text-xs text-blue-400">
-                          <span>Por: {tournament.createdBy}</span>
-                          <span>{formatDate(tournament.createdAt)}</span>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -800,21 +809,14 @@ const TournamentManager: React.FC = () => {
       {activeTab === 'participants' && selectedTournament && (
         <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-6 shadow-2xl">
           <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-xl font-bold text-white">
-                Participantes de "{selectedTournament.name}"
-              </h3>
-              <p className="text-blue-300 text-sm mt-1">
-                Formato: {getMatchFormat(selectedTournament.teamSize)} • 
-                {selectedTournament.participantCount}/{selectedTournament.maxParticipants} participantes
-              </p>
-            </div>
-            
+            <h3 className="text-xl font-bold text-white">
+              Participantes de {selectedTournament.name} ({participants.length})
+            </h3>
             <button
               onClick={() => setShowAddParticipantModal(true)}
               className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white font-medium transition-colors"
             >
-              <UserPlus className="w-4 h-4" />
+              <Plus className="w-4 h-4" />
               <span>Agregar Participante</span>
             </button>
           </div>
@@ -827,95 +829,75 @@ const TournamentManager: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {participants
-                .sort((a, b) => b.points - a.points || b.wins - a.wins)
-                .map((participant, index) => {
-                  const IconComponent = participant.clanIcon ? getClanIcon(participant.clanIcon).icon : Users;
-                  const iconColor = participant.clanIcon ? getClanIcon(participant.clanIcon).color : 'text-blue-400';
-                  
-                  return (
-                    <div
-                      key={participant.id}
-                      className="bg-slate-700/40 rounded-xl p-4 border border-blue-600/20 hover:border-blue-500/40 transition-all duration-300"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="flex items-center space-x-2">
-                              <span className="text-blue-400 font-bold text-lg">#{index + 1}</span>
-                              {index < 3 && (
-                                <Medal className={`w-5 h-5 ${
-                                  index === 0 ? 'text-yellow-400' : 
-                                  index === 1 ? 'text-gray-300' : 'text-amber-600'
-                                }`} />
-                              )}
-                            </div>
-                            
-                            {participant.participantAvatar ? (
-                              <img
-                                src={participant.participantAvatar}
-                                alt={participant.participantName}
-                                className="w-10 h-10 rounded-full border-2 border-blue-500/30"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full border-2 border-blue-500/30 bg-slate-600/40 flex items-center justify-center">
-                                <IconComponent className={`w-5 h-5 ${iconColor}`} />
-                              </div>
-                            )}
-                            
-                            <div>
-                              <div className="flex items-center space-x-2">
-                                <span className="font-bold text-white">
-                                  {participant.participantType === 'team' && participant.teamName 
-                                    ? participant.teamName 
-                                    : participant.participantName}
-                                </span>
-                                {participant.clanTag && (
-                                  <span className="px-2 py-1 bg-purple-600/20 text-purple-300 rounded text-sm font-mono">
-                                    [{participant.clanTag}]
-                                  </span>
-                                )}
-                                <span className="px-2 py-1 bg-orange-600/20 text-orange-300 rounded text-sm font-bold">
-                                  {getMatchFormat(selectedTournament.teamSize)}
-                                </span>
-                              </div>
-                              {participant.teamMembers.length > 0 && (
-                                <p className="text-blue-300 text-sm">
-                                  Miembros: {participant.teamMembers.join(', ')}
-                                </p>
-                              )}
-                            </div>
-                          </div>
+              {participants.map((participant, index) => (
+                <div
+                  key={participant.id}
+                  className="bg-slate-700/40 rounded-xl p-4 border border-blue-600/20"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-blue-400 font-bold">#{index + 1}</span>
+                        {participant.participantAvatar && (
+                          <img
+                            src={participant.participantAvatar}
+                            alt={participant.participantName}
+                            className="w-10 h-10 rounded-full border border-blue-500/30"
+                          />
+                        )}
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-bold text-white">
+                            {participant.participantType === 'team' && participant.teamName 
+                              ? participant.teamName 
+                              : participant.participantName}
+                          </span>
+                          {participant.clanTag && (
+                            <span className="px-2 py-1 bg-purple-600/20 text-purple-300 rounded text-sm font-mono">
+                              [{participant.clanTag}]
+                            </span>
+                          )}
+                          <span className="px-2 py-1 bg-orange-600/20 text-orange-300 rounded text-sm font-bold">
+                            {getMatchFormat(selectedTournament.teamSize)}
+                          </span>
                         </div>
-                        
-                        <div className="flex items-center space-x-6">
-                          <div className="text-center">
-                            <p className="text-2xl font-bold text-blue-400">{participant.points}</p>
-                            <p className="text-blue-300 text-sm">Puntos</p>
-                          </div>
-                          
-                          <div className="text-center">
-                            <p className="text-lg font-bold text-green-400">{participant.wins}</p>
-                            <p className="text-blue-300 text-sm">Victorias</p>
-                          </div>
-                          
-                          <div className="text-center">
-                            <p className="text-lg font-bold text-red-400">{participant.losses}</p>
-                            <p className="text-blue-300 text-sm">Derrotas</p>
-                          </div>
-                          
-                          <button
-                            onClick={() => handleRemoveParticipant(participant.id)}
-                            className="p-2 bg-red-600/20 hover:bg-red-600/40 rounded-lg text-red-300 transition-colors"
-                            title="Remover participante"
-                          >
-                            <UserMinus className="w-4 h-4" />
-                          </button>
-                        </div>
+                        {participant.teamMembers.length > 0 && (
+                          <p className="text-blue-300 text-sm">
+                            Miembros: {participant.teamMembers.join(', ')}
+                          </p>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
+                    
+                    <div className="flex items-center space-x-4">
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-blue-400">{participant.points}</p>
+                        <p className="text-blue-300 text-xs">Puntos</p>
+                      </div>
+                      
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-green-400">{participant.wins}</p>
+                        <p className="text-blue-300 text-xs">Victorias</p>
+                      </div>
+                      
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-red-400">{participant.losses}</p>
+                        <p className="text-blue-300 text-xs">Derrotas</p>
+                      </div>
+                      
+                      <button
+                        onClick={() => handleRemoveParticipant(participant.id)}
+                        className="p-2 bg-red-600/20 hover:bg-red-600/40 rounded-lg text-red-300 transition-colors"
+                        title="Remover participante"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -924,15 +906,9 @@ const TournamentManager: React.FC = () => {
       {activeTab === 'matches' && selectedTournament && (
         <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-6 shadow-2xl">
           <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-xl font-bold text-white">
-                Partidas de "{selectedTournament.name}"
-              </h3>
-              <p className="text-blue-300 text-sm mt-1">
-                Formato: {getMatchFormat(selectedTournament.teamSize)} • {matches.length} partidas creadas
-              </p>
-            </div>
-            
+            <h3 className="text-xl font-bold text-white">
+              Partidas de {selectedTournament.name} ({matches.length}) - {getMatchFormat(selectedTournament.teamSize)}
+            </h3>
             <button
               onClick={() => setShowCreateMatchModal(true)}
               className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white font-medium transition-colors"
@@ -946,251 +922,131 @@ const TournamentManager: React.FC = () => {
             <div className="text-center py-12">
               <Target className="w-16 h-16 text-blue-400 mx-auto mb-4 opacity-50" />
               <h3 className="text-xl font-bold text-white mb-2">Sin partidas</h3>
-              <p className="text-blue-300">Crea partidas para organizar el torneo</p>
+              <p className="text-blue-300">Crea partidas para comenzar el torneo</p>
             </div>
           ) : (
-            <div className="space-y-6">
-              {Object.entries(
-                matches.reduce((acc, match) => {
-                  const round = selectedTournament.bracketType === 'round_robin' 
-                    ? 'Round Robin' 
-                    : `Ronda ${match.round}`;
-                  if (!acc[round]) acc[round] = [];
-                  acc[round].push(match);
-                  return acc;
-                }, {} as Record<string, Match[]>)
-              ).map(([round, roundMatches]) => (
-                <div key={round} className="bg-slate-700/40 rounded-xl p-6">
-                  <h4 className="text-lg font-bold text-white mb-4 flex items-center space-x-2">
-                    <Target className="w-5 h-5 text-orange-400" />
-                    <span>{round}</span>
-                    <span className="text-orange-400 text-sm">({getMatchFormat(selectedTournament.teamSize)})</span>
-                  </h4>
-                  
-                  <div className="space-y-4">
-                    {roundMatches.map((match) => (
-                      <div
-                        key={match.id}
-                        className="bg-slate-600/40 rounded-lg p-4 border border-blue-600/20"
-                      >
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            <span className="text-blue-400 font-medium">
-                              Partida {match.matchNumber}
-                            </span>
-                            <span className="px-2 py-1 bg-orange-600/20 text-orange-300 rounded text-sm font-bold">
-                              {getMatchFormat(selectedTournament.teamSize)}
-                            </span>
-                            <div className={`px-2 py-1 rounded text-sm font-medium ${
-                              match.status === 'completed' ? 'bg-green-500/20 text-green-300' :
-                              match.status === 'in_progress' ? 'bg-yellow-500/20 text-yellow-300' :
-                              match.status === 'cancelled' ? 'bg-red-500/20 text-red-300' :
-                              'bg-blue-500/20 text-blue-300'
-                            }`}>
-                              {match.status === 'completed' ? 'Completada' :
-                               match.status === 'in_progress' ? 'En Progreso' :
-                               match.status === 'cancelled' ? 'Cancelada' :
-                               'Pendiente'}
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => {
-                                setEditingMatch(match);
-                                setShowEditMatchModal(true);
-                              }}
-                              className="p-2 bg-blue-600/20 hover:bg-blue-600/40 rounded-lg text-blue-300 transition-colors"
-                              title="Editar partida"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            
-                            <button
-                              onClick={() => handleDeleteMatch(match.id)}
-                              className="p-2 bg-red-600/20 hover:bg-red-600/40 rounded-lg text-red-300 transition-colors"
-                              title="Eliminar partida"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Mostrar equipos según el formato */}
-                        {selectedTournament.teamSize > 1 ? (
-                          // Formato de equipos múltiples
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <h5 className="text-blue-300 font-medium">Equipo 1</h5>
-                              {match.team1Participants && match.team1Participants.length > 0 ? (
-                                <div className="space-y-1">
-                                  {match.team1Participants.map((participant, index) => (
-                                    <div key={index} className="flex items-center space-x-2 text-sm">
-                                      {participant.avatar && (
-                                        <img
-                                          src={participant.avatar}
-                                          alt={participant.name}
-                                          className="w-6 h-6 rounded-full"
-                                        />
-                                      )}
-                                      <span className="text-white">{participant.name}</span>
-                                      {participant.clanTag && (
-                                        <span className="text-purple-300 text-xs">[{participant.clanTag}]</span>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-gray-400 text-sm">Sin asignar</span>
-                              )}
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <h5 className="text-blue-300 font-medium">Equipo 2</h5>
-                              {match.team2Participants && match.team2Participants.length > 0 ? (
-                                <div className="space-y-1">
-                                  {match.team2Participants.map((participant, index) => (
-                                    <div key={index} className="flex items-center space-x-2 text-sm">
-                                      {participant.avatar && (
-                                        <img
-                                          src={participant.avatar}
-                                          alt={participant.name}
-                                          className="w-6 h-6 rounded-full"
-                                        />
-                                      )}
-                                      <span className="text-white">{participant.name}</span>
-                                      {participant.clanTag && (
-                                        <span className="text-purple-300 text-xs">[{participant.clanTag}]</span>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-gray-400 text-sm">Sin asignar</span>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          // Formato 1v1
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-4 flex-1">
-                              {/* Participante 1 */}
-                              <div className="flex items-center space-x-3 flex-1">
-                                {match.participant1 ? (
-                                  <>
-                                    {match.participant1.avatar && (
-                                      <img
-                                        src={match.participant1.avatar}
-                                        alt={match.participant1.name}
-                                        className="w-10 h-10 rounded-full border border-blue-500/30"
-                                      />
-                                    )}
-                                    <div className="flex-1">
-                                      <span className="text-white font-medium block">
-                                        {match.participant1.teamName || match.participant1.name}
-                                      </span>
-                                      {match.participant1.clanTag && (
-                                        <span className="text-purple-300 text-sm">[{match.participant1.clanTag}]</span>
-                                      )}
-                                    </div>
-                                  </>
-                                ) : (
-                                  <span className="text-gray-400 flex-1">Por definir</span>
-                                )}
-                              </div>
-                              
-                              {/* Marcador */}
-                              <div className="flex items-center space-x-3 px-4">
-                                <div className="text-center">
-                                  <div className={`text-2xl font-bold ${
-                                    match.winnerId === match.participant1?.id ? 'text-green-400' : 'text-white'
-                                  }`}>
-                                    {match.score1}
-                                  </div>
-                                </div>
-                                
-                                <div className="text-blue-400 text-xl font-bold">VS</div>
-                                
-                                <div className="text-center">
-                                  <div className={`text-2xl font-bold ${
-                                    match.winnerId === match.participant2?.id ? 'text-green-400' : 'text-white'
-                                  }`}>
-                                    {match.score2}
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              {/* Participante 2 */}
-                              <div className="flex items-center space-x-3 flex-1 justify-end">
-                                {match.participant2 ? (
-                                  <>
-                                    <div className="flex-1 text-right">
-                                      <span className="text-white font-medium block">
-                                        {match.participant2.teamName || match.participant2.name}
-                                      </span>
-                                      {match.participant2.clanTag && (
-                                        <span className="text-purple-300 text-sm">[{match.participant2.clanTag}]</span>
-                                      )}
-                                    </div>
-                                    {match.participant2.avatar && (
-                                      <img
-                                        src={match.participant2.avatar}
-                                        alt={match.participant2.name}
-                                        className="w-10 h-10 rounded-full border border-blue-500/30"
-                                      />
-                                    )}
-                                  </>
-                                ) : (
-                                  <span className="text-gray-400 flex-1 text-right">Por definir</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Información adicional */}
-                        <div className="mt-4 flex items-center justify-between text-sm">
-                          <div className="flex items-center space-x-4">
-                            {match.mapPlayed && (
-                              <div className="flex items-center space-x-1">
-                                <MapPin className="w-4 h-4 text-orange-400" />
-                                <span className="text-orange-300">{match.mapPlayed}</span>
-                              </div>
-                            )}
-                            
-                            {match.scheduledAt && (
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="w-4 h-4 text-blue-400" />
-                                <span className="text-blue-300">
-                                  {formatDate(match.scheduledAt)}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          
-                          {match.completedAt && (
-                            <div className="flex items-center space-x-1">
-                              <CheckCircle className="w-4 h-4 text-green-400" />
-                              <span className="text-green-300">
-                                Finalizada: {formatDate(match.completedAt)}
-                              </span>
-                            </div>
-                          )}
+            <div className="space-y-4">
+              {matches.map((match) => (
+                <div
+                  key={match.id}
+                  className="bg-slate-700/40 rounded-xl p-4 border border-blue-600/20"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="text-center">
+                        <p className="text-blue-400 font-bold">R{match.round}</p>
+                        <p className="text-blue-300 text-xs">M{match.matchNumber}</p>
+                      </div>
+                      
+                      <div className="flex items-center space-x-4">
+                        <div className="text-center">
+                          <p className="text-white font-medium">
+                            {match.participant1?.name || 'TBD'}
+                          </p>
+                          <p className="text-blue-300 text-xs">{getMatchFormat(selectedTournament.teamSize)}</p>
                         </div>
                         
-                        {match.notes && (
-                          <div className="mt-3 p-3 bg-slate-500/20 rounded-lg">
-                            <p className="text-blue-200 text-sm italic">{match.notes}</p>
-                          </div>
-                        )}
+                        <div className="text-center">
+                          <p className="text-blue-400 font-bold">VS</p>
+                        </div>
+                        
+                        <div className="text-center">
+                          <p className="text-white font-medium">
+                            {match.participant2?.name || 'TBD'}
+                          </p>
+                          <p className="text-blue-300 text-xs">{getMatchFormat(selectedTournament.teamSize)}</p>
+                        </div>
                       </div>
-                    ))}
+                    </div>
+                    
+                    <div className="flex items-center space-x-4">
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-white">{match.score1} - {match.score2}</p>
+                        <p className={`text-xs px-2 py-1 rounded ${
+                          match.status === 'completed' ? 'bg-green-500/20 text-green-300' :
+                          match.status === 'in_progress' ? 'bg-yellow-500/20 text-yellow-300' :
+                          'bg-blue-500/20 text-blue-300'
+                        }`}>
+                          {match.status}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
+      )}
+
+      {activeTab === 'bracket' && selectedTournament && (
+        <TournamentBracket
+          tournamentId={selectedTournament.id}
+          tournamentType={selectedTournament.type}
+          teamSize={selectedTournament.teamSize}
+          participants={participants.map(p => ({
+            id: p.id,
+            participantType: p.participantType,
+            participantId: p.participantId,
+            participantName: p.participantName,
+            participantAvatar: p.participantAvatar,
+            clanTag: p.clanTag,
+            teamName: p.teamName,
+            teamMembers: p.teamMembers
+          }))}
+          matches={matches.map(m => ({
+            id: m.id,
+            round: m.round,
+            matchNumber: m.matchNumber,
+            participant1: m.participant1 ? {
+              id: m.participant1.id,
+              participantType: m.participant1.type as 'user' | 'clan' | 'team',
+              participantId: m.participant1.id,
+              participantName: m.participant1.name,
+              participantAvatar: m.participant1.avatar,
+              clanTag: m.participant1.clanTag,
+              teamName: m.participant1.teamName
+            } : undefined,
+            participant2: m.participant2 ? {
+              id: m.participant2.id,
+              participantType: m.participant2.type as 'user' | 'clan' | 'team',
+              participantId: m.participant2.id,
+              participantName: m.participant2.name,
+              participantAvatar: m.participant2.avatar,
+              clanTag: m.participant2.clanTag,
+              teamName: m.participant2.teamName
+            } : undefined,
+            winnerId: m.winnerId,
+            score1: m.score1,
+            score2: m.score2,
+            status: m.status,
+            scheduledAt: m.scheduledAt,
+            completedAt: m.completedAt,
+            mapPlayed: m.mapPlayed,
+            notes: m.notes,
+            position: { x: 0, y: 0 }
+          }))}
+          bracketType={selectedTournament.bracketType}
+          isAdmin={true}
+          onMatchUpdate={(matchId, updates) => {
+            setMatches(prev => prev.map(match => 
+              match.id === matchId ? { ...match, ...updates } : match
+            ));
+          }}
+          onBracketRegenerate={() => {
+            if (selectedTournament) {
+              loadMatches(selectedTournament.id);
+            }
+          }}
+          onRefreshData={() => {
+            if (selectedTournament) {
+              Promise.all([
+                loadParticipants(selectedTournament.id),
+                loadMatches(selectedTournament.id)
+              ]);
+            }
+          }}
+        />
       )}
 
       {/* Modal de crear torneo */}
@@ -1209,12 +1065,12 @@ const TournamentManager: React.FC = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">Nombre del Torneo *</label>
+                <label className="block text-blue-300 text-sm font-medium mb-2">Nombre del Torneo</label>
                 <input
                   type="text"
                   value={newTournament.name}
                   onChange={(e) => setNewTournament({ ...newTournament, name: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500"
                   placeholder="Nombre del torneo"
                 />
               </div>
@@ -1225,8 +1081,8 @@ const TournamentManager: React.FC = () => {
                   value={newTournament.description}
                   onChange={(e) => setNewTournament({ ...newTournament, description: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors resize-none"
-                  placeholder="Descripción del torneo..."
+                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 resize-none"
+                  placeholder="Descripción del torneo"
                 />
               </div>
 
@@ -1235,15 +1091,12 @@ const TournamentManager: React.FC = () => {
                   <label className="block text-blue-300 text-sm font-medium mb-2">Tipo de Torneo</label>
                   <select
                     value={newTournament.type}
-                    onChange={(e) => {
-                      const type = e.target.value as 'individual' | 'clan' | 'team';
-                      setNewTournament({ 
-                        ...newTournament, 
-                        type,
-                        teamSize: type === 'individual' ? 1 : 3
-                      });
-                    }}
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    onChange={(e) => setNewTournament({ 
+                      ...newTournament, 
+                      type: e.target.value as 'individual' | 'clan' | 'team',
+                      teamSize: e.target.value === 'individual' ? 1 : newTournament.teamSize
+                    })}
+                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500"
                   >
                     <option value="individual">Individual</option>
                     <option value="clan">Por Clanes</option>
@@ -1253,13 +1106,13 @@ const TournamentManager: React.FC = () => {
 
                 <div>
                   <label className="block text-blue-300 text-sm font-medium mb-2">
-                    Tamaño de Equipo {newTournament.type !== 'individual' && '*'}
+                    Tamaño de Equipo {newTournament.type !== 'individual' && '(Jugadores por equipo)'}
                   </label>
                   <select
                     value={newTournament.teamSize}
                     onChange={(e) => setNewTournament({ ...newTournament, teamSize: parseInt(e.target.value) })}
                     disabled={newTournament.type === 'individual'}
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
+                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
                   >
                     <option value={1}>1v1</option>
                     <option value={2}>2v2</option>
@@ -1273,14 +1126,14 @@ const TournamentManager: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-blue-300 text-sm font-medium mb-2">Máximo Participantes *</label>
+                  <label className="block text-blue-300 text-sm font-medium mb-2">Máximo Participantes</label>
                   <input
                     type="number"
-                    value={newTournament.maxParticipants}
-                    onChange={(e) => setNewTournament({ ...newTournament, maxParticipants: parseInt(e.target.value) || 16 })}
                     min="2"
-                    max="128"
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors"
+                    max="64"
+                    value={newTournament.maxParticipants}
+                    onChange={(e) => setNewTournament({ ...newTournament, maxParticipants: parseInt(e.target.value) })}
+                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
@@ -1289,178 +1142,35 @@ const TournamentManager: React.FC = () => {
                   <select
                     value={newTournament.bracketType}
                     onChange={(e) => setNewTournament({ ...newTournament, bracketType: e.target.value as any })}
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500"
                   >
                     <option value="single_elimination">Eliminación Simple</option>
                     <option value="double_elimination">Eliminación Doble</option>
                     <option value="round_robin">Round Robin</option>
-                    <option value="swiss">Sistema Suizo</option>
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-blue-300 text-sm font-medium mb-2">Fecha de Inicio</label>
-                  <input
-                    type="datetime-local"
-                    value={newTournament.startDate}
-                    onChange={(e) => setNewTournament({ ...newTournament, startDate: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-blue-300 text-sm font-medium mb-2">Fecha de Fin</label>
-                  <input
-                    type="datetime-local"
-                    value={newTournament.endDate}
-                    onChange={(e) => setNewTournament({ ...newTournament, endDate: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                </div>
-              </div>
-
               <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">Premio</label>
+                <label className="block text-blue-300 text-sm font-medium mb-2">Premio (Opcional)</label>
                 <input
                   type="text"
                   value={newTournament.prizePool}
                   onChange={(e) => setNewTournament({ ...newTournament, prizePool: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500"
                   placeholder="Ej: $100.000 CLP"
-                />
-              </div>
-
-              <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">Reglas</label>
-                <textarea
-                  value={newTournament.rules}
-                  onChange={(e) => setNewTournament({ ...newTournament, rules: e.target.value })}
-                  rows={4}
-                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors resize-none"
-                  placeholder="Reglas del torneo..."
                 />
               </div>
 
               <div className="flex space-x-3 pt-4">
                 <button
                   onClick={handleCreateTournament}
-                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 hover:bg-green-700 rounded-xl text-white font-medium transition-colors"
+                  className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 rounded-xl text-white font-medium transition-colors"
                 >
-                  <Save className="w-4 h-4" />
-                  <span>Crear Torneo</span>
+                  Crear Torneo
                 </button>
-                
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="px-6 py-3 bg-slate-600 hover:bg-slate-700 rounded-xl text-white font-medium transition-colors"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de editar torneo */}
-      {showEditModal && selectedTournament && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-800 rounded-2xl border border-blue-700/30 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white">Editar Torneo</h3>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="p-2 hover:bg-slate-700 rounded-lg text-blue-300 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">Nombre del Torneo *</label>
-                <input
-                  type="text"
-                  value={selectedTournament.name}
-                  onChange={(e) => setSelectedTournament({ ...selectedTournament, name: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">Descripción</label>
-                <textarea
-                  value={selectedTournament.description}
-                  onChange={(e) => setSelectedTournament({ ...selectedTournament, description: e.target.value })}
-                  rows={3}
-                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-blue-300 text-sm font-medium mb-2">Estado</label>
-                  <select
-                    value={selectedTournament.status}
-                    onChange={(e) => setSelectedTournament({ ...selectedTournament, status: e.target.value as any })}
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
-                  >
-                    <option value="draft">Borrador</option>
-                    <option value="registration">Registro Abierto</option>
-                    <option value="active">En Progreso</option>
-                    <option value="completed">Finalizado</option>
-                    <option value="cancelled">Cancelado</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-blue-300 text-sm font-medium mb-2">Máximo Participantes</label>
-                  <input
-                    type="number"
-                    value={selectedTournament.maxParticipants}
-                    onChange={(e) => setSelectedTournament({ ...selectedTournament, maxParticipants: parseInt(e.target.value) || 16 })}
-                    min="2"
-                    max="128"
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">Premio</label>
-                <input
-                  type="text"
-                  value={selectedTournament.prizePool || ''}
-                  onChange={(e) => setSelectedTournament({ ...selectedTournament, prizePool: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors"
-                  placeholder="Ej: $100.000 CLP"
-                />
-              </div>
-
-              <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">Reglas</label>
-                <textarea
-                  value={selectedTournament.rules || ''}
-                  onChange={(e) => setSelectedTournament({ ...selectedTournament, rules: e.target.value })}
-                  rows={4}
-                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors resize-none"
-                  placeholder="Reglas del torneo..."
-                />
-              </div>
-
-              <div className="flex space-x-3 pt-4">
-                <button
-                  onClick={handleUpdateTournament}
-                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-white font-medium transition-colors"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>Guardar Cambios</span>
-                </button>
-                
-                <button
-                  onClick={() => setShowEditModal(false)}
                   className="px-6 py-3 bg-slate-600 hover:bg-slate-700 rounded-xl text-white font-medium transition-colors"
                 >
                   Cancelar
@@ -1474,7 +1184,7 @@ const TournamentManager: React.FC = () => {
       {/* Modal de agregar participante */}
       {showAddParticipantModal && selectedTournament && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-800 rounded-2xl border border-blue-700/30 p-6 max-w-2xl w-full">
+          <div className="bg-slate-800 rounded-2xl border border-blue-700/30 p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-white">
                 Agregar Participante - {getMatchFormat(selectedTournament.teamSize)}
@@ -1487,123 +1197,292 @@ const TournamentManager: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">Tipo de Participante</label>
-                <select
-                  value={newParticipant.participantType}
-                  onChange={(e) => {
-                    setNewParticipant({ 
+            {/* Selector de modo de creación de equipos */}
+            {selectedTournament.type === 'team' && (
+              <div className="mb-6">
+                <label className="block text-blue-300 text-sm font-medium mb-2">Modo de Creación</label>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setTeamCreationMode('single')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      teamCreationMode === 'single'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-700/40 text-blue-300 hover:bg-slate-700/60'
+                    }`}
+                  >
+                    Equipo Individual
+                  </button>
+                  <button
+                    onClick={() => setTeamCreationMode('multiple')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      teamCreationMode === 'multiple'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-700/40 text-blue-300 hover:bg-slate-700/60'
+                    }`}
+                  >
+                    Múltiples Equipos
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {teamCreationMode === 'single' || selectedTournament.type !== 'team' ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-blue-300 text-sm font-medium mb-2">Tipo de Participante</label>
+                  <select
+                    value={newParticipant.participantType}
+                    onChange={(e) => setNewParticipant({ 
                       ...newParticipant, 
                       participantType: e.target.value as 'user' | 'clan' | 'team',
                       participantId: '',
                       teamMembers: []
-                    });
-                  }}
-                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
-                >
-                  <option value="user">Usuario Individual</option>
-                  <option value="clan">Clan</option>
-                  <option value="team">Equipo Personalizado</option>
-                </select>
-              </div>
-
-              {newParticipant.participantType === 'user' && (
-                <div>
-                  <label className="block text-blue-300 text-sm font-medium mb-2">Seleccionar Usuario</label>
-                  <select
-                    value={newParticipant.participantId}
-                    onChange={(e) => setNewParticipant({ ...newParticipant, participantId: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    })}
+                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500"
                   >
-                    <option value="">Seleccionar usuario...</option>
-                    {users.filter(u => u.isActive && !participants.some(p => p.participantId === u.id && p.participantType === 'user')).map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.username} ({user.email})
-                      </option>
-                    ))}
+                    <option value="user">Usuario Individual</option>
+                    <option value="clan">Clan</option>
+                    <option value="team">Equipo Personalizado</option>
                   </select>
                 </div>
-              )}
 
-              {newParticipant.participantType === 'clan' && (
-                <div>
-                  <label className="block text-blue-300 text-sm font-medium mb-2">Seleccionar Clan</label>
-                  <select
-                    value={newParticipant.participantId}
-                    onChange={(e) => setNewParticipant({ ...newParticipant, participantId: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
-                  >
-                    <option value="">Seleccionar clan...</option>
-                    {clans.filter(c => !participants.some(p => p.participantId === c.id && p.participantType === 'clan')).map((clan) => (
-                      <option key={clan.id} value={clan.id}>
-                        [{clan.tag}] {clan.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+                {newParticipant.participantType === 'user' && (
+                  <div>
+                    <label className="block text-blue-300 text-sm font-medium mb-2">Usuario</label>
+                    <select
+                      value={newParticipant.participantId}
+                      onChange={(e) => setNewParticipant({ ...newParticipant, participantId: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="">Seleccionar usuario</option>
+                      {users.map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.username} ({user.email})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-              {newParticipant.participantType === 'team' && (
-                <div>
-                  <label className="block text-blue-300 text-sm font-medium mb-2">Nombre del Equipo</label>
-                  <input
-                    type="text"
-                    value={newParticipant.teamName}
-                    onChange={(e) => setNewParticipant({ ...newParticipant, teamName: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors"
-                    placeholder="Nombre del equipo"
-                  />
-                </div>
-              )}
+                {newParticipant.participantType === 'team' && (
+                  <>
+                    <div>
+                      <label className="block text-blue-300 text-sm font-medium mb-2">Nombre del Equipo</label>
+                      <input
+                        type="text"
+                        value={newParticipant.teamName}
+                        onChange={(e) => setNewParticipant({ ...newParticipant, teamName: e.target.value })}
+                        className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500"
+                        placeholder="Nombre del equipo"
+                      />
+                    </div>
 
-              {/* Selección de miembros del equipo para torneos con teamSize > 1 */}
-              {selectedTournament.teamSize > 1 && (newParticipant.participantType === 'team' || newParticipant.participantType === 'clan') && (
-                <div>
-                  <label className="block text-blue-300 text-sm font-medium mb-2">
-                    Miembros del Equipo ({selectedTournament.teamSize} requeridos)
-                  </label>
-                  <div className="space-y-2">
-                    {Array.from({ length: selectedTournament.teamSize }, (_, index) => (
-                      <select
-                        key={index}
-                        value={newParticipant.teamMembers[index] || ''}
-                        onChange={(e) => {
-                          const newMembers = [...newParticipant.teamMembers];
-                          newMembers[index] = e.target.value;
-                          setNewParticipant({ ...newParticipant, teamMembers: newMembers });
-                        }}
-                        className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
-                      >
-                        <option value="">Seleccionar jugador {index + 1}...</option>
-                        {users.filter(u => u.isActive && !newParticipant.teamMembers.includes(u.id)).map((user) => (
-                          <option key={user.id} value={user.id}>
-                            {user.username}
-                          </option>
+                    <div>
+                      <label className="block text-blue-300 text-sm font-medium mb-2">
+                        Miembros del Equipo ({selectedTournament.teamSize} jugadores)
+                      </label>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {users.map((user) => (
+                          <label key={user.id} className="flex items-center space-x-3 p-2 bg-slate-700/40 rounded-lg cursor-pointer hover:bg-slate-700/60">
+                            <input
+                              type="checkbox"
+                              checked={newParticipant.teamMembers.includes(user.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  if (newParticipant.teamMembers.length < selectedTournament.teamSize) {
+                                    setNewParticipant({
+                                      ...newParticipant,
+                                      teamMembers: [...newParticipant.teamMembers, user.id]
+                                    });
+                                  }
+                                } else {
+                                  setNewParticipant({
+                                    ...newParticipant,
+                                    teamMembers: newParticipant.teamMembers.filter(id => id !== user.id)
+                                  });
+                                }
+                              }}
+                              disabled={!newParticipant.teamMembers.includes(user.id) && newParticipant.teamMembers.length >= selectedTournament.teamSize}
+                              className="rounded border-blue-600/30"
+                            />
+                            <div className="flex items-center space-x-2">
+                              {user.avatar && (
+                                <img
+                                  src={user.avatar}
+                                  alt={user.username}
+                                  className="w-6 h-6 rounded-full"
+                                />
+                              )}
+                              <span className="text-white">{user.username}</span>
+                            </div>
+                          </label>
                         ))}
-                      </select>
+                      </div>
+                      <p className="text-blue-400 text-sm mt-2">
+                        Seleccionados: {newParticipant.teamMembers.length}/{selectedTournament.teamSize}
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    onClick={handleAddParticipant}
+                    disabled={
+                      !newParticipant.participantId && newParticipant.participantType !== 'team' ||
+                      (newParticipant.participantType === 'team' && (!newParticipant.teamName || newParticipant.teamMembers.length !== selectedTournament.teamSize))
+                    }
+                    className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 rounded-xl text-white font-medium transition-colors"
+                  >
+                    Agregar Participante
+                  </button>
+                  <button
+                    onClick={() => setShowAddParticipantModal(false)}
+                    className="px-6 py-3 bg-slate-600 hover:bg-slate-700 rounded-xl text-white font-medium transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-blue-300 text-sm font-medium mb-2">Número de Equipos</label>
+                    <input
+                      type="number"
+                      min="2"
+                      max="16"
+                      value={multipleTeamsData.numberOfTeams}
+                      onChange={(e) => {
+                        const numberOfTeams = parseInt(e.target.value);
+                        setMultipleTeamsData({
+                          ...multipleTeamsData,
+                          numberOfTeams,
+                          teamNames: Array.from({ length: numberOfTeams }, (_, i) => `Equipo ${i + 1}`)
+                        });
+                      }}
+                      className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-blue-300 text-sm font-medium mb-2">Jugadores por Equipo</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="6"
+                      value={multipleTeamsData.teamSize}
+                      onChange={(e) => setMultipleTeamsData({ ...multipleTeamsData, teamSize: parseInt(e.target.value) })}
+                      className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-blue-300 text-sm font-medium mb-2">Nombres de Equipos</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {multipleTeamsData.teamNames.map((name, index) => (
+                      <input
+                        key={index}
+                        type="text"
+                        value={name}
+                        onChange={(e) => {
+                          const newNames = [...multipleTeamsData.teamNames];
+                          newNames[index] = e.target.value;
+                          setMultipleTeamsData({ ...multipleTeamsData, teamNames: newNames });
+                        }}
+                        className="px-3 py-2 bg-slate-700/40 border border-blue-600/30 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                        placeholder={`Equipo ${index + 1}`}
+                      />
                     ))}
                   </div>
                 </div>
-              )}
 
-              <div className="flex space-x-3 pt-4">
-                <button
-                  onClick={handleAddParticipant}
-                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 hover:bg-green-700 rounded-xl text-white font-medium transition-colors"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span>Agregar Participante</span>
-                </button>
-                
-                <button
-                  onClick={() => setShowAddParticipantModal(false)}
-                  className="px-6 py-3 bg-slate-600 hover:bg-slate-700 rounded-xl text-white font-medium transition-colors"
-                >
-                  Cancelar
-                </button>
+                <div>
+                  <label className="block text-blue-300 text-sm font-medium mb-2">
+                    Seleccionar Jugadores ({multipleTeamsData.selectedUsers.length}/{multipleTeamsData.numberOfTeams * multipleTeamsData.teamSize} necesarios)
+                  </label>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {users.map((user) => (
+                      <label key={user.id} className="flex items-center space-x-3 p-2 bg-slate-700/40 rounded-lg cursor-pointer hover:bg-slate-700/60">
+                        <input
+                          type="checkbox"
+                          checked={multipleTeamsData.selectedUsers.includes(user.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              if (multipleTeamsData.selectedUsers.length < multipleTeamsData.numberOfTeams * multipleTeamsData.teamSize) {
+                                setMultipleTeamsData({
+                                  ...multipleTeamsData,
+                                  selectedUsers: [...multipleTeamsData.selectedUsers, user.id]
+                                });
+                              }
+                            } else {
+                              setMultipleTeamsData({
+                                ...multipleTeamsData,
+                                selectedUsers: multipleTeamsData.selectedUsers.filter(id => id !== user.id)
+                              });
+                            }
+                          }}
+                          disabled={!multipleTeamsData.selectedUsers.includes(user.id) && multipleTeamsData.selectedUsers.length >= multipleTeamsData.numberOfTeams * multipleTeamsData.teamSize}
+                          className="rounded border-blue-600/30"
+                        />
+                        <div className="flex items-center space-x-2">
+                          {user.avatar && (
+                            <img
+                              src={user.avatar}
+                              alt={user.username}
+                              className="w-6 h-6 rounded-full"
+                            />
+                          )}
+                          <span className="text-white">{user.username}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-blue-600/10 border border-blue-500/30 rounded-xl p-4">
+                  <h4 className="text-blue-300 font-medium mb-2">Vista Previa de Equipos:</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {multipleTeamsData.teamNames.map((teamName, index) => {
+                      const teamMembers = multipleTeamsData.selectedUsers.slice(
+                        index * multipleTeamsData.teamSize, 
+                        (index + 1) * multipleTeamsData.teamSize
+                      );
+                      
+                      return (
+                        <div key={index} className="bg-slate-700/40 rounded-lg p-3">
+                          <p className="text-white font-medium">{teamName}</p>
+                          <div className="text-blue-300 text-sm">
+                            {teamMembers.map(userId => {
+                              const user = users.find(u => u.id === userId);
+                              return user?.username;
+                            }).filter(Boolean).join(', ') || 'Sin miembros'}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    onClick={handleCreateMultipleTeams}
+                    disabled={multipleTeamsData.selectedUsers.length < multipleTeamsData.numberOfTeams * multipleTeamsData.teamSize}
+                    className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 rounded-xl text-white font-medium transition-colors"
+                  >
+                    Crear {multipleTeamsData.numberOfTeams} Equipos
+                  </button>
+                  <button
+                    onClick={() => setShowAddParticipantModal(false)}
+                    className="px-6 py-3 bg-slate-600 hover:bg-slate-700 rounded-xl text-white font-medium transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}
@@ -1611,7 +1490,7 @@ const TournamentManager: React.FC = () => {
       {/* Modal de crear partida */}
       {showCreateMatchModal && selectedTournament && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-800 rounded-2xl border border-blue-700/30 p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-slate-800 rounded-2xl border border-blue-700/30 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-white">
                 Crear Partida - {getMatchFormat(selectedTournament.teamSize)}
@@ -1624,16 +1503,16 @@ const TournamentManager: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-blue-300 text-sm font-medium mb-2">Ronda</label>
                   <input
                     type="number"
-                    value={newMatch.round}
-                    onChange={(e) => setNewMatch({ ...newMatch, round: parseInt(e.target.value) || 1 })}
                     min="1"
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    value={newMatch.round}
+                    onChange={(e) => setNewMatch({ ...newMatch, round: parseInt(e.target.value) })}
+                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
@@ -1641,305 +1520,92 @@ const TournamentManager: React.FC = () => {
                   <label className="block text-blue-300 text-sm font-medium mb-2">Número de Partida</label>
                   <input
                     type="number"
-                    value={newMatch.matchNumber}
-                    onChange={(e) => setNewMatch({ ...newMatch, matchNumber: parseInt(e.target.value) || 1 })}
                     min="1"
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    value={newMatch.matchNumber}
+                    onChange={(e) => setNewMatch({ ...newMatch, matchNumber: parseInt(e.target.value) })}
+                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
-              {/* Selección de participantes según el formato */}
-              {selectedTournament.teamSize === 1 ? (
-                // Formato 1v1
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-blue-300 text-sm font-medium mb-2">Participante 1</label>
-                    <select
-                      value={newMatch.participant1Id}
-                      onChange={(e) => setNewMatch({ ...newMatch, participant1Id: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
-                    >
-                      <option value="">Seleccionar participante...</option>
-                      {participants.map((participant) => (
-                        <option key={participant.id} value={participant.id}>
-                          {participant.participantType === 'team' && participant.teamName 
-                            ? participant.teamName 
-                            : participant.participantName}
-                          {participant.clanTag && ` [${participant.clanTag}]`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              {selectedTournament.teamSize > 1 ? (
+                <>
+                  {renderParticipantSelector(
+                    newMatch.team1Participants,
+                    (value) => setNewMatch({ ...newMatch, team1Participants: value as string[] }),
+                    `Equipo 1 (${getMatchFormat(selectedTournament.teamSize)})`,
+                    true
+                  )}
 
-                  <div>
-                    <label className="block text-blue-300 text-sm font-medium mb-2">Participante 2</label>
-                    <select
-                      value={newMatch.participant2Id}
-                      onChange={(e) => setNewMatch({ ...newMatch, participant2Id: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
-                    >
-                      <option value="">Seleccionar participante...</option>
-                      {participants.filter(p => p.id !== newMatch.participant1Id).map((participant) => (
-                        <option key={participant.id} value={participant.id}>
-                          {participant.participantType === 'team' && participant.teamName 
-                            ? participant.teamName 
-                            : participant.participantName}
-                          {participant.clanTag && ` [${participant.clanTag}]`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                  {renderParticipantSelector(
+                    newMatch.team2Participants,
+                    (value) => setNewMatch({ ...newMatch, team2Participants: value as string[] }),
+                    `Equipo 2 (${getMatchFormat(selectedTournament.teamSize)})`,
+                    true
+                  )}
+                </>
               ) : (
-                // Formato de equipos múltiples
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="text-blue-300 font-medium mb-3">Equipo 1 ({selectedTournament.teamSize} jugadores)</h4>
-                    <div className="space-y-2">
-                      {Array.from({ length: selectedTournament.teamSize }, (_, index) => (
-                        <select
-                          key={`team1-${index}`}
-                          value={newMatch.team1Participants[index] || ''}
-                          onChange={(e) => {
-                            const newTeam1 = [...newMatch.team1Participants];
-                            newTeam1[index] = e.target.value;
-                            setNewMatch({ ...newMatch, team1Participants: newTeam1 });
-                          }}
-                          className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
-                        >
-                          <option value="">Seleccionar jugador {index + 1}...</option>
-                          {participants.filter(p => 
-                            !newMatch.team1Participants.includes(p.id) && 
-                            !newMatch.team2Participants.includes(p.id)
-                          ).map((participant) => (
-                            <option key={participant.id} value={participant.id}>
-                              {participant.participantType === 'team' && participant.teamName 
-                                ? participant.teamName 
-                                : participant.participantName}
-                              {participant.clanTag && ` [${participant.clanTag}]`}
-                            </option>
-                          ))}
-                        </select>
-                      ))}
-                    </div>
-                  </div>
+                <>
+                  {renderParticipantSelector(
+                    newMatch.participant1Id,
+                    (value) => setNewMatch({ ...newMatch, participant1Id: value as string }),
+                    'Participante 1'
+                  )}
 
-                  <div>
-                    <h4 className="text-blue-300 font-medium mb-3">Equipo 2 ({selectedTournament.teamSize} jugadores)</h4>
-                    <div className="space-y-2">
-                      {Array.from({ length: selectedTournament.teamSize }, (_, index) => (
-                        <select
-                          key={`team2-${index}`}
-                          value={newMatch.team2Participants[index] || ''}
-                          onChange={(e) => {
-                            const newTeam2 = [...newMatch.team2Participants];
-                            newTeam2[index] = e.target.value;
-                            setNewMatch({ ...newMatch, team2Participants: newTeam2 });
-                          }}
-                          className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
-                        >
-                          <option value="">Seleccionar jugador {index + 1}...</option>
-                          {participants.filter(p => 
-                            !newMatch.team1Participants.includes(p.id) && 
-                            !newMatch.team2Participants.includes(p.id)
-                          ).map((participant) => (
-                            <option key={participant.id} value={participant.id}>
-                              {participant.participantType === 'team' && participant.teamName 
-                                ? participant.teamName 
-                                : participant.participantName}
-                              {participant.clanTag && ` [${participant.clanTag}]`}
-                            </option>
-                          ))}
-                        </select>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                  {renderParticipantSelector(
+                    newMatch.participant2Id,
+                    (value) => setNewMatch({ ...newMatch, participant2Id: value as string }),
+                    'Participante 2'
+                  )}
+                </>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-blue-300 text-sm font-medium mb-2">Mapa</label>
-                  <input
-                    type="text"
-                    value={newMatch.mapPlayed}
-                    onChange={(e) => setNewMatch({ ...newMatch, mapPlayed: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors"
-                    placeholder="Nombre del mapa"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-blue-300 text-sm font-medium mb-2">Fecha Programada</label>
-                  <input
-                    type="datetime-local"
-                    value={newMatch.scheduledAt}
-                    onChange={(e) => setNewMatch({ ...newMatch, scheduledAt: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                </div>
+              <div>
+                <label className="block text-blue-300 text-sm font-medium mb-2">Mapa (Opcional)</label>
+                <select
+                  value={newMatch.mapPlayed}
+                  onChange={(e) => setNewMatch({ ...newMatch, mapPlayed: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500"
+                >
+                  <option value="">Seleccionar mapa</option>
+                  {maps.map((map) => (
+                    <option key={map.id} value={map.displayName}>
+                      {map.displayName} - {map.gameMode}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">Notas</label>
+                <label className="block text-blue-300 text-sm font-medium mb-2">Fecha Programada (Opcional)</label>
+                <input
+                  type="datetime-local"
+                  value={newMatch.scheduledAt}
+                  onChange={(e) => setNewMatch({ ...newMatch, scheduledAt: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-blue-300 text-sm font-medium mb-2">Notas (Opcional)</label>
                 <textarea
                   value={newMatch.notes}
                   onChange={(e) => setNewMatch({ ...newMatch, notes: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors resize-none"
-                  placeholder="Notas adicionales..."
+                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 resize-none"
+                  placeholder="Notas adicionales sobre la partida"
                 />
               </div>
 
               <div className="flex space-x-3 pt-4">
                 <button
                   onClick={handleCreateMatch}
-                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 hover:bg-green-700 rounded-xl text-white font-medium transition-colors"
+                  className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 rounded-xl text-white font-medium transition-colors"
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>Crear Partida</span>
+                  Crear Partida
                 </button>
-                
                 <button
                   onClick={() => setShowCreateMatchModal(false)}
-                  className="px-6 py-3 bg-slate-600 hover:bg-slate-700 rounded-xl text-white font-medium transition-colors"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de editar partida */}
-      {showEditMatchModal && editingMatch && selectedTournament && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-800 rounded-2xl border border-blue-700/30 p-6 max-w-2xl w-full">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white">
-                Editar Partida - {getMatchFormat(selectedTournament.teamSize)}
-              </h3>
-              <button
-                onClick={() => setShowEditMatchModal(false)}
-                className="p-2 hover:bg-slate-700 rounded-lg text-blue-300 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {/* Marcador */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-blue-300 text-sm font-medium mb-2">
-                    Puntuación Equipo 1
-                  </label>
-                  <input
-                    type="number"
-                    value={editingMatch.score1}
-                    onChange={(e) => setEditingMatch({ ...editingMatch, score1: parseInt(e.target.value) || 0 })}
-                    min="0"
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-blue-300 text-sm font-medium mb-2">
-                    Puntuación Equipo 2
-                  </label>
-                  <input
-                    type="number"
-                    value={editingMatch.score2}
-                    onChange={(e) => setEditingMatch({ ...editingMatch, score2: parseInt(e.target.value) || 0 })}
-                    min="0"
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                </div>
-              </div>
-
-              {/* Ganador */}
-              <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">Ganador</label>
-                {selectedTournament.teamSize > 1 ? (
-                  <select
-                    value={editingMatch.winnerTeam || ''}
-                    onChange={(e) => setEditingMatch({ ...editingMatch, winnerTeam: parseInt(e.target.value) || undefined })}
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
-                  >
-                    <option value="">Sin ganador</option>
-                    <option value={1}>Equipo 1</option>
-                    <option value={2}>Equipo 2</option>
-                  </select>
-                ) : (
-                  <select
-                    value={editingMatch.winnerId || ''}
-                    onChange={(e) => setEditingMatch({ ...editingMatch, winnerId: e.target.value || undefined })}
-                    className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
-                  >
-                    <option value="">Sin ganador</option>
-                    {editingMatch.participant1 && (
-                      <option value={editingMatch.participant1.id}>
-                        {editingMatch.participant1.name}
-                      </option>
-                    )}
-                    {editingMatch.participant2 && (
-                      <option value={editingMatch.participant2.id}>
-                        {editingMatch.participant2.name}
-                      </option>
-                    )}
-                  </select>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">Estado</label>
-                <select
-                  value={editingMatch.status}
-                  onChange={(e) => setEditingMatch({ ...editingMatch, status: e.target.value as any })}
-                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors"
-                >
-                  <option value="pending">Pendiente</option>
-                  <option value="in_progress">En Progreso</option>
-                  <option value="completed">Completada</option>
-                  <option value="cancelled">Cancelada</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">Mapa Jugado</label>
-                <input
-                  type="text"
-                  value={editingMatch.mapPlayed || ''}
-                  onChange={(e) => setEditingMatch({ ...editingMatch, mapPlayed: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors"
-                  placeholder="Nombre del mapa"
-                />
-              </div>
-
-              <div>
-                <label className="block text-blue-300 text-sm font-medium mb-2">Notas</label>
-                <textarea
-                  value={editingMatch.notes || ''}
-                  onChange={(e) => setEditingMatch({ ...editingMatch, notes: e.target.value })}
-                  rows={3}
-                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors resize-none"
-                  placeholder="Notas adicionales..."
-                />
-              </div>
-
-              <div className="flex space-x-3 pt-4">
-                <button
-                  onClick={handleUpdateMatch}
-                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-white font-medium transition-colors"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>Guardar Cambios</span>
-                </button>
-                
-                <button
-                  onClick={() => setShowEditMatchModal(false)}
                   className="px-6 py-3 bg-slate-600 hover:bg-slate-700 rounded-xl text-white font-medium transition-colors"
                 >
                   Cancelar

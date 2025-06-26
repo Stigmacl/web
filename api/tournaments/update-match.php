@@ -78,9 +78,11 @@ try {
             $updateFields[] = "winner_id = NULL"; // Limpiar winner_id para equipos
         } else {
             // Para 1v1, usar winner_id
-            if (isset($data['winnerId'])) {
+            if (isset($data['winnerId']) && !empty($data['winnerId'])) {
                 $updateFields[] = "winner_id = :winner_id";
                 $params[':winner_id'] = $data['winnerId'];
+            } else {
+                $updateFields[] = "winner_id = NULL";
             }
             $updateFields[] = "winner_team = NULL"; // Limpiar winner_team para 1v1
         }
@@ -154,67 +156,121 @@ try {
         $stmt->bindValue($key, $value);
     }
     
-    $stmt->execute();
+    if (!$stmt->execute()) {
+        error_log("Error SQL al actualizar partida: " . print_r($stmt->errorInfo(), true));
+        jsonResponse([
+            'success' => false,
+            'message' => 'Error al actualizar la partida en la base de datos'
+        ], 500);
+    }
 
-    // Actualizar estadísticas de participantes si hay un ganador
-    if ((isset($data['winnerId']) && $data['winnerId']) || (isset($data['winnerTeam']) && $data['winnerTeam'])) {
+    // Actualizar estadísticas de participantes con el nuevo sistema de puntos
+    if (isset($data['status']) && $data['status'] === 'completed' && 
+        isset($data['score1']) && isset($data['score2'])) {
+        
+        // Calcular puntos según el nuevo sistema
+        $participant1Points = 0;
+        $participant2Points = 0;
+        
+        if ($data['score1'] > $data['score2']) {
+            // Participante 1 gana
+            $participant1Points = 3;
+            $participant2Points = 0;
+        } elseif ($data['score2'] > $data['score1']) {
+            // Participante 2 gana
+            $participant1Points = 0;
+            $participant2Points = 3;
+        } else {
+            // Empate
+            $participant1Points = 1;
+            $participant2Points = 1;
+        }
+
         if ($match['team_size'] > 1) {
-            // Para equipos múltiples, actualizar estadísticas de todos los miembros del equipo ganador
-            $winnerTeam = $data['winnerTeam'];
-            $teamField = $winnerTeam == 1 ? 'team1_participants' : 'team2_participants';
-            $loserTeamField = $winnerTeam == 1 ? 'team2_participants' : 'team1_participants';
+            // Para equipos múltiples, actualizar estadísticas de todos los miembros del equipo
+            $team1Field = 'team1_participants';
+            $team2Field = 'team2_participants';
             
             // Obtener participantes actualizados
-            $updatedMatchQuery = "SELECT $teamField as winner_participants, $loserTeamField as loser_participants FROM tournament_matches WHERE id = :id";
+            $updatedMatchQuery = "SELECT $team1Field as team1_participants, $team2Field as team2_participants FROM tournament_matches WHERE id = :id";
             $updatedMatchStmt = $db->prepare($updatedMatchQuery);
             $updatedMatchStmt->bindParam(':id', $data['matchId']);
             $updatedMatchStmt->execute();
             $updatedMatch = $updatedMatchStmt->fetch();
             
             if ($updatedMatch) {
-                // Actualizar ganadores
-                if (!empty($updatedMatch['winner_participants'])) {
-                    $winnerIds = json_decode($updatedMatch['winner_participants'], true);
-                    if (is_array($winnerIds)) {
-                        foreach ($winnerIds as $winnerId) {
-                            $winnerQuery = "UPDATE tournament_participants SET wins = wins + 1, points = points + 3 WHERE id = :winner_id";
-                            $winnerStmt = $db->prepare($winnerQuery);
-                            $winnerStmt->bindParam(':winner_id', $winnerId);
-                            $winnerStmt->execute();
+                // Actualizar equipo 1
+                if (!empty($updatedMatch['team1_participants'])) {
+                    $team1Ids = json_decode($updatedMatch['team1_participants'], true);
+                    if (is_array($team1Ids)) {
+                        foreach ($team1Ids as $participantId) {
+                            $updateQuery = "UPDATE tournament_participants SET points = points + :points";
+                            if ($participant1Points === 3) {
+                                $updateQuery .= ", wins = wins + 1";
+                            } elseif ($participant1Points === 0) {
+                                $updateQuery .= ", losses = losses + 1";
+                            }
+                            $updateQuery .= " WHERE id = :participant_id";
+                            
+                            $updateStmt = $db->prepare($updateQuery);
+                            $updateStmt->bindParam(':points', $participant1Points);
+                            $updateStmt->bindParam(':participant_id', $participantId);
+                            $updateStmt->execute();
                         }
                     }
                 }
                 
-                // Actualizar perdedores
-                if (!empty($updatedMatch['loser_participants'])) {
-                    $loserIds = json_decode($updatedMatch['loser_participants'], true);
-                    if (is_array($loserIds)) {
-                        foreach ($loserIds as $loserId) {
-                            $loserQuery = "UPDATE tournament_participants SET losses = losses + 1, points = points + 1 WHERE id = :loser_id";
-                            $loserStmt = $db->prepare($loserQuery);
-                            $loserStmt->bindParam(':loser_id', $loserId);
-                            $loserStmt->execute();
+                // Actualizar equipo 2
+                if (!empty($updatedMatch['team2_participants'])) {
+                    $team2Ids = json_decode($updatedMatch['team2_participants'], true);
+                    if (is_array($team2Ids)) {
+                        foreach ($team2Ids as $participantId) {
+                            $updateQuery = "UPDATE tournament_participants SET points = points + :points";
+                            if ($participant2Points === 3) {
+                                $updateQuery .= ", wins = wins + 1";
+                            } elseif ($participant2Points === 0) {
+                                $updateQuery .= ", losses = losses + 1";
+                            }
+                            $updateQuery .= " WHERE id = :participant_id";
+                            
+                            $updateStmt = $db->prepare($updateQuery);
+                            $updateStmt->bindParam(':points', $participant2Points);
+                            $updateStmt->bindParam(':participant_id', $participantId);
+                            $updateStmt->execute();
                         }
                     }
                 }
             }
         } else {
             // Para 1v1, usar el sistema original
-            if (isset($data['winnerId']) && $data['winnerId']) {
-                // Actualizar ganador
-                $winnerQuery = "UPDATE tournament_participants SET wins = wins + 1, points = points + 3 WHERE id = :winner_id";
-                $winnerStmt = $db->prepare($winnerQuery);
-                $winnerStmt->bindParam(':winner_id', $data['winnerId']);
-                $winnerStmt->execute();
-
-                // Actualizar perdedor
-                $loserId = ($data['winnerId'] == $match['participant1_id']) ? $match['participant2_id'] : $match['participant1_id'];
-                if ($loserId) {
-                    $loserQuery = "UPDATE tournament_participants SET losses = losses + 1, points = points + 1 WHERE id = :loser_id";
-                    $loserStmt = $db->prepare($loserQuery);
-                    $loserStmt->bindParam(':loser_id', $loserId);
-                    $loserStmt->execute();
+            if ($match['participant1_id']) {
+                $updateQuery = "UPDATE tournament_participants SET points = points + :points";
+                if ($participant1Points === 3) {
+                    $updateQuery .= ", wins = wins + 1";
+                } elseif ($participant1Points === 0) {
+                    $updateQuery .= ", losses = losses + 1";
                 }
+                $updateQuery .= " WHERE id = :participant_id";
+                
+                $updateStmt = $db->prepare($updateQuery);
+                $updateStmt->bindParam(':points', $participant1Points);
+                $updateStmt->bindParam(':participant_id', $match['participant1_id']);
+                $updateStmt->execute();
+            }
+
+            if ($match['participant2_id']) {
+                $updateQuery = "UPDATE tournament_participants SET points = points + :points";
+                if ($participant2Points === 3) {
+                    $updateQuery .= ", wins = wins + 1";
+                } elseif ($participant2Points === 0) {
+                    $updateQuery .= ", losses = losses + 1";
+                }
+                $updateQuery .= " WHERE id = :participant_id";
+                
+                $updateStmt = $db->prepare($updateQuery);
+                $updateStmt->bindParam(':points', $participant2Points);
+                $updateStmt->bindParam(':participant_id', $match['participant2_id']);
+                $updateStmt->execute();
             }
         }
     }
@@ -225,10 +281,11 @@ try {
     ]);
 
 } catch (Exception $e) {
-    error_log($e->getMessage());
+    error_log('Error en update-match.php: ' . $e->getMessage());
+    error_log('Stack trace: ' . $e->getTraceAsString());
     jsonResponse([
         'success' => false,
-        'message' => 'Error interno del servidor'
+        'message' => 'Error interno del servidor: ' . $e->getMessage()
     ], 500);
 }
 ?>
