@@ -1,7 +1,6 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trophy, Users, Plus, Edit, Trash2, Save, X, Calendar, Award, Target, Shield, User, Crown, Star, Zap, Play, CheckCircle, Clock, AlertTriangle, Eye, Settings, MapPin, RefreshCw } from 'lucide-react';
 import TournamentBracket from './TournamentBracket';
-import { useAuth } from '../contexts/AuthContext';
 
 interface Tournament {
   id: string;
@@ -82,6 +81,17 @@ interface User {
   isActive: boolean;
 }
 
+interface Clan {
+  id: string;
+  name: string;
+  tag: string;
+  description?: string;
+  icon?: string;
+  isActive: boolean;
+  memberCount: number;
+  createdAt: string;
+}
+
 interface Map {
   id: string;
   name: string;
@@ -112,11 +122,11 @@ const getApiBaseUrl = () => {
 const API_BASE_URL = getApiBaseUrl();
 
 const TournamentManager: React.FC = () => {
-  const { clans } = useAuth();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [clans, setClans] = useState<Clan[]>([]);
   const [maps, setMaps] = useState<Map[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [activeTab, setActiveTab] = useState<'list' | 'participants' | 'matches' | 'bracket'>('list');
@@ -171,6 +181,7 @@ const TournamentManager: React.FC = () => {
   useEffect(() => {
     loadTournaments();
     loadUsers();
+    loadClans();
     loadMaps();
   }, []);
 
@@ -244,6 +255,21 @@ const TournamentManager: React.FC = () => {
     }
   };
 
+  const loadClans = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/clans/get-all.php`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setClans(data.clans.filter((clan: Clan) => clan.isActive));
+      }
+    } catch (error) {
+      console.error('Error loading clans:', error);
+    }
+  };
+
   const loadMaps = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/maps/get-all.php`, {
@@ -262,7 +288,13 @@ const TournamentManager: React.FC = () => {
   const refreshData = async () => {
     setIsRefreshing(true);
     try {
-      await loadTournaments();
+      await Promise.all([
+        loadTournaments(),
+        loadUsers(),
+        loadClans(),
+        loadMaps()
+      ]);
+      
       if (selectedTournament) {
         await Promise.all([
           loadParticipants(selectedTournament.id),
@@ -1281,6 +1313,11 @@ const TournamentManager: React.FC = () => {
                         </option>
                       ))}
                     </select>
+                    {clans.length === 0 && (
+                      <p className="text-yellow-400 text-sm mt-2">
+                        No hay clanes disponibles. Crea un clan primero.
+                      </p>
+                    )}
                   </div>
                 )}
 
