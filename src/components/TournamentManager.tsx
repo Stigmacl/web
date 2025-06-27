@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Trophy, Users, Plus, Edit, Trash2, Save, X, Calendar, Award, Target, Shield, User, Crown, Star, Zap, Play, CheckCircle, Clock, AlertTriangle, Eye, Settings, MapPin, RefreshCw } from 'lucide-react';
 import TournamentBracket from './TournamentBracket';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Tournament {
   id: string;
@@ -111,6 +112,7 @@ const getApiBaseUrl = () => {
 const API_BASE_URL = getApiBaseUrl();
 
 const TournamentManager: React.FC = () => {
+  const { clans } = useAuth();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -1258,6 +1260,24 @@ const TournamentManager: React.FC = () => {
                       {users.map((user) => (
                         <option key={user.id} value={user.id}>
                           {user.username} ({user.email})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {newParticipant.participantType === 'clan' && (
+                  <div>
+                    <label className="block text-blue-300 text-sm font-medium mb-2">Clan</label>
+                    <select
+                      value={newParticipant.participantId}
+                      onChange={(e) => setNewParticipant({ ...newParticipant, participantId: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="">Seleccionar clan</option>
+                      {clans.map((clan) => (
+                        <option key={clan.id} value={clan.id}>
+                          [{clan.tag}] {clan.name}
                         </option>
                       ))}
                     </select>
