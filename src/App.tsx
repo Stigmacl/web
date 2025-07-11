@@ -7,13 +7,12 @@ import Ranking from './components/Ranking';
 import Players from './components/Players';
 import Contact from './components/Contact';
 import UserPanel from './components/UserPanel';
-import Forum from './components/Forum';
 import SessionManager from './components/SessionManager';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { BannerProvider, useBanner } from './contexts/BannerContext';
 
-export type Section = 'home' | 'servers' | 'ranking' | 'players' | 'contact' | 'user-panel' | 'forum';
+export type Section = 'home' | 'servers' | 'players' | 'contact' | 'user-panel';
 
 function AppContent() {
   const [currentSection, setCurrentSection] = useState<Section>('home');
@@ -46,16 +45,12 @@ function AppContent() {
         return <Home />;
       case 'servers':
         return <Servers />;
-      case 'ranking':
-        return <Ranking />;
       case 'players':
         return <Players />;
       case 'contact':
         return <Contact />;
       case 'user-panel':
         return <UserPanel />;
-      case 'forum':
-        return <Forum />;
       default:
         return <Home />;
     }
