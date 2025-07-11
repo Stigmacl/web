@@ -8,5 +8,6 @@
  import ClanManager from './ClanManager';
  import TournamentManager from './TournamentManager';
 
+        {currentSection === 'ranking' && <Ranking />}
 -type PlayersSection = 'players' | 'clans' | 'tournaments';
 +type PlayersSection = 'players' | 'ranking' | 'clans' | 'tournaments';
