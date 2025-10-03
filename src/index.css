@@ -1,0 +1,267 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS Variables for Dynamic Theming */
+:root {
+  --color-primary: rgb(59, 130, 246);
+  --color-secondary: rgb(30, 64, 175);
+  --color-accent: rgb(147, 197, 253);
+  --color-text: rgb(255, 255, 255);
+  --color-text-secondary: rgb(191, 219, 254);
+  --color-surface: rgba(30, 41, 59, 0.4);
+  --color-border: rgba(59, 130, 246, 0.3);
+  --color-success: rgb(34, 197, 94);
+  --color-warning: rgb(251, 191, 36);
+  --color-error: rgb(239, 68, 68);
+}
+
+/* Asegurar que el body permita scroll */
+html, body {
+  height: auto;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+#root {
+  min-height: 100vh;
+  height: auto;
+}
+
+/* Smooth transitions for theme changes */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-secondary);
+}
+
+/* Gaming-style glow effects */
+.glow-effect {
+  box-shadow: 0 0 20px var(--color-primary);
+}
+
+.glow-effect-hover:hover {
+  box-shadow: 0 0 30px var(--color-primary);
+}
+
+/* Animated gradient backgrounds */
+.animated-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 4s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Pulse animation for active elements */
+.pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes pulseGlow {
+  from {
+    box-shadow: 0 0 10px var(--color-primary);
+  }
+  to {
+    box-shadow: 0 0 20px var(--color-primary), 0 0 30px var(--color-primary);
+  }
+}
+
+/* Theme-aware button styles */
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: white;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* Gaming-style card effects */
+.gaming-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  backdrop-filter: blur(16px);
+  transition: all 0.3s ease;
+}
+
+.gaming-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  border-color: var(--color-primary);
+}
+
+/* Neon text effect */
+.neon-text {
+  text-shadow: 
+    0 0 5px var(--color-primary),
+    0 0 10px var(--color-primary),
+    0 0 15px var(--color-primary);
+}
+
+/* Cyberpunk-style borders */
+.cyber-border {
+  position: relative;
+  border: 2px solid var(--color-primary);
+}
+
+.cyber-border::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, var(--color-primary), var(--color-accent), var(--color-primary));
+  z-index: -1;
+  border-radius: inherit;
+  opacity: 0.7;
+  filter: blur(1px);
+}
+
+/* Loading animations */
+.loading-dots {
+  display: inline-block;
+}
+
+.loading-dots::after {
+  content: '';
+  animation: loadingDots 1.5s infinite;
+}
+
+@keyframes loadingDots {
+  0%, 20% { content: ''; }
+  40% { content: '.'; }
+  60% { content: '..'; }
+  80%, 100% { content: '...'; }
+}
+
+/* Custom slider styling for range inputs */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-track {
+  background: var(--color-surface);
+  height: 8px;
+  border-radius: 4px;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--color-primary);
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--color-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  background: var(--color-secondary);
+  transform: scale(1.1);
+  box-shadow: 0 0 10px var(--color-primary);
+}
+
+.slider::-moz-range-track {
+  background: var(--color-surface);
+  height: 8px;
+  border-radius: 4px;
+  border: none;
+}
+
+.slider::-moz-range-thumb {
+  background: var(--color-primary);
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--color-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  background: var(--color-secondary);
+  transform: scale(1.1);
+  box-shadow: 0 0 10px var(--color-primary);
+}
+
+/* Image adjustment preview styles */
+.image-preview-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.image-preview-container img {
+  transition: all 0.3s ease;
+}
+
+/* Responsive design helpers */
+@media (max-width: 768px) {
+  .mobile-hidden {
+    display: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .gaming-card {
+    border-width: 2px;
+  }
+  
+  .btn-primary {
+    border: 2px solid var(--color-primary);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Asegurar que el contenido tenga suficiente espacio para scroll */
+.min-h-screen {
+  min-height: 100vh;
+}
+
+/* Mejorar el comportamiento del scroll en móviles */
+@media (max-width: 768px) {
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
+}
