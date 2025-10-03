@@ -20,7 +20,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentSection, onSectionChange
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-30 px-4 py-4">
+    <nav className="fixed top-0 left-0 right-0 z-50 px-4 py-4">
       <div className="container mx-auto">
         <div className="flex justify-center">
           <div
