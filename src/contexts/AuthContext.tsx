@@ -135,11 +135,11 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
-// Constantes de sesión
-const SESSION_DURATION = 20 * 60 * 1000; // 20 minutos en milisegundos
-const AUTO_EXTEND_INTERVAL = 15 * 60 * 1000; // Auto-extender cada 15 minutos
-const SESSION_WARNING_TIME = 5 * 60 * 1000; // Advertir 5 minutos antes de expirar
-const HEARTBEAT_INTERVAL = 2 * 60 * 1000; // Heartbeat cada 2 minutos
+// Constantes de sesión - Aumentadas para evitar cierres automáticos
+const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 horas en milisegundos
+const AUTO_EXTEND_INTERVAL = 5 * 60 * 1000; // Auto-extender cada 5 minutos
+const SESSION_WARNING_TIME = 10 * 60 * 1000; // Advertir 10 minutos antes de expirar
+const HEARTBEAT_INTERVAL = 3 * 60 * 1000; // Heartbeat cada 3 minutos
 const USERS_REFRESH_INTERVAL = 30 * 1000; // Actualizar lista de usuarios cada 30 segundos
 
 // Función helper para manejar respuestas de la API

@@ -138,11 +138,12 @@ const NotificationBell: React.FC = () => {
     <div className="relative">
       <button
         onClick={() => setShowDropdown(!showDropdown)}
-        className="relative p-2 rounded-lg bg-slate-700/40 hover:bg-slate-700/60 transition-colors"
+        className="relative p-3 rounded-xl bg-transparent hover:bg-blue-600/20 transition-all duration-300 border border-transparent hover:border-blue-500/30"
+        title="Notificaciones"
       >
-        <Bell className="w-6 h-6 text-blue-300" />
+        <Bell className="w-5 h-5 text-blue-300" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center font-bold">
+          <span className="absolute -top-2 -right-2 min-w-[1.5rem] h-6 px-1.5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center font-bold animate-pulse shadow-lg">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
