@@ -9,12 +9,14 @@ error_reporting(E_ALL);
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
-// Configuración de sesión para evitar que se pierda con F5
-ini_set('session.cookie_lifetime', 86400); // 24 horas
-ini_set('session.gc_maxlifetime', 86400); // 24 horas
+// Configuración de sesión - 20 minutos con extensión automática
+ini_set('session.cookie_lifetime', 1200); // 20 minutos (1200 segundos)
+ini_set('session.gc_maxlifetime', 1200); // 20 minutos (1200 segundos)
 ini_set('session.cookie_httponly', 1); // Solo HTTP
 ini_set('session.cookie_samesite', 'Lax'); // Protección CSRF
 ini_set('session.use_strict_mode', 1); // Seguridad adicional
+ini_set('session.gc_probability', 1); // Activar limpieza de sesiones
+ini_set('session.gc_divisor', 100); // Probabilidad 1%
 
 class Database {
     private $host = 'localhost';
@@ -97,8 +99,8 @@ function getJsonInput() {
 // Función helper para iniciar sesión de forma segura y persistente
 function startSecureSession() {
     if (session_status() === PHP_SESSION_NONE) {
-        // Configurar parámetros de cookie antes de iniciar sesión
-        $sessionLifetime = 86400; // 24 horas
+        // Configurar parámetros de cookie antes de iniciar sesión - 20 minutos
+        $sessionLifetime = 1200; // 20 minutos (1200 segundos)
         session_set_cookie_params([
             'lifetime' => $sessionLifetime,
             'path' => '/',
@@ -112,9 +114,25 @@ function startSecureSession() {
 
         // Extender la sesión en cada petición
         if (isset($_SESSION['last_activity'])) {
+            $now = time();
+            $inactiveTime = $now - $_SESSION['last_activity'];
+
+            // Si han pasado más de 20 minutos sin actividad, destruir sesión
+            if ($inactiveTime > 1200) {
+                session_unset();
+                session_destroy();
+                return false;
+            }
+
+            // Actualizar última actividad
+            $_SESSION['last_activity'] = $now;
+        } else {
+            // Primera vez, establecer última actividad
             $_SESSION['last_activity'] = time();
         }
     }
+
+    return true;
 }
 
 // Función para manejar errores fatales

@@ -2,12 +2,12 @@
 require_once '../config/database.php';
 
 // Iniciar sesión segura y persistente
-startSecureSession();
+$sessionValid = startSecureSession();
 
-if (!isset($_SESSION['user_id'])) {
+if (!$sessionValid || !isset($_SESSION['user_id'])) {
     jsonResponse([
         'success' => false,
-        'message' => 'No hay sesión activa'
+        'message' => 'No hay sesión activa o la sesión ha expirado'
     ], 401);
 }
 

@@ -156,11 +156,11 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
-// Constantes de sesión - Aumentadas para evitar cierres automáticos
-const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 horas en milisegundos
-const AUTO_EXTEND_INTERVAL = 5 * 60 * 1000; // Auto-extender cada 5 minutos
-const SESSION_WARNING_TIME = 10 * 60 * 1000; // Advertir 10 minutos antes de expirar
-const HEARTBEAT_INTERVAL = 3 * 60 * 1000; // Heartbeat cada 3 minutos
+// Constantes de sesión - 20 minutos con verificación constante
+const SESSION_DURATION = 20 * 60 * 1000; // 20 minutos en milisegundos
+const AUTO_EXTEND_INTERVAL = 2 * 60 * 1000; // Auto-extender cada 2 minutos
+const SESSION_CHECK_INTERVAL = 30 * 1000; // Verificar sesión cada 30 segundos
+const HEARTBEAT_INTERVAL = 60 * 1000; // Heartbeat cada 1 minuto
 const USERS_REFRESH_INTERVAL = 30 * 1000; // Actualizar lista de usuarios cada 30 segundos
 
 // Función helper para manejar respuestas de la API
@@ -284,17 +284,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
-    const handleVisibilityChange = () => {
-      if (document.hidden && user) {
-        // La pestaña se ocultó, marcar como offline después de un tiempo
-        setTimeout(() => {
-          if (document.hidden && user) {
-            setUserOffline();
+    const handleVisibilityChange = async () => {
+      if (!document.hidden && user) {
+        // La pestaña volvió a estar visible, verificar y extender sesión inmediatamente
+        console.log('👁️ Pestaña visible nuevamente, verificando sesión...');
+        try {
+          const data = await apiRequest('/auth/check-session.php');
+          if (data.success && data.user) {
+            // Sesión válida, extenderla
+            await extendSession();
+            console.log('✅ Sesión verificada y extendida');
+          } else {
+            // Sesión expirada
+            console.warn('🔒 Sesión expirada mientras la pestaña estaba oculta');
+            logout();
           }
-        }, 5 * 60 * 1000); // 5 minutos de inactividad
-      } else if (!document.hidden && user) {
-        // La pestaña volvió a estar visible, asegurar que esté online
-        updateOnlineStatus();
+        } catch (error) {
+          console.error('Error al verificar sesión:', error);
+        }
       }
     };
 
@@ -347,31 +354,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const startSessionTimers = () => {
     clearSessionTimers();
 
-    // Auto-extender cada 15 minutos
+    // Auto-extender cada 2 minutos para mantener sesión siempre activa
     autoExtendTimer.current = setInterval(async () => {
-      if (user) {
+      if (user && !document.hidden) {
+        console.log('🔄 Extendiendo sesión automáticamente...');
         await extendSession();
       }
     }, AUTO_EXTEND_INTERVAL);
 
-    // Verificar estado de sesión cada minuto
-    sessionCheckTimer.current = setInterval(() => {
-      if (sessionInfo.isActive) {
-        const timeLeft = sessionInfo.expiresAt - Date.now();
-        
-        // Si quedan menos de 5 minutos, mostrar advertencia
-        if (timeLeft <= SESSION_WARNING_TIME && timeLeft > 0) {
-          const minutesLeft = Math.ceil(timeLeft / 60000);
-          console.warn(`⚠️ Tu sesión expirará en ${minutesLeft} minuto(s)`);
-        }
-        
-        // Si la sesión expiró, cerrar sesión
-        if (timeLeft <= 0) {
-          console.warn('🔒 Sesión expirada');
-          logout();
+    // Verificar estado de sesión cada 30 segundos
+    sessionCheckTimer.current = setInterval(async () => {
+      if (user && !document.hidden) {
+        // Verificar que la sesión sigue activa en el servidor
+        try {
+          const data = await apiRequest('/auth/check-session.php');
+          if (!data.success || !data.user) {
+            console.warn('🔒 Sesión no válida en el servidor');
+            logout();
+          } else {
+            // Actualizar información de sesión
+            updateSessionInfo(data.sessionTime);
+          }
+        } catch (error) {
+          console.error('Error verificando sesión:', error);
         }
       }
-    }, 60000); // Cada minuto
+    }, SESSION_CHECK_INTERVAL);
   };
 
   const startHeartbeat = () => {
