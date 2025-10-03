@@ -101,12 +101,22 @@ try {
 
         // Crear notificación para el autor del tema si no es el mismo usuario
         if ($topicInfo['user_id'] !== $_SESSION['user_id']) {
+            // Generar UUID para MySQL
+            $uuid1 = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                mt_rand(0, 0xffff),
+                mt_rand(0, 0x0fff) | 0x4000,
+                mt_rand(0, 0x3fff) | 0x8000,
+                mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+            );
+
             $notifQuery = "INSERT INTO notifications
-                          (user_id, type, reference_id, reference_type, from_user_id, from_username, title, message)
+                          (id, user_id, type, reference_id, reference_type, from_user_id, from_username, title, message)
                           VALUES
-                          (:user_id, 'forum_reply', :reference_id, 'forum_topic', :from_user_id, :from_username, :title, :message)";
+                          (:id, :user_id, 'forum_reply', :reference_id, 'forum_topic', :from_user_id, :from_username, :title, :message)";
 
             $notifStmt = $db->prepare($notifQuery);
+            $notifStmt->bindParam(':id', $uuid1);
             $notifStmt->bindParam(':user_id', $topicInfo['user_id']);
             $notifStmt->bindParam(':reference_id', $data['topicId']);
             $notifStmt->bindParam(':from_user_id', $_SESSION['user_id']);
@@ -127,12 +137,22 @@ try {
             $quotedReply = $quotedReplyStmt->fetch();
 
             if ($quotedReply && $quotedReply['user_id'] !== $_SESSION['user_id']) {
+                // Generar UUID para MySQL
+                $uuid2 = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                    mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                    mt_rand(0, 0xffff),
+                    mt_rand(0, 0x0fff) | 0x4000,
+                    mt_rand(0, 0x3fff) | 0x8000,
+                    mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+                );
+
                 $quoteNotifQuery = "INSERT INTO notifications
-                                   (user_id, type, reference_id, reference_type, from_user_id, from_username, title, message)
+                                   (id, user_id, type, reference_id, reference_type, from_user_id, from_username, title, message)
                                    VALUES
-                                   (:user_id, 'forum_quote', :reference_id, 'forum_topic', :from_user_id, :from_username, :title, :message)";
+                                   (:id, :user_id, 'forum_quote', :reference_id, 'forum_topic', :from_user_id, :from_username, :title, :message)";
 
                 $quoteNotifStmt = $db->prepare($quoteNotifQuery);
+                $quoteNotifStmt->bindParam(':id', $uuid2);
                 $quoteNotifStmt->bindParam(':user_id', $quotedReply['user_id']);
                 $quoteNotifStmt->bindParam(':reference_id', $data['topicId']);
                 $quoteNotifStmt->bindParam(':from_user_id', $_SESSION['user_id']);

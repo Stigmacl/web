@@ -36,12 +36,22 @@ try {
     $userStmt->execute();
     $user = $userStmt->fetch();
 
+    // Generar UUID para MySQL
+    $uuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+        mt_rand(0, 0xffff),
+        mt_rand(0, 0x0fff) | 0x4000,
+        mt_rand(0, 0x3fff) | 0x8000,
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+    );
+
     $query = "INSERT INTO notifications
-              (user_id, type, reference_id, reference_type, from_user_id, from_username, title, message)
+              (id, user_id, type, reference_id, reference_type, from_user_id, from_username, title, message)
               VALUES
-              (:user_id, :type, :reference_id, :reference_type, :from_user_id, :from_username, :title, :message)";
+              (:id, :user_id, :type, :reference_id, :reference_type, :from_user_id, :from_username, :title, :message)";
 
     $stmt = $db->prepare($query);
+    $stmt->bindParam(':id', $uuid);
     $stmt->bindParam(':user_id', $data['userId']);
     $stmt->bindParam(':type', $data['type']);
     $stmt->bindParam(':reference_id', $data['referenceId']);
