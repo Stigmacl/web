@@ -4,9 +4,21 @@ import { Trophy, Calendar, Users } from 'lucide-react';
 interface Tournament {
   id: string;
   name: string;
-  date: string;
-  participants: number;
+  description: string;
+  type: string;
+  teamSize: number;
+  maxParticipants: number;
+  participantCount: number;
   status: string;
+  startDate: string;
+  endDate: string;
+  prizePool?: string;
+  rules?: string;
+  maps: string[];
+  bracketType: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface TournamentsWidgetProps {
@@ -53,12 +65,12 @@ const TournamentsWidget: React.FC<TournamentsWidgetProps> = ({ tournaments, onVi
               <div className="space-y-2 text-sm">
                 <div className="flex items-center space-x-2 text-blue-300">
                   <Calendar className="w-4 h-4" />
-                  <span>{formatDate(tournament.date)}</span>
+                  <span>{formatDate(tournament.startDate)}</span>
                 </div>
 
                 <div className="flex items-center space-x-2 text-blue-300">
                   <Users className="w-4 h-4" />
-                  <span>{tournament.participants} participantes</span>
+                  <span>{tournament.participantCount} participantes</span>
                 </div>
               </div>
 

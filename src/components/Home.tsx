@@ -172,49 +172,39 @@ const Home: React.FC = () => {
         )}
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8 mb-8">
-        <div className="lg:col-span-2 space-y-6">
-          <StreamPlayer streamUrl={streamConfig.stream_url} isActive={streamConfig.is_active} />
-        </div>
-        <div>
-          <TournamentsWidget
-            tournaments={tournaments}
-            onViewTournament={handleViewTournament}
-          />
-        </div>
-      </div>
+      <div className="grid lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          {news.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-12">
+                <MessageCircle className="w-24 h-24 text-blue-400 mx-auto mb-6 opacity-50" />
+                <h2 className="text-3xl font-bold text-white mb-4">¡Bienvenido a la Comunidad!</h2>
+                <p className="text-blue-300 text-lg mb-8">
+                  Aún no hay noticias publicadas. Los administradores pueden crear las primeras noticias
+                  desde el panel de administración para mantener informada a la comunidad.
+                </p>
 
-      {news.length === 0 ? (
-        <div className="text-center py-20">
-          <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-12 max-w-2xl mx-auto">
-            <MessageCircle className="w-24 h-24 text-blue-400 mx-auto mb-6 opacity-50" />
-            <h2 className="text-3xl font-bold text-white mb-4">¡Bienvenido a la Comunidad!</h2>
-            <p className="text-blue-300 text-lg mb-8">
-              Aún no hay noticias publicadas. Los administradores pueden crear las primeras noticias 
-              desde el panel de administración para mantener informada a la comunidad.
-            </p>
-            
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-slate-700/40 rounded-xl p-6">
-                <Pin className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
-                <h3 className="text-lg font-bold text-white mb-2">Noticias Importantes</h3>
-                <p className="text-blue-300 text-sm">
-                  Las noticias fijadas aparecerán destacadas para toda la comunidad
-                </p>
-              </div>
-              
-              <div className="bg-slate-700/40 rounded-xl p-6">
-                <Heart className="w-8 h-8 text-red-400 mx-auto mb-3" />
-                <h3 className="text-lg font-bold text-white mb-2">Interacción</h3>
-                <p className="text-blue-300 text-sm">
-                  Los usuarios podrán comentar y reaccionar a las publicaciones
-                </p>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="bg-slate-700/40 rounded-xl p-6">
+                    <Pin className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
+                    <h3 className="text-lg font-bold text-white mb-2">Noticias Importantes</h3>
+                    <p className="text-blue-300 text-sm">
+                      Las noticias fijadas aparecerán destacadas para toda la comunidad
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-700/40 rounded-xl p-6">
+                    <Heart className="w-8 h-8 text-red-400 mx-auto mb-3" />
+                    <h3 className="text-lg font-bold text-white mb-2">Interacción</h3>
+                    <p className="text-blue-300 text-sm">
+                      Los usuarios podrán comentar y reaccionar a las publicaciones
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      ) : (
-        <div className="grid gap-8">
+          ) : (
+            <div className="space-y-8">
           {news
             .sort((a, b) => {
               // Sort by pinned first, then by date
@@ -470,8 +460,18 @@ const Home: React.FC = () => {
                 </article>
               );
             })}
+            </div>
+          )}
         </div>
-      )}
+
+        <div className="space-y-8">
+          <StreamPlayer streamUrl={streamConfig.stream_url} isActive={streamConfig.is_active} />
+          <TournamentsWidget
+            tournaments={tournaments || []}
+            onViewTournament={handleViewTournament}
+          />
+        </div>
+      </div>
 
       {/* Modal de confirmación para eliminar comentario */}
       {showDeleteModal && commentToDelete && (

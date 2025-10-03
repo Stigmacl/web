@@ -64,6 +64,26 @@ interface Clan {
   createdAt: string;
 }
 
+interface Tournament {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  teamSize: number;
+  maxParticipants: number;
+  participantCount: number;
+  status: string;
+  startDate: string;
+  endDate: string;
+  prizePool?: string;
+  rules?: string;
+  maps: string[];
+  bracketType: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface SessionInfo {
   isActive: boolean;
   expiresAt: number;
@@ -97,6 +117,7 @@ interface AuthContextType {
   createClan: (clanData: Omit<Clan, 'id' | 'members' | 'createdAt'>) => Promise<boolean>;
   updateClan: (clanId: string, updates: Partial<Clan>) => Promise<boolean>;
   deleteClan: (clanId: string) => Promise<boolean>;
+  tournaments: Tournament[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -214,6 +235,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [clans, setClans] = useState<Clan[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionInfo, setSessionInfo] = useState<SessionInfo>({
     isActive: false,
@@ -305,7 +327,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await Promise.all([
         loadUsers(),
         loadNews(),
-        loadClans()
+        loadClans(),
+        loadTournaments()
       ]);
     } catch (error) {
       console.error('Error loading public data:', error);
@@ -471,12 +494,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loadClans = async () => {
     try {
       const data = await apiRequest('/clans/get-all.php');
-      
+
       if (data.success) {
         setClans(data.clans);
       }
     } catch (error) {
       console.error('Error loading clans:', error);
+    }
+  };
+
+  const loadTournaments = async () => {
+    try {
+      const data = await apiRequest('/tournaments/get-all.php');
+
+      if (data.success) {
+        setTournaments(data.tournaments);
+      }
+    } catch (error) {
+      console.error('Error loading tournaments:', error);
     }
   };
 
@@ -854,7 +889,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       clans,
       createClan,
       updateClan,
-      deleteClan
+      deleteClan,
+      tournaments
     }}>
       {children}
     </AuthContext.Provider>
