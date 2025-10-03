@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Plus, Pin, Lock, Eye, MessageCircle, User, Calendar, ArrowLeft, Send, Shield, Star, Users, Search, Filter, Clock, TrendingUp, ChevronRight, AlertCircle, LogIn, Trash2 } from 'lucide-react';
+import { MessageSquare, Plus, Pin, Lock, Eye, MessageCircle, User, Calendar, ArrowLeft, Send, Shield, Star, Users, Search, Filter, Clock, TrendingUp, ChevronRight, AlertCircle, LogIn, Trash2, Edit2, Quote, History, Unlock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import RichTextEditor from './RichTextEditor';
 
 interface ForumTopic {
   id: string;
@@ -38,6 +39,9 @@ interface ForumReply {
   };
   createdAt: string;
   updatedAt: string;
+  editCount?: number;
+  lastEditedAt?: string;
+  quotedReplyId?: string;
 }
 
 interface TopicDetail extends ForumTopic {
@@ -84,6 +88,19 @@ const Forum: React.FC = () => {
   // Estados para responder
   const [newReply, setNewReply] = useState('');
   const [isReplying, setIsReplying] = useState(false);
+
+  // Estados para edición
+  const [editingReplyId, setEditingReplyId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Estados para citas
+  const [quotedReply, setQuotedReply] = useState<ForumReply | null>(null);
+
+  // Estados para historial de edición
+  const [showEditHistory, setShowEditHistory] = useState(false);
+  const [editHistoryReplyId, setEditHistoryReplyId] = useState<string | null>(null);
+  const [editHistory, setEditHistory] = useState<any[]>([]);
 
   const categories = [
     { id: 'all', name: 'Todas las categorías', icon: MessageSquare, color: 'text-blue-400' },
@@ -216,7 +233,7 @@ const Forum: React.FC = () => {
     if (!newReply.trim() || !selectedTopic) return;
 
     setIsReplying(true);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/forum/reply-topic.php`, {
         method: 'POST',
@@ -226,15 +243,16 @@ const Forum: React.FC = () => {
         credentials: 'include',
         body: JSON.stringify({
           topicId: selectedTopic.id,
-          content: newReply
+          content: newReply,
+          quotedReplyId: quotedReply?.id || null
         })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setNewReply('');
-        // Recargar el tema para mostrar la nueva respuesta
+        setQuotedReply(null);
         loadTopic(selectedTopic.id);
       } else {
         alert(data.message || 'Error al enviar la respuesta');
@@ -245,6 +263,112 @@ const Forum: React.FC = () => {
     } finally {
       setIsReplying(false);
     }
+  };
+
+  const handleEditReply = async () => {
+    if (!editingReplyId || !editContent.trim()) return;
+
+    setIsEditing(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/forum/edit-reply.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          replyId: editingReplyId,
+          content: editContent
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setEditingReplyId(null);
+        setEditContent('');
+        if (selectedTopic) {
+          loadTopic(selectedTopic.id);
+        }
+      } else {
+        alert(data.message || 'Error al editar la respuesta');
+      }
+    } catch (error) {
+      console.error('Error editing reply:', error);
+      alert('Error al editar la respuesta');
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  const handleToggleLock = async () => {
+    if (!selectedTopic) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/forum/toggle-lock.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          topicId: selectedTopic.id
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        loadTopic(selectedTopic.id);
+      } else {
+        alert(data.message || 'Error al cambiar el estado del tema');
+      }
+    } catch (error) {
+      console.error('Error toggling lock:', error);
+      alert('Error al cambiar el estado del tema');
+    }
+  };
+
+  const handleQuoteReply = (reply: ForumReply) => {
+    setQuotedReply(reply);
+    const quoteText = `<blockquote><strong>${reply.author.username}:</strong><br/>${reply.content}</blockquote><p><br/></p>`;
+    setNewReply(quoteText);
+
+    // Scroll al formulario de respuesta
+    setTimeout(() => {
+      const replyForm = document.getElementById('reply-form');
+      if (replyForm) {
+        replyForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+  };
+
+  const loadEditHistory = async (replyId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/forum/get-edit-history.php?replyId=${replyId}`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        setEditHistory(data.history);
+        setEditHistoryReplyId(replyId);
+        setShowEditHistory(true);
+      }
+    } catch (error) {
+      console.error('Error loading edit history:', error);
+    }
+  };
+
+  const canEditReply = (reply: ForumReply) => {
+    if (!user) return false;
+    return user.id === reply.author.id;
+  };
+
+  const isTopicAuthor = () => {
+    if (!user || !selectedTopic) return false;
+    return user.id === selectedTopic.author.id;
   };
 
   const formatDate = (dateString: string) => {
@@ -638,12 +762,10 @@ const Forum: React.FC = () => {
 
               <div>
                 <label className="block text-blue-300 text-sm font-medium mb-2">Contenido</label>
-                <textarea
+                <RichTextEditor
                   value={newTopic.content}
-                  onChange={(e) => setNewTopic({ ...newTopic, content: e.target.value })}
+                  onChange={(value) => setNewTopic({ ...newTopic, content: value })}
                   placeholder="Describe tu tema en detalle..."
-                  rows={8}
-                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors resize-none"
                 />
               </div>
 
@@ -713,16 +835,33 @@ const Forum: React.FC = () => {
                 </div>
               </div>
               
-              {canDeleteTopic(selectedTopic) && (
-                <button
-                  onClick={() => handleDeleteTopic(selectedTopic.id)}
-                  className="flex items-center space-x-2 px-3 py-2 bg-red-600/20 hover:bg-red-600/40 rounded-lg text-red-300 hover:text-red-200 transition-colors"
-                  title="Eliminar tema"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Eliminar</span>
-                </button>
-              )}
+              <div className="flex items-center space-x-2">
+                {isTopicAuthor() && (
+                  <button
+                    onClick={handleToggleLock}
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
+                      selectedTopic.isLocked
+                        ? 'bg-green-600/20 hover:bg-green-600/40 text-green-300 hover:text-green-200'
+                        : 'bg-yellow-600/20 hover:bg-yellow-600/40 text-yellow-300 hover:text-yellow-200'
+                    }`}
+                    title={selectedTopic.isLocked ? 'Desbloquear tema' : 'Bloquear tema'}
+                  >
+                    {selectedTopic.isLocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                    <span>{selectedTopic.isLocked ? 'Desbloquear' : 'Bloquear'}</span>
+                  </button>
+                )}
+
+                {canDeleteTopic(selectedTopic) && (
+                  <button
+                    onClick={() => handleDeleteTopic(selectedTopic.id)}
+                    className="flex items-center space-x-2 px-3 py-2 bg-red-600/20 hover:bg-red-600/40 rounded-lg text-red-300 hover:text-red-200 transition-colors"
+                    title="Eliminar tema"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Eliminar</span>
+                  </button>
+                )}
+              </div>
             </div>
             
             <h1 className="text-3xl font-bold text-white mb-6">{selectedTopic.title}</h1>
@@ -757,7 +896,11 @@ const Forum: React.FC = () => {
             </div>
             
             <div className="prose prose-invert max-w-none">
-              <p className="text-blue-100 leading-relaxed whitespace-pre-wrap">{selectedTopic.content}</p>
+              <RichTextEditor
+                value={selectedTopic.content}
+                onChange={() => {}}
+                readOnly={true}
+              />
             </div>
           </div>
 
@@ -770,31 +913,110 @@ const Forum: React.FC = () => {
               
               {selectedTopic.replies.map((reply) => (
                 <div key={reply.id} className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-6">
-                  <div className="flex items-start space-x-4">
-                    <img
-                      src={reply.author.avatar}
-                      alt={reply.author.username}
-                      className="w-10 h-10 rounded-full border-2 border-blue-500/30"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className="font-bold text-white">{reply.author.username}</span>
-                        {reply.author.role && (
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${getRoleBadgeColor(reply.author.role)}`}>
-                            {getRoleIcon(reply.author.role)}
-                            <span>{reply.author.role === 'admin' ? 'Admin' : 'Jugador'}</span>
-                          </span>
-                        )}
-                        {reply.author.clan && (
-                          <span className="px-2 py-1 bg-blue-600/20 text-blue-300 rounded-full text-xs font-mono">
-                            [{reply.author.clan}]
-                          </span>
-                        )}
-                        <span className="text-blue-400 text-sm">{formatDate(reply.createdAt)}</span>
+                  {editingReplyId === reply.id ? (
+                    <div className="space-y-4">
+                      <h4 className="text-white font-medium">Editando respuesta:</h4>
+                      <RichTextEditor
+                        value={editContent}
+                        onChange={setEditContent}
+                        placeholder="Edita tu respuesta..."
+                      />
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={handleEditReply}
+                          disabled={isEditing || !editContent.trim()}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 rounded-lg text-white transition-colors"
+                        >
+                          {isEditing ? 'Guardando...' : 'Guardar'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingReplyId(null);
+                            setEditContent('');
+                          }}
+                          disabled={isEditing}
+                          className="px-4 py-2 bg-slate-600 hover:bg-slate-700 disabled:bg-slate-600/50 rounded-lg text-white transition-colors"
+                        >
+                          Cancelar
+                        </button>
                       </div>
-                      <p className="text-blue-100 leading-relaxed whitespace-pre-wrap">{reply.content}</p>
                     </div>
-                  </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-start space-x-4">
+                        <img
+                          src={reply.author.avatar}
+                          alt={reply.author.username}
+                          className="w-10 h-10 rounded-full border-2 border-blue-500/30"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2 flex-wrap">
+                            <span className="font-bold text-white">{reply.author.username}</span>
+                            {reply.author.role && (
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${getRoleBadgeColor(reply.author.role)}`}>
+                                {getRoleIcon(reply.author.role)}
+                                <span>{reply.author.role === 'admin' ? 'Admin' : 'Jugador'}</span>
+                              </span>
+                            )}
+                            {reply.author.clan && (
+                              <span className="px-2 py-1 bg-blue-600/20 text-blue-300 rounded-full text-xs font-mono">
+                                [{reply.author.clan}]
+                              </span>
+                            )}
+                            <span className="text-blue-400 text-sm">{formatDate(reply.createdAt)}</span>
+                            {reply.editCount && reply.editCount > 0 && (
+                              <span className="text-yellow-400 text-xs italic">
+                                (editado {reply.editCount} {reply.editCount === 1 ? 'vez' : 'veces'})
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="mb-3">
+                            <RichTextEditor
+                              value={reply.content}
+                              onChange={() => {}}
+                              readOnly={true}
+                            />
+                          </div>
+
+                          <div className="flex items-center space-x-2 flex-wrap">
+                            {user && !selectedTopic.isLocked && (
+                              <button
+                                onClick={() => handleQuoteReply(reply)}
+                                className="flex items-center space-x-1 px-3 py-1 bg-blue-600/20 hover:bg-blue-600/40 rounded-lg text-blue-300 text-sm transition-colors"
+                              >
+                                <Quote className="w-3 h-3" />
+                                <span>Citar</span>
+                              </button>
+                            )}
+
+                            {canEditReply(reply) && !selectedTopic.isLocked && (
+                              <button
+                                onClick={() => {
+                                  setEditingReplyId(reply.id);
+                                  setEditContent(reply.content);
+                                }}
+                                className="flex items-center space-x-1 px-3 py-1 bg-yellow-600/20 hover:bg-yellow-600/40 rounded-lg text-yellow-300 text-sm transition-colors"
+                              >
+                                <Edit2 className="w-3 h-3" />
+                                <span>Editar</span>
+                              </button>
+                            )}
+
+                            {reply.editCount && reply.editCount > 0 && (
+                              <button
+                                onClick={() => loadEditHistory(reply.id)}
+                                className="flex items-center space-x-1 px-3 py-1 bg-purple-600/20 hover:bg-purple-600/40 rounded-lg text-purple-300 text-sm transition-colors"
+                              >
+                                <History className="w-3 h-3" />
+                                <span>Historial</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -802,11 +1024,31 @@ const Forum: React.FC = () => {
 
           {/* Formulario de respuesta */}
           {!selectedTopic.isLocked && (
-            <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-6">
+            <div id="reply-form" className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-6">
               <h3 className="text-lg font-bold text-white mb-4">Responder al tema</h3>
-              
+
               {user ? (
                 <div className="space-y-4">
+                  {quotedReply && (
+                    <div className="flex items-center justify-between bg-blue-600/10 border border-blue-500/30 rounded-lg p-3">
+                      <div className="flex items-center space-x-2">
+                        <Quote className="w-4 h-4 text-blue-400" />
+                        <span className="text-blue-300 text-sm">
+                          Citando a <strong>{quotedReply.author.username}</strong>
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setQuotedReply(null);
+                          setNewReply('');
+                        }}
+                        className="text-red-400 hover:text-red-300 text-sm"
+                      >
+                        Cancelar cita
+                      </button>
+                    </div>
+                  )}
+
                   <div className="flex items-start space-x-3">
                     <img
                       src={user.avatar || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=40&h=40&fit=crop'}
@@ -814,16 +1056,14 @@ const Forum: React.FC = () => {
                       className="w-10 h-10 rounded-full border-2 border-blue-500/30"
                     />
                     <div className="flex-1">
-                      <textarea
+                      <RichTextEditor
                         value={newReply}
-                        onChange={(e) => setNewReply(e.target.value)}
+                        onChange={setNewReply}
                         placeholder="Escribe tu respuesta..."
-                        rows={4}
-                        className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors resize-none"
                       />
                     </div>
                   </div>
-                  
+
                   <div className="flex justify-end">
                     <button
                       onClick={handleReply}
@@ -865,6 +1105,79 @@ const Forum: React.FC = () => {
               <Lock className="w-12 h-12 text-red-400 mx-auto mb-4" />
               <h3 className="text-lg font-bold text-red-300 mb-2">Tema Bloqueado</h3>
               <p className="text-red-400">Este tema ha sido bloqueado y no acepta nuevas respuestas.</p>
+            </div>
+          )}
+
+          {/* Modal de Historial de Edición */}
+          {showEditHistory && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-800 rounded-2xl border border-blue-500/30 p-6 max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-white flex items-center space-x-2">
+                    <History className="w-5 h-5 text-purple-400" />
+                    <span>Historial de Ediciones</span>
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowEditHistory(false);
+                      setEditHistoryReplyId(null);
+                      setEditHistory([]);
+                    }}
+                    className="text-blue-300 hover:text-blue-200"
+                  >
+                    <span className="text-2xl">&times;</span>
+                  </button>
+                </div>
+
+                {editHistory.length === 0 ? (
+                  <p className="text-blue-300 text-center py-8">No hay historial de ediciones</p>
+                ) : (
+                  <div className="space-y-4">
+                    {editHistory.map((edit, index) => (
+                      <div key={edit.id} className="bg-slate-700/40 rounded-xl p-4 border border-blue-600/30">
+                        <div className="flex items-center space-x-3 mb-3">
+                          <img
+                            src={edit.editor.avatar}
+                            alt={edit.editor.username}
+                            className="w-8 h-8 rounded-full border-2 border-blue-500/30"
+                          />
+                          <div className="flex-1">
+                            <p className="text-white font-medium">{edit.editor.username}</p>
+                            <p className="text-blue-400 text-sm">{formatDate(edit.editedAt)}</p>
+                          </div>
+                          <span className="text-purple-400 text-sm font-medium">
+                            Edición #{editHistory.length - index}
+                          </span>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="text-red-300 text-sm font-medium mb-2">Contenido Anterior:</h4>
+                            <div className="bg-slate-900/40 rounded-lg p-3 border border-red-500/20">
+                              <RichTextEditor
+                                value={edit.oldContent}
+                                onChange={() => {}}
+                                readOnly={true}
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <h4 className="text-green-300 text-sm font-medium mb-2">Contenido Nuevo:</h4>
+                            <div className="bg-slate-900/40 rounded-lg p-3 border border-green-500/20">
+                              <RichTextEditor
+                                value={edit.newContent}
+                                onChange={() => {}}
+                                readOnly={true}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

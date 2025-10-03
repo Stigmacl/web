@@ -40,23 +40,40 @@ try {
         ], 404);
     }
 
+    // Verificar si existen las columnas de edición
+    $checkColumns = "SHOW COLUMNS FROM forum_replies LIKE 'edit_count'";
+    $hasEditColumns = $db->query($checkColumns)->rowCount() > 0;
+
     // Obtener respuestas del tema
-    $repliesQuery = "SELECT fr.*, 
-                            u.username, 
-                            u.avatar,
-                            u.role,
-                            u.clan
-                     FROM forum_replies fr 
-                     JOIN users u ON fr.user_id = u.id 
-                     WHERE fr.topic_id = :topic_id AND fr.is_deleted = 0 
-                     ORDER BY fr.created_at ASC";
+    if ($hasEditColumns) {
+        $repliesQuery = "SELECT fr.*,
+                                u.username,
+                                u.avatar,
+                                u.role,
+                                u.clan
+                         FROM forum_replies fr
+                         JOIN users u ON fr.user_id = u.id
+                         WHERE fr.topic_id = :topic_id AND fr.is_deleted = 0
+                         ORDER BY fr.created_at ASC";
+    } else {
+        $repliesQuery = "SELECT fr.id, fr.user_id, fr.content, fr.created_at, fr.updated_at,
+                                u.username,
+                                u.avatar,
+                                u.role,
+                                u.clan
+                         FROM forum_replies fr
+                         JOIN users u ON fr.user_id = u.id
+                         WHERE fr.topic_id = :topic_id AND fr.is_deleted = 0
+                         ORDER BY fr.created_at ASC";
+    }
+
     $repliesStmt = $db->prepare($repliesQuery);
     $repliesStmt->bindParam(':topic_id', $_GET['id']);
     $repliesStmt->execute();
 
     $replies = [];
     while ($reply = $repliesStmt->fetch()) {
-        $replies[] = [
+        $replyData = [
             'id' => $reply['id'],
             'content' => $reply['content'],
             'author' => [
@@ -69,6 +86,15 @@ try {
             'createdAt' => $reply['created_at'],
             'updatedAt' => $reply['updated_at']
         ];
+
+        // Agregar información de edición si existe
+        if ($hasEditColumns) {
+            $replyData['editCount'] = isset($reply['edit_count']) ? (int)$reply['edit_count'] : 0;
+            $replyData['lastEditedAt'] = $reply['last_edited_at'] ?? null;
+            $replyData['quotedReplyId'] = $reply['quoted_reply_id'] ?? null;
+        }
+
+        $replies[] = $replyData;
     }
 
     $topicData = [
