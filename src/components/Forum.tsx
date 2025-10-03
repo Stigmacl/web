@@ -238,13 +238,8 @@ const Forum: React.FC = () => {
       // Si hay una cita, incluirla en el contenido usando blockquote
       let finalContent = newReply;
       if (quotedReply) {
-        // Limpiar el contenido HTML de la cita para extraer solo el texto
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = quotedReply.content;
-        const quoteTextContent = tempDiv.textContent || tempDiv.innerText || '';
-
-        // Construir la cita usando blockquote de Quill
-        const quoteHtml = `<blockquote><strong>Cita de ${quotedReply.author.username}:</strong><br>${quotedReply.content}</blockquote>${newReply}`;
+        // Construir la cita usando blockquote HTML completo
+        const quoteHtml = `<blockquote class="ql-blockquote"><p><strong>Cita de ${quotedReply.author.username}:</strong></p>${quotedReply.content}</blockquote><br>${newReply}`;
         finalContent = quoteHtml;
       }
 

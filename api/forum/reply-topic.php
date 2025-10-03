@@ -73,9 +73,9 @@ try {
     
     if ($stmt->execute()) {
         $replyId = $db->lastInsertId();
-        
+
         // Actualizar contador de respuestas y última respuesta del tema
-        $updateTopic = "UPDATE forum_topics 
+        $updateTopic = "UPDATE forum_topics
                        SET replies_count = replies_count + 1,
                            last_reply_at = NOW(),
                            last_reply_by = :user_id
@@ -84,6 +84,66 @@ try {
         $updateStmt->bindParam(':user_id', $_SESSION['user_id']);
         $updateStmt->bindParam(':topic_id', $data['topicId']);
         $updateStmt->execute();
+
+        // Obtener información del usuario que responde
+        $userQuery = "SELECT username FROM users WHERE id = :id";
+        $userStmt = $db->prepare($userQuery);
+        $userStmt->bindParam(':id', $_SESSION['user_id']);
+        $userStmt->execute();
+        $currentUser = $userStmt->fetch();
+
+        // Obtener título del tema para la notificación
+        $topicInfoQuery = "SELECT title, user_id FROM forum_topics WHERE id = :id";
+        $topicInfoStmt = $db->prepare($topicInfoQuery);
+        $topicInfoStmt->bindParam(':id', $data['topicId']);
+        $topicInfoStmt->execute();
+        $topicInfo = $topicInfoStmt->fetch();
+
+        // Crear notificación para el autor del tema si no es el mismo usuario
+        if ($topicInfo['user_id'] !== $_SESSION['user_id']) {
+            $notifQuery = "INSERT INTO notifications
+                          (user_id, type, reference_id, reference_type, from_user_id, from_username, title, message)
+                          VALUES
+                          (:user_id, 'forum_reply', :reference_id, 'forum_topic', :from_user_id, :from_username, :title, :message)";
+
+            $notifStmt = $db->prepare($notifQuery);
+            $notifStmt->bindParam(':user_id', $topicInfo['user_id']);
+            $notifStmt->bindParam(':reference_id', $data['topicId']);
+            $notifStmt->bindParam(':from_user_id', $_SESSION['user_id']);
+            $notifStmt->bindParam(':from_username', $currentUser['username']);
+            $notifTitle = "Nueva respuesta en: " . $topicInfo['title'];
+            $notifMessage = $currentUser['username'] . " respondió a tu tema";
+            $notifStmt->bindParam(':title', $notifTitle);
+            $notifStmt->bindParam(':message', $notifMessage);
+            $notifStmt->execute();
+        }
+
+        // Si es una cita, crear notificación adicional
+        if (isset($data['quotedReplyId']) && $data['quotedReplyId']) {
+            $quotedReplyQuery = "SELECT user_id FROM forum_replies WHERE id = :id";
+            $quotedReplyStmt = $db->prepare($quotedReplyQuery);
+            $quotedReplyStmt->bindParam(':id', $data['quotedReplyId']);
+            $quotedReplyStmt->execute();
+            $quotedReply = $quotedReplyStmt->fetch();
+
+            if ($quotedReply && $quotedReply['user_id'] !== $_SESSION['user_id']) {
+                $quoteNotifQuery = "INSERT INTO notifications
+                                   (user_id, type, reference_id, reference_type, from_user_id, from_username, title, message)
+                                   VALUES
+                                   (:user_id, 'forum_quote', :reference_id, 'forum_topic', :from_user_id, :from_username, :title, :message)";
+
+                $quoteNotifStmt = $db->prepare($quoteNotifQuery);
+                $quoteNotifStmt->bindParam(':user_id', $quotedReply['user_id']);
+                $quoteNotifStmt->bindParam(':reference_id', $data['topicId']);
+                $quoteNotifStmt->bindParam(':from_user_id', $_SESSION['user_id']);
+                $quoteNotifStmt->bindParam(':from_username', $currentUser['username']);
+                $quoteTitle = "Te citaron en: " . $topicInfo['title'];
+                $quoteMessage = $currentUser['username'] . " citó tu respuesta";
+                $quoteNotifStmt->bindParam(':title', $quoteTitle);
+                $quoteNotifStmt->bindParam(':message', $quoteMessage);
+                $quoteNotifStmt->execute();
+            }
+        }
 
         jsonResponse([
             'success' => true,

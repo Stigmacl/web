@@ -9,6 +9,13 @@ error_reporting(E_ALL);
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
+// Configuración de sesión para evitar que se pierda con F5
+ini_set('session.cookie_lifetime', 86400); // 24 horas
+ini_set('session.gc_maxlifetime', 86400); // 24 horas
+ini_set('session.cookie_httponly', 1); // Solo HTTP
+ini_set('session.cookie_samesite', 'Lax'); // Protección CSRF
+ini_set('session.use_strict_mode', 1); // Seguridad adicional
+
 class Database {
     private $host = 'localhost';
     private $db_name = 'tactica2_tactical_ops_chile';

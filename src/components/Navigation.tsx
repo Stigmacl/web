@@ -2,6 +2,8 @@ import React from 'react';
 import { Home, Users, Download, User, MessageSquare } from 'lucide-react';
 import { Section } from '../App';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
+import NotificationBell from './NotificationBell';
 
 interface NavigationProps {
   currentSection: Section;
@@ -10,6 +12,7 @@ interface NavigationProps {
 
 const Navigation: React.FC<NavigationProps> = ({ currentSection, onSectionChange }) => {
   const { themeConfig } = useTheme();
+  const { user } = useAuth();
 
   const navItems = [
     { id: 'home' as Section, label: 'Inicio', icon: Home },
@@ -22,7 +25,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentSection, onSectionChange
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 px-4 py-4">
       <div className="container mx-auto">
-        <div className="flex justify-center">
+        <div className="flex justify-center items-center gap-4">
           <div
             className="flex flex-wrap justify-center gap-2 p-4 rounded-2xl border shadow-2xl"
             style={{
@@ -85,6 +88,19 @@ const Navigation: React.FC<NavigationProps> = ({ currentSection, onSectionChange
               );
             })}
           </div>
+
+          {user && (
+            <div
+              className="p-2 rounded-2xl border shadow-2xl"
+              style={{
+                backgroundColor: `${themeConfig.colors.surface}40`,
+                backdropFilter: 'blur(24px)',
+                borderColor: themeConfig.colors.border
+              }}
+            >
+              <NotificationBell />
+            </div>
+          )}
         </div>
       </div>
     </nav>
