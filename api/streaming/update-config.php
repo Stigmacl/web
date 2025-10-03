@@ -1,10 +1,14 @@
 <?php
 require_once '../config/database.php';
 
-session_start();
+startSecureSession();
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    errorResponse('No autorizado', 403);
+if (!isset($_SESSION['user_id'])) {
+    errorResponse('No autorizado - Sesión no válida', 401);
+}
+
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    errorResponse('No autorizado - Se requieren permisos de administrador', 403);
 }
 
 $data = getJsonInput();

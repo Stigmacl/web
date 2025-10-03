@@ -43,10 +43,18 @@ try {
     $user['lastLogin'] = date('c');
     $user['createdAt'] = date('c');
 
-    // Generar token simple (en producción usar JWT)
-    session_start();
+    // Iniciar sesión segura y persistente
+    startSecureSession();
+
+    // Regenerar ID de sesión para seguridad
+    session_regenerate_id(true);
+
+    // Guardar datos de sesión
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['username'] = $user['username'];
+    $_SESSION['role'] = $user['role'];
+    $_SESSION['email'] = $user['email'];
+    $_SESSION['last_activity'] = time();
 
     jsonResponse([
         'success' => true,

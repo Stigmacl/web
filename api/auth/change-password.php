@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Iniciar sesión para verificar usuario autenticado
-session_start();
+startSecureSession();
 
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);

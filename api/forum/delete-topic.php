@@ -5,7 +5,7 @@ ini_set('display_errors', 0);
 
 require_once '../config/database.php';
 
-session_start();
+startSecureSession();
 
 if (!isset($_SESSION['user_id'])) {
     jsonResponse([

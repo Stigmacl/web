@@ -1,11 +1,11 @@
-﻿<?php
+<?php
 // Deshabilitar la visualización de errores para evitar HTML en la respuesta JSON
 error_reporting(0);
 ini_set('display_errors', 0);
 
 require_once '../config/database.php';
 
-session_start();
+startSecureSession();
 
 if (!isset($_SESSION['user_id'])) {
     jsonResponse([

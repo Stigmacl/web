@@ -1,7 +1,7 @@
 <?php
 require_once '../config/database.php';
 
-session_start();
+startSecureSession();
 
 try {
     $database = new Database();

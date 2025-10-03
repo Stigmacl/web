@@ -1,7 +1,8 @@
 <?php
 require_once '../config/database.php';
 
-session_start();
+// Iniciar sesión segura y persistente
+startSecureSession();
 
 if (!isset($_SESSION['user_id'])) {
     jsonResponse([

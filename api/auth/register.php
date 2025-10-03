@@ -79,7 +79,7 @@ try {
     $user['createdAt'] = date('c');
 
     // Iniciar sesión automáticamente
-    session_start();
+    startSecureSession();
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['username'] = $user['username'];
 

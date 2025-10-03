@@ -86,12 +86,35 @@ function errorResponse($message, $status = 400) {
 function getJsonInput() {
     $input = file_get_contents('php://input');
     $data = json_decode($input, true);
-    
+
     if (json_last_error() !== JSON_ERROR_NONE) {
         errorResponse('JSON inválido', 400);
     }
-    
+
     return $data;
+}
+
+// Función helper para iniciar sesión de forma segura y persistente
+function startSecureSession() {
+    if (session_status() === PHP_SESSION_NONE) {
+        // Configurar parámetros de cookie antes de iniciar sesión
+        $sessionLifetime = 86400; // 24 horas
+        session_set_cookie_params([
+            'lifetime' => $sessionLifetime,
+            'path' => '/',
+            'domain' => '',
+            'secure' => false, // Cambiar a true en producción con HTTPS
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
+
+        session_start();
+
+        // Extender la sesión en cada petición
+        if (isset($_SESSION['last_activity'])) {
+            $_SESSION['last_activity'] = time();
+        }
+    }
 }
 
 // Función para manejar errores fatales

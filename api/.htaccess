@@ -1,5 +1,11 @@
 RewriteEngine On
 
+# Configuración de sesiones PHP para persistencia
+php_value session.cookie_lifetime 86400
+php_value session.gc_maxlifetime 86400
+php_value session.cookie_httponly 1
+php_value session.use_strict_mode 1
+
 # Permitir CORS
 Header always set Access-Control-Allow-Origin "http://localhost"
 Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
