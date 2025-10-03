@@ -313,18 +313,18 @@ const UserPanel: React.FC = () => {
                   )}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setShowForgotPassword(true)}
-                  className="w-full text-center text-sm text-blue-400 hover:text-blue-300 transition-colors mt-3"
-                >
-                  ¿Olvidaste tu contraseña?
-                </button>
-
                 <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-blue-300 text-sm">
                   <p className="font-medium mb-1">Recuerda:</p>
                   <p>tus credenciales son personales y no deben compartirse.</p>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="w-full text-center text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
               </form>
             ) : (
               /* Register Form */

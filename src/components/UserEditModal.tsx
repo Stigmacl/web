@@ -287,8 +287,8 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, isOpen, onClose, on
   if (!isOpen) return null;
 
   const tabs = [
-    { id: 'basic' as const, label: 'Información Básica', icon: User },
-    { id: 'security' as const, label: 'Seguridad', icon: Key },
+    { id: 'basic' as const, label: 'Perfil', icon: User },
+    { id: 'security' as const, label: 'Contraseña', icon: Key },
     { id: 'clan' as const, label: 'Clan', icon: Users }
   ];
 

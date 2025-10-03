@@ -1,5 +1,5 @@
 import React from 'react';
-import { Hop as Home, Users, Download, User, MessageSquare } from 'lucide-react';
+import { Home, Users, Download, User, MessageSquare } from 'lucide-react';
 import { Section } from '../App';
 import { useTheme } from '../contexts/ThemeContext';
 
