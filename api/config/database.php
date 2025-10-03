@@ -18,9 +18,9 @@ ini_set('session.use_strict_mode', 1); // Seguridad adicional
 
 class Database {
     private $host = 'localhost';
-    private $db_name = 'tactica2_tactical_ops_chile';
-    private $username = 'tactica2_root';
-    private $password = 'Trini3915..';
+    private $db_name = 'tactical_ops_chile';
+    private $username = 'root';
+    private $password = '';
     private $conn;
 
     public function getConnection() {
