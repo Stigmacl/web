@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Iniciar sesión para verificar usuario autenticado
-startSecureSession();
+session_start();
 
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
@@ -44,7 +44,9 @@ if (strlen($newPassword) < 6) {
 }
 
 try {
-    $db = getDBConnection();
+    // ✅ Crear conexión usando la clase Database
+    $database = new Database();
+    $db = $database->getConnection();
 
     // Verificar contraseña actual
     $stmt = $db->prepare('SELECT password FROM users WHERE id = ?');
