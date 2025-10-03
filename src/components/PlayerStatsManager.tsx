@@ -20,23 +20,14 @@ const PlayerStatsManager: React.FC = () => {
   const loadAllStats = async () => {
     setIsLoading(true);
     try {
-      const statsResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/player_stats`, {
-        headers: {
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        }
+      const response = await fetch('http://localhost/api/stats/get-all.php', {
+        credentials: 'include'
       });
-      const stats = await statsResponse.json();
-      setPlayerStats(stats || []);
-
-      const titlesResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/player_titles?order=awarded_date.desc`, {
-        headers: {
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        }
-      });
-      const titles = await titlesResponse.json();
-      setPlayerTitles(titles || []);
+      const data = await response.json();
+      if (data.success) {
+        setPlayerStats(data.stats || []);
+        setPlayerTitles(data.titles || []);
+      }
     } catch (error) {
       console.error('Error loading stats:', error);
     } finally {
@@ -67,30 +58,23 @@ const PlayerStatsManager: React.FC = () => {
 
   const handleSaveStats = async () => {
     try {
-      const existingStats = getUserStats(editingStats.user_id);
-      const method = existingStats ? 'PATCH' : 'POST';
-      const url = existingStats
-        ? `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/player_stats?user_id=eq.${editingStats.user_id}`
-        : `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/player_stats`;
-
-      const response = await fetch(url, {
-        method,
+      const response = await fetch('http://localhost/api/stats/update-stats.php', {
+        method: 'POST',
         headers: {
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
+          'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(editingStats)
       });
 
-      if (response.ok) {
+      const data = await response.json();
+      if (data.success) {
         await loadAllStats();
         setShowStatsModal(false);
         setEditingStats(null);
         setSelectedUser(null);
       } else {
-        alert('Error al guardar estadísticas');
+        alert(data.error || 'Error al guardar estadísticas');
       }
     } catch (error) {
       console.error('Error saving stats:', error);
@@ -111,14 +95,12 @@ const PlayerStatsManager: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/player_titles`, {
+      const response = await fetch('http://localhost/api/stats/add-title.php', {
         method: 'POST',
         headers: {
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
+          'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           user_id: selectedUser.id,
           title: newTitle.title,
@@ -126,13 +108,14 @@ const PlayerStatsManager: React.FC = () => {
         })
       });
 
-      if (response.ok) {
+      const data = await response.json();
+      if (data.success) {
         await loadAllStats();
         setShowTitleModal(false);
         setNewTitle({ title: '', tournament_name: '' });
         setSelectedUser(null);
       } else {
-        alert('Error al agregar título');
+        alert(data.error || 'Error al agregar título');
       }
     } catch (error) {
       console.error('Error adding title:', error);
@@ -144,18 +127,20 @@ const PlayerStatsManager: React.FC = () => {
     if (!confirm('¿Estás seguro de eliminar este título?')) return;
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/player_titles?id=eq.${titleId}`, {
-        method: 'DELETE',
+      const response = await fetch('http://localhost/api/stats/delete-title.php', {
+        method: 'POST',
         headers: {
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        }
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ id: titleId })
       });
 
-      if (response.ok) {
+      const data = await response.json();
+      if (data.success) {
         await loadAllStats();
       } else {
-        alert('Error al eliminar título');
+        alert(data.error || 'Error al eliminar título');
       }
     } catch (error) {
       console.error('Error deleting title:', error);
