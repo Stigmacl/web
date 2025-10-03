@@ -796,6 +796,7 @@ const Players: React.FC = () => {
               return (
                 <div
                   key={tournament.id}
+                  id={`tournament-${tournament.id}`}
                   className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-6 shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 hover:transform hover:scale-105 cursor-pointer"
                   onClick={() => handleViewTournament(tournament)}
                 >

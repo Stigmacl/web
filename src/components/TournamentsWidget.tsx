@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, Calendar, Users } from 'lucide-react';
+import { Trophy, Calendar, Users, ArrowRight } from 'lucide-react';
 
 interface Tournament {
   id: string;
@@ -55,14 +55,13 @@ const TournamentsWidget: React.FC<TournamentsWidgetProps> = ({ tournaments, onVi
           {activeTournaments.map((tournament) => (
             <div
               key={tournament.id}
-              onClick={() => onViewTournament(tournament.id)}
-              className="bg-slate-700/40 rounded-xl p-4 border border-blue-600/20 hover:border-blue-500/40 transition-all duration-300 cursor-pointer group"
+              className="bg-slate-700/40 rounded-xl p-4 border border-blue-600/20 hover:border-blue-500/40 transition-all duration-300 group"
             >
               <h4 className="text-white font-bold mb-3 group-hover:text-blue-300 transition-colors">
                 {tournament.name}
               </h4>
 
-              <div className="space-y-2 text-sm">
+              <div className="space-y-2 text-sm mb-4">
                 <div className="flex items-center space-x-2 text-blue-300">
                   <Calendar className="w-4 h-4" />
                   <span>{formatDate(tournament.startDate)}</span>
@@ -74,15 +73,13 @@ const TournamentsWidget: React.FC<TournamentsWidgetProps> = ({ tournaments, onVi
                 </div>
               </div>
 
-              <div className="mt-3 pt-3 border-t border-blue-700/30">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                  tournament.status === 'active'
-                    ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                    : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
-                }`}>
-                  {tournament.status === 'active' ? 'Inscripciones Abiertas' : 'En Progreso'}
-                </span>
-              </div>
+              <button
+                onClick={() => onViewTournament(tournament.id)}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 hover:border-blue-400/50 rounded-lg text-blue-300 hover:text-blue-200 text-sm font-medium transition-all duration-300 group-hover:scale-105"
+              >
+                <span>Más detalles</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           ))}
         </div>

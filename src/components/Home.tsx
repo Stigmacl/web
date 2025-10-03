@@ -148,14 +148,22 @@ const Home: React.FC = () => {
   }, [news, incrementNewsViews, viewedNews]);
 
   const handleViewTournament = (tournamentId: string) => {
-    const event = new CustomEvent('navigate-to-section', { detail: 'tournaments' });
+    // Navegar a la sección Comunidad (players)
+    const event = new CustomEvent('navigate-to-section', { detail: 'players' });
     window.dispatchEvent(event);
+
+    // Esperar a que se cargue la sección y luego hacer scroll al torneo específico
     setTimeout(() => {
       const element = document.getElementById(`tournament-${tournamentId}`);
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Agregar un efecto visual de resaltado
+        element.classList.add('ring-4', 'ring-yellow-400/50');
+        setTimeout(() => {
+          element.classList.remove('ring-4', 'ring-yellow-400/50');
+        }, 2000);
       }
-    }, 100);
+    }, 300);
   };
 
   return (
