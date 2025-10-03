@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { User, Camera, Settings, Save, Star, Shield, Trophy, Clock, Edit3, LogIn, UserPlus, Eye, EyeOff, EyeIcon, Image, Users, FileText, Monitor, MessageCircle, Lock, KeyRound } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Camera, Settings, Save, Star, Shield, Trophy, Clock, Edit3, LogIn, UserPlus, Eye, EyeOff, EyeIcon, Image, Users, FileText, Monitor, MessageCircle, Lock, KeyRound, Award, Crown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import UserWall from './UserWall';
 import Admin from './Admin';
@@ -12,6 +12,8 @@ const UserPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'wall' | 'admin'>('profile');
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [playerStats, setPlayerStats] = useState<any>(null);
+  const [playerTitles, setPlayerTitles] = useState<any[]>([]);
   
   const [formData, setFormData] = useState({
     username: user?.username || '',
@@ -41,6 +43,33 @@ const UserPanel: React.FC = () => {
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      loadPlayerStats();
+    }
+  }, [user]);
+
+  const loadPlayerStats = async () => {
+    if (!user) return;
+
+    try {
+      const response = await fetch('http://localhost/api/stats/get-all.php', {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      if (data.success) {
+        const userStats = data.stats.find((s: any) => s.user_id === parseInt(user.id));
+        if (userStats) {
+          setPlayerStats(userStats);
+        }
+        const userTitles = data.titles.filter((t: any) => t.user_id === parseInt(user.id));
+        setPlayerTitles(userTitles || []);
+      }
+    } catch (error) {
+      console.error('Error loading player stats:', error);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, type, value } = e.target;
@@ -198,16 +227,6 @@ const UserPanel: React.FC = () => {
     }
 
     setIsSubmitting(false);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-CL', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
   if (!user) {
@@ -483,19 +502,18 @@ const UserPanel: React.FC = () => {
     );
   }
 
-  const stats = [
-    { label: 'Partidas Jugadas', value: '0', icon: Trophy, color: 'text-blue-400' },
-    { label: 'Horas Jugadas', value: '0h', icon: Clock, color: 'text-green-400' },
-    { label: 'Mejor Racha', value: '0', icon: Star, color: 'text-yellow-400' },
-    { label: 'K/D Ratio', value: '0.00', icon: Shield, color: 'text-red-400' }
-  ];
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-CL', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
 
-  const achievements = [
-    { name: 'Primera Conexión', description: 'Te has registrado en la comunidad', unlocked: true },
-    { name: 'Primera Victoria', description: 'Gana tu primera partida', unlocked: false },
-    { name: 'Francotirador', description: 'Consigue 50 eliminaciones con sniper', unlocked: false },
-    { name: 'Veterano', description: 'Juega 100 partidas', unlocked: false },
-    { name: 'Leyenda', description: 'Alcanza el top 10 del ranking', unlocked: false }
+  const stats = [
+    { label: 'Mejor Racha', value: playerStats?.best_streak || 0, icon: Star, color: 'text-yellow-400' },
+    { label: 'Total Kills', value: playerStats?.total_kills || 0, icon: Trophy, color: 'text-blue-400' },
+    { label: 'Total Muertes', value: playerStats?.total_deaths || 0, icon: Shield, color: 'text-red-400' }
   ];
 
   // Preparar las pestañas disponibles
@@ -841,49 +859,56 @@ const UserPanel: React.FC = () => {
               </div>
             </div>
 
-            {/* Achievements */}
+            {/* Títulos y Logros */}
             <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-6 shadow-2xl">
-              <h3 className="text-xl font-bold text-white mb-6">Logros</h3>
-              
-              <div className="grid gap-4">
-                {achievements.map((achievement, index) => (
-                  <div
-                    key={index}
-                    className={`flex items-center space-x-4 p-4 rounded-xl border ${
-                      achievement.unlocked
-                        ? 'bg-green-600/10 border-green-500/30'
-                        : 'bg-slate-700/40 border-slate-600/30'
-                    }`}
-                  >
-                    <div className={`p-2 rounded-lg ${
-                      achievement.unlocked ? 'bg-green-600/20' : 'bg-slate-600/40'
-                    }`}>
-                      <Trophy className={`w-6 h-6 ${
-                        achievement.unlocked ? 'text-green-400' : 'text-slate-400'
-                      }`} />
-                    </div>
-                    
-                    <div className="flex-1">
-                      <h4 className={`font-bold ${
-                        achievement.unlocked ? 'text-green-300' : 'text-slate-400'
-                      }`}>
-                        {achievement.name}
-                      </h4>
-                      <p className={`text-sm ${
-                        achievement.unlocked ? 'text-green-400' : 'text-slate-500'
-                      }`}>
-                        {achievement.description}
-                      </p>
-                    </div>
-                    
-                    {achievement.unlocked && (
-                      <div className="text-green-400 font-bold text-sm">
-                        ✓ Desbloqueado
-                      </div>
-                    )}
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-white flex items-center space-x-2">
+                  <Award className="w-6 h-6 text-yellow-400" />
+                  <span>Títulos y Logros</span>
+                </h3>
+                {playerStats?.is_champion && (
+                  <div className="flex items-center space-x-2 px-4 py-2 bg-yellow-500/20 border border-yellow-500/30 rounded-xl">
+                    <Crown className="w-5 h-5 text-yellow-400" />
+                    <span className="text-yellow-300 font-bold">CAMPEÓN</span>
                   </div>
-                ))}
+                )}
               </div>
+
+              {playerTitles.length > 0 ? (
+                <div className="grid gap-4">
+                  {playerTitles.map((title) => (
+                    <div
+                      key={title.id}
+                      className="flex items-center space-x-4 p-4 rounded-xl border bg-gradient-to-r from-yellow-600/10 to-orange-600/10 border-yellow-500/30"
+                    >
+                      <div className="p-2 rounded-lg bg-yellow-600/20">
+                        <Trophy className="w-6 h-6 text-yellow-400" />
+                      </div>
+
+                      <div className="flex-1">
+                        <h4 className="font-bold text-yellow-300">
+                          {title.title}
+                        </h4>
+                        <p className="text-sm text-yellow-400">
+                          {title.tournament_name}
+                        </p>
+                        <p className="text-xs text-yellow-500 mt-1">
+                          {formatDate(title.awarded_date)}
+                        </p>
+                      </div>
+
+                      <div className="text-yellow-400 font-bold text-sm">
+                        🏆
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Trophy className="w-12 h-12 text-slate-400 mx-auto mb-3 opacity-50" />
+                  <p className="text-slate-400">Sin títulos todavía</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
