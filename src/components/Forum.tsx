@@ -235,6 +235,13 @@ const Forum: React.FC = () => {
     setIsReplying(true);
 
     try {
+      // Si hay una cita, incluirla en el contenido
+      let finalContent = newReply;
+      if (quotedReply) {
+        const quoteHtml = `<div class="quoted-reply" style="background: rgba(59, 130, 246, 0.1); border-left: 4px solid rgb(59, 130, 246); padding: 12px; margin-bottom: 12px; border-radius: 4px;"><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;"><strong style="color: rgb(96, 165, 250);">${quotedReply.author.username}</strong><span style="color: rgb(147, 197, 253); font-size: 0.75rem;">${formatDate(quotedReply.createdAt)}</span></div><div style="color: rgb(191, 219, 254); font-size: 0.875rem;">${quotedReply.content}</div></div>${newReply}`;
+        finalContent = quoteHtml;
+      }
+
       const response = await fetch(`${API_BASE_URL}/forum/reply-topic.php`, {
         method: 'POST',
         headers: {
@@ -243,7 +250,7 @@ const Forum: React.FC = () => {
         credentials: 'include',
         body: JSON.stringify({
           topicId: selectedTopic.id,
-          content: newReply,
+          content: finalContent,
           quotedReplyId: quotedReply?.id || null
         })
       });
