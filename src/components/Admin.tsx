@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Users, FileText, Monitor, MessageCircle, Trophy, Database, Shield, Crown, Star, Zap, Target, Plus, Edit, Trash2, Save, X, Eye, EyeOff, UserCheck, UserX, RotateCcw, AlertTriangle, CheckCircle, Image, Key, UserCog, Map, Award } from 'lucide-react';
+import { Settings, Users, FileText, Monitor, MessageCircle, Trophy, Database, Shield, Crown, Star, Zap, Target, Plus, Edit, Trash2, Save, X, Eye, EyeOff, UserCheck, UserX, RotateCcw, AlertTriangle, CheckCircle, Image, Key, UserCog, Map, Award, Radio } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useBanner } from '../contexts/BannerContext';
 import BannerManager from './BannerManager';
@@ -7,8 +7,9 @@ import TournamentManager from './TournamentManager';
 import MapManager from './MapManager';
 import UserEditModal from './UserEditModal';
 import PlayerStatsManager from './PlayerStatsManager';
+import StreamingManager from './StreamingManager';
 
-type AdminSection = 'overview' | 'users' | 'news' | 'clans' | 'banner' | 'tournaments' | 'maps' | 'moderation' | 'player-stats';
+type AdminSection = 'overview' | 'users' | 'news' | 'clans' | 'banner' | 'tournaments' | 'maps' | 'moderation' | 'player-stats' | 'streaming';
 
 interface DeletedComment {
   id: string;
@@ -230,6 +231,7 @@ const Admin: React.FC = () => {
     { id: 'clans' as AdminSection, label: 'Clanes', icon: Shield, color: 'text-yellow-400' },
     { id: 'tournaments' as AdminSection, label: 'Torneos', icon: Trophy, color: 'text-orange-400' },
     { id: 'maps' as AdminSection, label: 'Mapas', icon: Map, color: 'text-pink-400' },
+    { id: 'streaming' as AdminSection, label: 'Streaming', icon: Radio, color: 'text-red-400' },
     { id: 'banner' as AdminSection, label: 'Banner', icon: Image, color: 'text-cyan-400' },
     { id: 'moderation' as AdminSection, label: 'Moderación', icon: AlertTriangle, color: 'text-red-400' }
   ];
@@ -562,10 +564,14 @@ const Admin: React.FC = () => {
       )}
 
       {activeSection === 'banner' && (
-        <BannerManager 
-          bannerItems={bannerItems} 
+        <BannerManager
+          bannerItems={bannerItems}
           onUpdateBanner={updateBannerItems}
         />
+      )}
+
+      {activeSection === 'streaming' && (
+        <StreamingManager />
       )}
 
       {activeSection === 'player-stats' && (

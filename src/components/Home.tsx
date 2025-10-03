@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, MessageCircle, Heart, Share2, Pin, Eye, User, Trash2, RotateCcw, AlertTriangle, Shield, LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import StreamPlayer from './StreamPlayer';
+import TournamentsWidget from './TournamentsWidget';
 
 const Home: React.FC = () => {
-  const { news, user, likeNews, addComment, incrementNewsViews, deleteComment, restoreComment } = useAuth();
+  const { news, user, likeNews, addComment, incrementNewsViews, deleteComment, restoreComment, tournaments } = useAuth();
   const [selectedNews, setSelectedNews] = useState<string | null>(null);
   const [newComment, setNewComment] = useState('');
   const [viewedNews, setViewedNews] = useState<Set<string>>(new Set());
@@ -12,6 +14,10 @@ const Home: React.FC = () => {
   const [deleteReason, setDeleteReason] = useState('');
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [streamConfig, setStreamConfig] = useState<{ stream_url: string; is_active: boolean }>({
+    stream_url: '',
+    is_active: false
+  });
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-CL', {
@@ -111,7 +117,27 @@ const Home: React.FC = () => {
     window.dispatchEvent(event);
   };
 
-  // Increment views when news is first viewed
+  useEffect(() => {
+    const fetchStreamConfig = async () => {
+      try {
+        const response = await fetch('http://localhost/api/streaming/get-config.php', {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        if (data.success && data.config) {
+          setStreamConfig({
+            stream_url: data.config.stream_url || '',
+            is_active: data.config.is_active || false
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching stream config:', error);
+      }
+    };
+
+    fetchStreamConfig();
+  }, []);
+
   useEffect(() => {
     news.forEach(item => {
       if (!viewedNews.has(item.id)) {
@@ -120,6 +146,17 @@ const Home: React.FC = () => {
       }
     });
   }, [news, incrementNewsViews, viewedNews]);
+
+  const handleViewTournament = (tournamentId: string) => {
+    const event = new CustomEvent('navigate-to-section', { detail: 'tournaments' });
+    window.dispatchEvent(event);
+    setTimeout(() => {
+      const element = document.getElementById(`tournament-${tournamentId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -133,6 +170,18 @@ const Home: React.FC = () => {
             </p>
           </div>
         )}
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-8 mb-8">
+        <div className="lg:col-span-2 space-y-6">
+          <StreamPlayer streamUrl={streamConfig.stream_url} isActive={streamConfig.is_active} />
+        </div>
+        <div>
+          <TournamentsWidget
+            tournaments={tournaments}
+            onViewTournament={handleViewTournament}
+          />
+        </div>
       </div>
 
       {news.length === 0 ? (
