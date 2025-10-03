@@ -1,6 +1,7 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import { Link2 as LinkIcon, X } from 'lucide-react';
 
 interface RichTextEditorProps {
   value: string;
@@ -9,6 +10,24 @@ interface RichTextEditorProps {
   readOnly?: boolean;
 }
 
+const getApiBaseUrl = () => {
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  const port = window.location.port;
+
+  if (hostname === 'localhost' && port === '5173') {
+    return 'http://localhost/api';
+  }
+
+  if (port && port !== '80' && port !== '443') {
+    return `${protocol}//${hostname}:${port}/api`;
+  }
+
+  return `${protocol}//${hostname}/api`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
@@ -16,17 +35,74 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   readOnly = false
 }) => {
   const quillRef = useRef<ReactQuill>(null);
+  const [showImageUrlModal, setShowImageUrlModal] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+
+  const imageHandler = () => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/*');
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (file) {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+          const response = await fetch(`${API_BASE_URL}/forum/upload-image.php`, {
+            method: 'POST',
+            credentials: 'include',
+            body: formData
+          });
+
+          const data = await response.json();
+
+          if (data.success && data.url) {
+            const quill = quillRef.current?.getEditor();
+            if (quill) {
+              const range = quill.getSelection();
+              quill.insertEmbed(range?.index || 0, 'image', data.url);
+            }
+          } else {
+            alert(data.message || 'Error al subir la imagen');
+          }
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          alert('Error al subir la imagen');
+        }
+      }
+    };
+  };
+
+  const insertImageFromUrl = () => {
+    if (imageUrl.trim()) {
+      const quill = quillRef.current?.getEditor();
+      if (quill) {
+        const range = quill.getSelection();
+        quill.insertEmbed(range?.index || 0, 'image', imageUrl);
+        setImageUrl('');
+        setShowImageUrlModal(false);
+      }
+    }
+  };
 
   const modules = useMemo(() => ({
-    toolbar: readOnly ? false : [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      [{ 'color': [] }, { 'background': [] }],
-      ['blockquote', 'code-block'],
-      ['link', 'image', 'video'],
-      ['clean']
-    ]
+    toolbar: readOnly ? false : {
+      container: [
+        [{ 'header': [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'color': [] }, { 'background': [] }],
+        ['blockquote', 'code-block'],
+        ['link', 'image', 'video'],
+        ['clean']
+      ],
+      handlers: {
+        image: imageHandler
+      }
+    }
   }), [readOnly]);
 
   const formats = [
@@ -39,18 +115,31 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   ];
 
   return (
-    <div className={`rich-text-editor ${readOnly ? 'readonly' : ''}`}>
-      <ReactQuill
-        ref={quillRef}
-        theme="snow"
-        value={value}
-        onChange={onChange}
-        modules={modules}
-        formats={formats}
-        placeholder={placeholder}
-        readOnly={readOnly}
-      />
-      <style>{`
+    <>
+      <div className={`rich-text-editor ${readOnly ? 'readonly' : ''}`}>
+        {!readOnly && (
+          <div className="flex items-center justify-between mb-2">
+            <button
+              type="button"
+              onClick={() => setShowImageUrlModal(true)}
+              className="flex items-center space-x-2 px-3 py-2 bg-blue-600/20 hover:bg-blue-600/40 rounded-lg text-blue-300 text-sm transition-colors"
+            >
+              <LinkIcon className="w-4 h-4" />
+              <span>Insertar imagen desde URL</span>
+            </button>
+          </div>
+        )}
+        <ReactQuill
+          ref={quillRef}
+          theme="snow"
+          value={value}
+          onChange={onChange}
+          modules={modules}
+          formats={formats}
+          placeholder={placeholder}
+          readOnly={readOnly}
+        />
+        <style>{`
         .rich-text-editor .ql-toolbar {
           background: rgba(51, 65, 85, 0.4);
           border: 1px solid rgba(59, 130, 246, 0.3);
@@ -176,7 +265,66 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           fill: #60a5fa !important;
         }
       `}</style>
-    </div>
+      </div>
+
+      {showImageUrlModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-2xl border border-blue-500/30 p-6 max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">Insertar Imagen desde URL</h3>
+              <button
+                onClick={() => {
+                  setShowImageUrlModal(false);
+                  setImageUrl('');
+                }}
+                className="text-blue-300 hover:text-blue-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-blue-300 text-sm font-medium mb-2">
+                  URL de la imagen
+                </label>
+                <input
+                  type="text"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://ejemplo.com/imagen.jpg"
+                  className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300 focus:outline-none focus:border-blue-500 transition-colors"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      insertImageFromUrl();
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={insertImageFromUrl}
+                  disabled={!imageUrl.trim()}
+                  className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 rounded-xl text-white font-medium transition-colors"
+                >
+                  Insertar
+                </button>
+                <button
+                  onClick={() => {
+                    setShowImageUrlModal(false);
+                    setImageUrl('');
+                  }}
+                  className="px-6 py-3 bg-slate-600 hover:bg-slate-700 rounded-xl text-white font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
