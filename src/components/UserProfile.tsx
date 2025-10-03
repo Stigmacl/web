@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Shield, Star, Trophy, Clock, MapPin, Calendar, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { User, Shield, Star, Trophy, Clock, MapPin, Calendar, ArrowLeft, Eye, EyeOff, Award, Crown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import UserWall from './UserWall';
 
@@ -66,11 +66,52 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId, onBack }) => {
       : 'bg-blue-500/20 text-blue-300 border-blue-500/30';
   };
 
+  const [playerStats, setPlayerStats] = useState<any>(null);
+  const [playerTitles, setPlayerTitles] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (profileUser) {
+      loadPlayerStats();
+      loadPlayerTitles();
+    }
+  }, [profileUser]);
+
+  const loadPlayerStats = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/player_stats?user_id=eq.${userId}`, {
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        }
+      });
+      const data = await response.json();
+      if (data && data.length > 0) {
+        setPlayerStats(data[0]);
+      }
+    } catch (error) {
+      console.error('Error loading player stats:', error);
+    }
+  };
+
+  const loadPlayerTitles = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/player_titles?user_id=eq.${userId}&order=awarded_date.desc`, {
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        }
+      });
+      const data = await response.json();
+      setPlayerTitles(data || []);
+    } catch (error) {
+      console.error('Error loading player titles:', error);
+    }
+  };
+
   const stats = [
-    { label: 'Partidas Jugadas', value: '0', icon: Trophy, color: 'text-blue-400' },
-    { label: 'Horas Jugadas', value: '0h', icon: Clock, color: 'text-green-400' },
-    { label: 'Mejor Racha', value: '0', icon: Star, color: 'text-yellow-400' },
-    { label: 'K/D Ratio', value: '0.00', icon: Shield, color: 'text-red-400' }
+    { label: 'Mejor Racha', value: playerStats?.best_streak || 0, icon: Star, color: 'text-yellow-400' },
+    { label: 'Total Kills', value: playerStats?.total_kills || 0, icon: Trophy, color: 'text-blue-400' },
+    { label: 'Total Muertes', value: playerStats?.total_deaths || 0, icon: Shield, color: 'text-red-400' }
   ];
 
   const achievements = [
@@ -232,49 +273,56 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId, onBack }) => {
             </div>
           </div>
 
-          {/* Achievements */}
+          {/* Títulos y Logros */}
           <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-6 shadow-2xl">
-            <h3 className="text-xl font-bold text-white mb-6">Logros</h3>
-            
-            <div className="grid gap-4">
-              {achievements.map((achievement, index) => (
-                <div
-                  key={index}
-                  className={`flex items-center space-x-4 p-4 rounded-xl border ${
-                    achievement.unlocked
-                      ? 'bg-green-600/10 border-green-500/30'
-                      : 'bg-slate-700/40 border-slate-600/30'
-                  }`}
-                >
-                  <div className={`p-2 rounded-lg ${
-                    achievement.unlocked ? 'bg-green-600/20' : 'bg-slate-600/40'
-                  }`}>
-                    <Trophy className={`w-6 h-6 ${
-                      achievement.unlocked ? 'text-green-400' : 'text-slate-400'
-                    }`} />
-                  </div>
-                  
-                  <div className="flex-1">
-                    <h4 className={`font-bold ${
-                      achievement.unlocked ? 'text-green-300' : 'text-slate-400'
-                    }`}>
-                      {achievement.name}
-                    </h4>
-                    <p className={`text-sm ${
-                      achievement.unlocked ? 'text-green-400' : 'text-slate-500'
-                    }`}>
-                      {achievement.description}
-                    </p>
-                  </div>
-                  
-                  {achievement.unlocked && (
-                    <div className="text-green-400 font-bold text-sm">
-                      ✓ Desbloqueado
-                    </div>
-                  )}
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white flex items-center space-x-2">
+                <Award className="w-6 h-6 text-yellow-400" />
+                <span>Títulos y Logros</span>
+              </h3>
+              {playerStats?.is_champion && (
+                <div className="flex items-center space-x-2 px-4 py-2 bg-yellow-500/20 border border-yellow-500/30 rounded-xl">
+                  <Crown className="w-5 h-5 text-yellow-400" />
+                  <span className="text-yellow-300 font-bold">CAMPEÓN</span>
                 </div>
-              ))}
+              )}
             </div>
+
+            {playerTitles.length > 0 ? (
+              <div className="grid gap-4">
+                {playerTitles.map((title) => (
+                  <div
+                    key={title.id}
+                    className="flex items-center space-x-4 p-4 rounded-xl border bg-gradient-to-r from-yellow-600/10 to-orange-600/10 border-yellow-500/30"
+                  >
+                    <div className="p-2 rounded-lg bg-yellow-600/20">
+                      <Trophy className="w-6 h-6 text-yellow-400" />
+                    </div>
+
+                    <div className="flex-1">
+                      <h4 className="font-bold text-yellow-300">
+                        {title.title}
+                      </h4>
+                      <p className="text-sm text-yellow-400">
+                        {title.tournament_name}
+                      </p>
+                      <p className="text-xs text-yellow-500 mt-1">
+                        {formatDate(title.awarded_date)}
+                      </p>
+                    </div>
+
+                    <div className="text-yellow-400 font-bold text-sm">
+                      🏆
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Trophy className="w-12 h-12 text-slate-400 mx-auto mb-3 opacity-50" />
+                <p className="text-slate-400">Sin títulos todavía</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

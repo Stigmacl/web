@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Users, FileText, Monitor, MessageCircle, Trophy, Database, Shield, Crown, Star, Zap, Target, Plus, Edit, Trash2, Save, X, Eye, EyeOff, UserCheck, UserX, RotateCcw, AlertTriangle, CheckCircle, Image, Key, UserCog, Map } from 'lucide-react';
+import { Settings, Users, FileText, Monitor, MessageCircle, Trophy, Database, Shield, Crown, Star, Zap, Target, Plus, Edit, Trash2, Save, X, Eye, EyeOff, UserCheck, UserX, RotateCcw, AlertTriangle, CheckCircle, Image, Key, UserCog, Map, Award } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useBanner } from '../contexts/BannerContext';
 import BannerManager from './BannerManager';
 import TournamentManager from './TournamentManager';
 import MapManager from './MapManager';
 import UserEditModal from './UserEditModal';
+import PlayerStatsManager from './PlayerStatsManager';
 
-type AdminSection = 'overview' | 'users' | 'news' | 'clans' | 'banner' | 'tournaments' | 'maps' | 'moderation';
+type AdminSection = 'overview' | 'users' | 'news' | 'clans' | 'banner' | 'tournaments' | 'maps' | 'moderation' | 'player-stats';
 
 interface DeletedComment {
   id: string;
@@ -224,6 +225,7 @@ const Admin: React.FC = () => {
   const adminSections = [
     { id: 'overview' as AdminSection, label: 'Resumen', icon: Monitor, color: 'text-blue-400' },
     { id: 'users' as AdminSection, label: 'Usuarios', icon: Users, color: 'text-green-400' },
+    { id: 'player-stats' as AdminSection, label: 'Estadísticas', icon: Award, color: 'text-yellow-400' },
     { id: 'news' as AdminSection, label: 'Noticias', icon: FileText, color: 'text-purple-400' },
     { id: 'clans' as AdminSection, label: 'Clanes', icon: Shield, color: 'text-yellow-400' },
     { id: 'tournaments' as AdminSection, label: 'Torneos', icon: Trophy, color: 'text-orange-400' },
@@ -564,6 +566,10 @@ const Admin: React.FC = () => {
           bannerItems={bannerItems} 
           onUpdateBanner={updateBannerItems}
         />
+      )}
+
+      {activeSection === 'player-stats' && (
+        <PlayerStatsManager />
       )}
 
       {activeSection === 'moderation' && (
