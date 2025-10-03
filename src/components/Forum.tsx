@@ -371,6 +371,11 @@ const Forum: React.FC = () => {
     return user.id === selectedTopic.author.id;
   };
 
+  const canToggleLock = () => {
+    if (!user || !selectedTopic) return false;
+    return user.id === selectedTopic.author.id;
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-CL', {
       year: 'numeric',
@@ -618,9 +623,9 @@ const Forum: React.FC = () => {
                         {topic.title}
                       </h3>
                       
-                      <p className="text-blue-200 text-sm mb-3 line-clamp-2">
-                        {topic.content.substring(0, 150)}...
-                      </p>
+                      <div className="text-blue-200 text-sm mb-3 line-clamp-2">
+                        <div dangerouslySetInnerHTML={{ __html: topic.content.substring(0, 150) + '...' }} />
+                      </div>
                       
                       <div className="flex items-center space-x-4 text-xs text-blue-400">
                         <div className="flex items-center space-x-1">
@@ -836,7 +841,7 @@ const Forum: React.FC = () => {
               </div>
               
               <div className="flex items-center space-x-2">
-                {isTopicAuthor() && (
+                {canToggleLock() && (
                   <button
                     onClick={handleToggleLock}
                     className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
@@ -844,10 +849,10 @@ const Forum: React.FC = () => {
                         ? 'bg-green-600/20 hover:bg-green-600/40 text-green-300 hover:text-green-200'
                         : 'bg-yellow-600/20 hover:bg-yellow-600/40 text-yellow-300 hover:text-yellow-200'
                     }`}
-                    title={selectedTopic.isLocked ? 'Desbloquear tema' : 'Bloquear tema'}
+                    title={selectedTopic.isLocked ? 'Reabrir tema' : 'Cerrar tema'}
                   >
                     {selectedTopic.isLocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                    <span>{selectedTopic.isLocked ? 'Desbloquear' : 'Bloquear'}</span>
+                    <span>{selectedTopic.isLocked ? 'Reabrir' : 'Cerrar'}</span>
                   </button>
                 )}
 
@@ -1103,8 +1108,8 @@ const Forum: React.FC = () => {
           {selectedTopic.isLocked && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 text-center">
               <Lock className="w-12 h-12 text-red-400 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-red-300 mb-2">Tema Bloqueado</h3>
-              <p className="text-red-400">Este tema ha sido bloqueado y no acepta nuevas respuestas.</p>
+              <h3 className="text-lg font-bold text-red-300 mb-2">Tema Cerrado</h3>
+              <p className="text-red-400">Este tema ha sido cerrado y no acepta nuevas respuestas.</p>
             </div>
           )}
 
