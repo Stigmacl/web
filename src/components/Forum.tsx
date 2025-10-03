@@ -235,10 +235,16 @@ const Forum: React.FC = () => {
     setIsReplying(true);
 
     try {
-      // Si hay una cita, incluirla en el contenido
+      // Si hay una cita, incluirla en el contenido usando blockquote
       let finalContent = newReply;
       if (quotedReply) {
-        const quoteHtml = `<div class="quoted-reply" style="background: rgba(59, 130, 246, 0.1); border-left: 4px solid rgb(59, 130, 246); padding: 12px; margin-bottom: 12px; border-radius: 4px;"><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;"><strong style="color: rgb(96, 165, 250);">${quotedReply.author.username}</strong><span style="color: rgb(147, 197, 253); font-size: 0.75rem;">${formatDate(quotedReply.createdAt)}</span></div><div style="color: rgb(191, 219, 254); font-size: 0.875rem;">${quotedReply.content}</div></div>${newReply}`;
+        // Limpiar el contenido HTML de la cita para extraer solo el texto
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = quotedReply.content;
+        const quoteTextContent = tempDiv.textContent || tempDiv.innerText || '';
+
+        // Construir la cita usando blockquote de Quill
+        const quoteHtml = `<blockquote><strong>Cita de ${quotedReply.author.username}:</strong><br>${quotedReply.content}</blockquote>${newReply}`;
         finalContent = quoteHtml;
       }
 
