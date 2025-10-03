@@ -22,17 +22,24 @@ try {
     $conn = $database->getConnection();
 
     $query = "INSERT INTO streaming_config (id, stream_url, is_active, updated_by, updated_at)
-              VALUES (1, :stream_url, :is_active, :updated_by, NOW())
+              VALUES (1, :stream_url_ins, :is_active_ins, :updated_by_ins, NOW())
               ON DUPLICATE KEY UPDATE
-              stream_url = :stream_url,
-              is_active = :is_active,
-              updated_by = :updated_by,
+              stream_url = :stream_url_upd,
+              is_active = :is_active_upd,
+              updated_by = :updated_by_upd,
               updated_at = NOW()";
 
     $stmt = $conn->prepare($query);
-    $stmt->bindParam(':stream_url', $data['stream_url']);
-    $stmt->bindParam(':is_active', $data['is_active'], PDO::PARAM_BOOL);
-    $stmt->bindParam(':updated_by', $_SESSION['user_id'], PDO::PARAM_INT);
+
+    // valores para INSERT
+    $stmt->bindParam(':stream_url_ins', $data['stream_url']);
+    $stmt->bindParam(':is_active_ins', $data['is_active'], PDO::PARAM_BOOL);
+    $stmt->bindParam(':updated_by_ins', $_SESSION['user_id'], PDO::PARAM_INT);
+
+    // valores para UPDATE
+    $stmt->bindParam(':stream_url_upd', $data['stream_url']);
+    $stmt->bindParam(':is_active_upd', $data['is_active'], PDO::PARAM_BOOL);
+    $stmt->bindParam(':updated_by_upd', $_SESSION['user_id'], PDO::PARAM_INT);
 
     if ($stmt->execute()) {
         jsonResponse([
