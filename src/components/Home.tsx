@@ -175,31 +175,29 @@ const Home: React.FC = () => {
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           {news.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-12">
-                <MessageCircle className="w-24 h-24 text-blue-400 mx-auto mb-6 opacity-50" />
-                <h2 className="text-3xl font-bold text-white mb-4">¡Bienvenido a la Comunidad!</h2>
-                <p className="text-blue-300 text-lg mb-8">
-                  Aún no hay noticias publicadas. Los administradores pueden crear las primeras noticias
-                  desde el panel de administración para mantener informada a la comunidad.
-                </p>
+            <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-8">
+              <MessageCircle className="w-16 h-16 text-blue-400 mx-auto mb-4 opacity-50" />
+              <h2 className="text-2xl font-bold text-white mb-3 text-center">¡Bienvenido a la Comunidad!</h2>
+              <p className="text-blue-300 text-center mb-6">
+                Aún no hay noticias publicadas. Los administradores pueden crear las primeras noticias
+                desde el panel de administración para mantener informada a la comunidad.
+              </p>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="bg-slate-700/40 rounded-xl p-6">
-                    <Pin className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
-                    <h3 className="text-lg font-bold text-white mb-2">Noticias Importantes</h3>
-                    <p className="text-blue-300 text-sm">
-                      Las noticias fijadas aparecerán destacadas para toda la comunidad
-                    </p>
-                  </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-slate-700/40 rounded-xl p-4">
+                  <Pin className="w-6 h-6 text-yellow-400 mx-auto mb-2" />
+                  <h3 className="text-base font-bold text-white mb-1 text-center">Noticias Importantes</h3>
+                  <p className="text-blue-300 text-xs text-center">
+                    Las noticias fijadas aparecerán destacadas para toda la comunidad
+                  </p>
+                </div>
 
-                  <div className="bg-slate-700/40 rounded-xl p-6">
-                    <Heart className="w-8 h-8 text-red-400 mx-auto mb-3" />
-                    <h3 className="text-lg font-bold text-white mb-2">Interacción</h3>
-                    <p className="text-blue-300 text-sm">
-                      Los usuarios podrán comentar y reaccionar a las publicaciones
-                    </p>
-                  </div>
+                <div className="bg-slate-700/40 rounded-xl p-4">
+                  <Heart className="w-6 h-6 text-red-400 mx-auto mb-2" />
+                  <h3 className="text-base font-bold text-white mb-1 text-center">Interacción</h3>
+                  <p className="text-blue-300 text-xs text-center">
+                    Los usuarios podrán comentar y reaccionar a las publicaciones
+                  </p>
                 </div>
               </div>
             </div>
