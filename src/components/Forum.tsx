@@ -332,8 +332,8 @@ const Forum: React.FC = () => {
 
   const handleQuoteReply = (reply: ForumReply) => {
     setQuotedReply(reply);
-    const quoteText = `<blockquote><strong>${reply.author.username}:</strong><br/>${reply.content}</blockquote><p><br/></p>`;
-    setNewReply(quoteText);
+    // No insertamos la cita en el editor, se mostrará en un cuadro separado
+    setNewReply('');
 
     // Scroll al formulario de respuesta
     setTimeout(() => {
@@ -373,7 +373,8 @@ const Forum: React.FC = () => {
 
   const canToggleLock = () => {
     if (!user || !selectedTopic) return false;
-    return user.id === selectedTopic.author.id;
+    // Solo los administradores pueden cerrar/reabrir temas
+    return user.role === 'admin';
   };
 
   const formatDate = (dateString: string) => {
@@ -1035,22 +1036,42 @@ const Forum: React.FC = () => {
               {user ? (
                 <div className="space-y-4">
                   {quotedReply && (
-                    <div className="flex items-center justify-between bg-blue-600/10 border border-blue-500/30 rounded-lg p-3">
-                      <div className="flex items-center space-x-2">
-                        <Quote className="w-4 h-4 text-blue-400" />
-                        <span className="text-blue-300 text-sm">
-                          Citando a <strong>{quotedReply.author.username}</strong>
-                        </span>
+                    <div className="bg-blue-600/10 border border-blue-500/30 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <Quote className="w-4 h-4 text-blue-400" />
+                          <span className="text-blue-300 text-sm font-medium">
+                            Citando a <strong>{quotedReply.author.username}</strong>
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setQuotedReply(null);
+                          }}
+                          className="text-red-400 hover:text-red-300 text-sm font-medium"
+                        >
+                          Cancelar cita
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          setQuotedReply(null);
-                          setNewReply('');
-                        }}
-                        className="text-red-400 hover:text-red-300 text-sm"
-                      >
-                        Cancelar cita
-                      </button>
+                      {/* Cuadro de la cita */}
+                      <div className="bg-slate-700/40 border-l-4 border-blue-500 rounded-r-lg p-4">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <img
+                            src={quotedReply.author.avatar}
+                            alt={quotedReply.author.username}
+                            className="w-6 h-6 rounded-full border border-blue-500/30"
+                          />
+                          <span className="text-blue-200 text-sm font-bold">{quotedReply.author.username}</span>
+                          <span className="text-blue-400 text-xs">{formatDate(quotedReply.createdAt)}</span>
+                        </div>
+                        <div className="text-blue-200 text-sm prose prose-sm prose-invert max-w-none">
+                          <RichTextEditor
+                            value={quotedReply.content}
+                            onChange={() => {}}
+                            readOnly={true}
+                          />
+                        </div>
+                      </div>
                     </div>
                   )}
 

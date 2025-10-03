@@ -33,8 +33,22 @@ try {
     $database = new Database();
     $db = $database->getConnection();
 
-    // Verificar que el usuario es el autor del tema
-    $checkQuery = "SELECT user_id, is_locked FROM forum_topics WHERE id = :id";
+    // Verificar que el usuario es administrador
+    $userQuery = "SELECT role FROM users WHERE id = :user_id";
+    $userStmt = $db->prepare($userQuery);
+    $userStmt->bindParam(':user_id', $_SESSION['user_id']);
+    $userStmt->execute();
+    $user = $userStmt->fetch();
+
+    if ($user['role'] !== 'admin') {
+        jsonResponse([
+            'success' => false,
+            'message' => 'Solo los administradores pueden bloquear/desbloquear temas'
+        ], 403);
+    }
+
+    // Verificar que el tema existe
+    $checkQuery = "SELECT is_locked FROM forum_topics WHERE id = :id";
     $checkStmt = $db->prepare($checkQuery);
     $checkStmt->bindParam(':id', $data['topicId']);
     $checkStmt->execute();
@@ -45,13 +59,6 @@ try {
             'success' => false,
             'message' => 'Tema no encontrado'
         ], 404);
-    }
-
-    if ($topic['user_id'] != $_SESSION['user_id']) {
-        jsonResponse([
-            'success' => false,
-            'message' => 'Solo el autor puede bloquear/desbloquear el tema'
-        ], 403);
     }
 
     // Alternar el estado de bloqueo
