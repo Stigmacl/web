@@ -78,15 +78,15 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId, onBack }) => {
 
   const loadPlayerStats = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/player_stats?user_id=eq.${userId}`, {
-        headers: {
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        }
+      const response = await fetch('http://localhost/api/stats/get-all.php', {
+        credentials: 'include'
       });
       const data = await response.json();
-      if (data && data.length > 0) {
-        setPlayerStats(data[0]);
+      if (data.success) {
+        const userStats = data.stats.find((s: any) => s.user_id === parseInt(userId));
+        if (userStats) {
+          setPlayerStats(userStats);
+        }
       }
     } catch (error) {
       console.error('Error loading player stats:', error);
@@ -95,14 +95,14 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId, onBack }) => {
 
   const loadPlayerTitles = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/player_titles?user_id=eq.${userId}&order=awarded_date.desc`, {
-        headers: {
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        }
+      const response = await fetch('http://localhost/api/stats/get-all.php', {
+        credentials: 'include'
       });
       const data = await response.json();
-      setPlayerTitles(data || []);
+      if (data.success) {
+        const userTitles = data.titles.filter((t: any) => t.user_id === parseInt(userId));
+        setPlayerTitles(userTitles || []);
+      }
     } catch (error) {
       console.error('Error loading player titles:', error);
     }
