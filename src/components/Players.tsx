@@ -64,6 +64,20 @@ const Players: React.FC = () => {
     loadTournaments();
   }, []);
 
+  // Escuchar eventos para cambiar el modo de vista
+  useEffect(() => {
+    const handleViewModeChange = (event: CustomEvent) => {
+      const mode = event.detail as ViewMode;
+      setViewMode(mode);
+    };
+
+    window.addEventListener('set-players-view-mode', handleViewModeChange as EventListener);
+
+    return () => {
+      window.removeEventListener('set-players-view-mode', handleViewModeChange as EventListener);
+    };
+  }, []);
+
   const loadTournaments = async () => {
     try {
       setIsLoadingTournaments(true);
