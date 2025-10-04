@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Users, Download, User, MessageSquare, Award, Server } from 'lucide-react';
+import { Home, Users, Download, User, MessageSquare, Award, Server, Trophy } from 'lucide-react';
 import { Section } from '../App';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -18,6 +18,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentSection, onSectionChange
     { id: 'home' as Section, label: 'Inicio', icon: Home },
     { id: 'players' as Section, label: 'Comunidad', icon: Users },
     { id: 'servers' as Section, label: 'Servidores', icon: Server },
+    { id: 'ranking' as Section, label: 'Ranking', icon: Trophy },
     { id: 'forum' as Section, label: 'Foro', icon: MessageSquare },
     { id: 'sponsors' as Section, label: 'Sponsors', icon: Award },
     { id: 'download' as Section, label: 'Descarga', icon: Download },
