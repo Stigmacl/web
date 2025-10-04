@@ -33,6 +33,7 @@ const Ranking: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [orderBy, setOrderBy] = useState<'kd_ratio' | 'total_kills' | 'total_score'>('kd_ratio');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [serverNames, setServerNames] = useState<Map<string, string>>(new Map());
 
   const fetchRankings = async () => {
     try {
@@ -55,6 +56,28 @@ const Ranking: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const fetchServerNames = async () => {
+    const names = new Map<string, string>();
+    for (const server of serverConfigs) {
+      try {
+        const response = await fetch(`https://api.lcto.cl/server-info?ip=${server.ip}&port=${server.port}&timeOut=5`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.hostname) {
+            names.set(`${server.ip}:${server.port}`, data.hostname);
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching server name for ${server.ip}:${server.port}`, error);
+      }
+    }
+    setServerNames(names);
+  };
+
+  useEffect(() => {
+    fetchServerNames();
+  }, []);
 
   useEffect(() => {
     fetchRankings();
@@ -99,25 +122,30 @@ const Ranking: React.FC = () => {
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {serverConfigs.map((server) => (
-          <button
-            key={`${server.ip}:${server.port}`}
-            onClick={() => setSelectedServer(server)}
-            className={`p-4 rounded-xl border-2 transition-all duration-300 ${
-              selectedServer.ip === server.ip && selectedServer.port === server.port
-                ? 'bg-blue-600/20 border-blue-500 text-white'
-                : 'bg-slate-800/40 border-blue-700/30 text-blue-300 hover:bg-blue-600/10'
-            }`}
-          >
-            <div className="flex items-center space-x-3">
-              <Server className="w-5 h-5" />
-              <div className="text-left">
-                <p className="font-bold">{server.name}</p>
-                <p className="text-xs opacity-70">{server.ip}:{server.port}</p>
+        {serverConfigs.map((server) => {
+          const serverKey = `${server.ip}:${server.port}`;
+          const displayName = serverNames.get(serverKey) || server.name;
+
+          return (
+            <button
+              key={serverKey}
+              onClick={() => setSelectedServer(server)}
+              className={`p-4 rounded-xl border-2 transition-all duration-300 ${
+                selectedServer.ip === server.ip && selectedServer.port === server.port
+                  ? 'bg-blue-600/20 border-blue-500 text-white'
+                  : 'bg-slate-800/40 border-blue-700/30 text-blue-300 hover:bg-blue-600/10'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <Server className="w-5 h-5" />
+                <div className="text-left">
+                  <p className="font-bold">{displayName}</p>
+                  <p className="text-xs opacity-70">{server.ip}:{server.port}</p>
+                </div>
               </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
 
       <div className="flex justify-center space-x-2 mb-8">
