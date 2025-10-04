@@ -28,6 +28,8 @@ interface Player {
   ping: number;
   score: number;
   team: number;
+  frags: number;
+  deaths: number;
 }
 
 interface ServerConfig {
@@ -344,34 +346,51 @@ const Servers: React.FC = () => {
                               <th className="text-left py-2 px-3 text-blue-300 font-medium">Jugador</th>
                               <th className="text-center py-2 px-3 text-blue-300 font-medium">Equipo</th>
                               <th className="text-center py-2 px-3 text-blue-300 font-medium">Puntos</th>
+                              <th className="text-center py-2 px-3 text-blue-300 font-medium">Frags</th>
+                              <th className="text-center py-2 px-3 text-blue-300 font-medium">Muertes</th>
+                              <th className="text-center py-2 px-3 text-blue-300 font-medium">K/D</th>
                               <th className="text-center py-2 px-3 text-blue-300 font-medium">Ping</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {server.players.map((player, idx) => (
-                              <tr key={idx} className="border-b border-slate-600/30 hover:bg-slate-600/20">
-                                <td className="py-2 px-3 text-white font-medium">{player.name}</td>
-                                <td className="py-2 px-3 text-center">
-                                  <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                                    player.team === 0 ? 'bg-red-600/20 text-red-300 border border-red-500/30' :
-                                    player.team === 1 ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' :
-                                    'bg-gray-600/20 text-gray-300 border border-gray-500/30'
-                                  }`}>
-                                    {player.team === 0 ? 'Terroristas' : player.team === 1 ? 'Fuerzas Especiales' : 'Espectador'}
-                                  </span>
-                                </td>
-                                <td className="py-2 px-3 text-center text-white font-bold">{player.score}</td>
-                                <td className="py-2 px-3 text-center">
-                                  <span className={`font-medium ${
-                                    player.ping < 50 ? 'text-green-400' :
-                                    player.ping < 100 ? 'text-yellow-400' :
-                                    'text-red-400'
-                                  }`}>
-                                    {player.ping}ms
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
+                            {server.players.map((player, idx) => {
+                              const kd = player.deaths > 0 ? (player.frags / player.deaths).toFixed(2) : player.frags.toFixed(2);
+                              return (
+                                <tr key={idx} className="border-b border-slate-600/30 hover:bg-slate-600/20">
+                                  <td className="py-2 px-3 text-white font-medium">{player.name}</td>
+                                  <td className="py-2 px-3 text-center">
+                                    <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                                      player.team === 0 ? 'bg-red-600/20 text-red-300 border border-red-500/30' :
+                                      player.team === 1 ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' :
+                                      'bg-gray-600/20 text-gray-300 border border-gray-500/30'
+                                    }`}>
+                                      {player.team === 0 ? 'Terroristas' : player.team === 1 ? 'Fuerzas Especiales' : 'Espectador'}
+                                    </span>
+                                  </td>
+                                  <td className="py-2 px-3 text-center text-white font-bold">{player.score}</td>
+                                  <td className="py-2 px-3 text-center text-green-400 font-bold">{player.frags}</td>
+                                  <td className="py-2 px-3 text-center text-red-400 font-bold">{player.deaths}</td>
+                                  <td className="py-2 px-3 text-center">
+                                    <span className={`font-bold ${
+                                      parseFloat(kd) >= 2 ? 'text-green-400' :
+                                      parseFloat(kd) >= 1 ? 'text-yellow-400' :
+                                      'text-red-400'
+                                    }`}>
+                                      {kd}
+                                    </span>
+                                  </td>
+                                  <td className="py-2 px-3 text-center">
+                                    <span className={`font-medium ${
+                                      player.ping < 50 ? 'text-green-400' :
+                                      player.ping < 100 ? 'text-yellow-400' :
+                                      'text-red-400'
+                                    }`}>
+                                      {player.ping}ms
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
