@@ -61,20 +61,52 @@ function AppContent() {
 
   if (isLoading) {
     return (
-      <div 
-        className={`min-h-screen bg-gradient-to-br ${themeConfig.colors.background} flex items-center justify-center`}
-      >
-        <div className="text-center">
-          <div 
-            className="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4"
-            style={{ borderColor: `${themeConfig.colors.primary} transparent transparent transparent` }}
-          ></div>
-          <p 
-            className="text-lg font-medium"
-            style={{ color: themeConfig.colors.textSecondary }}
-          >
-            Cargando Tactical Ops ...
+      <div className="min-h-screen bg-black flex items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-gray-900 via-black to-black"></div>
+
+        <div className="smoke-container absolute inset-0 opacity-30">
+          <div className="smoke smoke-1"></div>
+          <div className="smoke smoke-2"></div>
+          <div className="smoke smoke-3"></div>
+          <div className="smoke smoke-4"></div>
+        </div>
+
+        <div className="particles absolute inset-0">
+          {[...Array(30)].map((_, i) => (
+            <div
+              key={i}
+              className="particle"
+              style={{
+                left: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 5}s`,
+                animationDuration: `${5 + Math.random() * 10}s`
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="text-center relative z-10">
+          <div className="mb-8 logo-pulse">
+            <img
+              src="/Tactical_Ops_Logo.png"
+              alt="Tactical Ops Logo"
+              className="h-32 md:h-48 mx-auto drop-shadow-2xl"
+            />
+          </div>
+
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" style={{ animationDelay: '0.4s' }}></div>
+          </div>
+
+          <p className="text-lg font-bold text-white tracking-wider loading-text">
+            CARGANDO TACTICAL OPS
           </p>
+
+          <div className="mt-6 w-64 h-1 bg-gray-800 rounded-full overflow-hidden mx-auto">
+            <div className="h-full bg-gradient-to-r from-red-600 via-blue-600 to-red-600 animate-progress"></div>
+          </div>
         </div>
       </div>
     );
