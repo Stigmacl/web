@@ -127,10 +127,118 @@ function AppContent() {
 
   return (
     <div
-      className={`min-h-screen bg-gradient-to-br ${themeConfig.colors.background}`}
+      className={`min-h-screen bg-gradient-to-br ${themeConfig.colors.background} relative overflow-hidden`}
       style={{ color: themeConfig.colors.text }}
     >
+      {/* Pattern overlay */}
       <div className="fixed inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.02%22%3E%3Ccircle%20cx%3D%227%22%20cy%3D%227%22%20r%3D%221%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E')] opacity-30"></div>
+
+      {/* Smoke Effects - Neon Cyberpunk */}
+      {themeConfig.id === 'neon-cyberpunk' && (
+        <>
+          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+            <div className="neon-smoke neon-smoke-1"></div>
+            <div className="neon-smoke neon-smoke-2"></div>
+            <div className="neon-smoke neon-smoke-3"></div>
+          </div>
+          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+            <div className="glowing-orb orb-neon-1"></div>
+            <div className="glowing-orb orb-neon-2"></div>
+          </div>
+          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+            <div className="light-beam light-beam-1"></div>
+            <div className="light-beam light-beam-2"></div>
+            <div className="light-beam light-beam-3"></div>
+            <div className="light-beam light-beam-4"></div>
+            <div className="light-beam light-beam-5"></div>
+          </div>
+          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+            {[...Array(20)].map((_, i) => (
+              <div
+                key={i}
+                className="energy-particle"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  color: i % 2 === 0 ? 'rgb(236, 72, 153)' : 'rgb(6, 182, 212)',
+                  animationDelay: `${Math.random() * 5}s`,
+                  animationDuration: `${8 + Math.random() * 12}s`
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Smoke Effects - Toxic Green */}
+      {themeConfig.id === 'toxic-green' && (
+        <>
+          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+            <div className="toxic-smoke toxic-smoke-1"></div>
+            <div className="toxic-smoke toxic-smoke-2"></div>
+            <div className="toxic-smoke toxic-smoke-3"></div>
+          </div>
+          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+            <div className="glowing-orb orb-toxic-1"></div>
+            <div className="glowing-orb orb-toxic-2"></div>
+          </div>
+          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+            <div className="light-beam light-beam-1"></div>
+            <div className="light-beam light-beam-2"></div>
+            <div className="light-beam light-beam-3"></div>
+            <div className="light-beam light-beam-4"></div>
+          </div>
+          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+            {[...Array(25)].map((_, i) => (
+              <div
+                key={i}
+                className="energy-particle"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  color: i % 3 === 0 ? 'rgb(34, 197, 94)' : i % 3 === 1 ? 'rgb(132, 204, 22)' : 'rgb(163, 230, 53)',
+                  animationDelay: `${Math.random() * 5}s`,
+                  animationDuration: `${7 + Math.random() * 10}s`
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Smoke Effects - Plasma Red */}
+      {themeConfig.id === 'plasma-red' && (
+        <>
+          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+            <div className="plasma-smoke plasma-smoke-1"></div>
+            <div className="plasma-smoke plasma-smoke-2"></div>
+            <div className="plasma-smoke plasma-smoke-3"></div>
+          </div>
+          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+            <div className="glowing-orb orb-plasma-1"></div>
+            <div className="glowing-orb orb-plasma-2"></div>
+          </div>
+          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+            <div className="light-beam light-beam-1"></div>
+            <div className="light-beam light-beam-2"></div>
+            <div className="light-beam light-beam-3"></div>
+            <div className="light-beam light-beam-4"></div>
+            <div className="light-beam light-beam-5"></div>
+          </div>
+          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+            {[...Array(22)].map((_, i) => (
+              <div
+                key={i}
+                className="energy-particle"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  color: i % 3 === 0 ? 'rgb(239, 68, 68)' : i % 3 === 1 ? 'rgb(225, 29, 72)' : 'rgb(251, 146, 60)',
+                  animationDelay: `${Math.random() * 5}s`,
+                  animationDuration: `${6 + Math.random() * 11}s`
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Banner dinámico */}
       {isEnabled && bannerItems.length > 0 && (
