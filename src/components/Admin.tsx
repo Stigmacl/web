@@ -8,8 +8,9 @@ import MapManager from './MapManager';
 import UserEditModal from './UserEditModal';
 import PlayerStatsManager from './PlayerStatsManager';
 import StreamingManager from './StreamingManager';
+import SponsorManager from './SponsorManager';
 
-type AdminSection = 'overview' | 'users' | 'news' | 'clans' | 'banner' | 'tournaments' | 'maps' | 'moderation' | 'player-stats' | 'streaming';
+type AdminSection = 'overview' | 'users' | 'news' | 'clans' | 'banner' | 'tournaments' | 'maps' | 'moderation' | 'player-stats' | 'streaming' | 'sponsors';
 
 interface DeletedComment {
   id: string;
@@ -231,6 +232,7 @@ const Admin: React.FC = () => {
     { id: 'clans' as AdminSection, label: 'Clanes', icon: Shield, color: 'text-yellow-400' },
     { id: 'tournaments' as AdminSection, label: 'Torneos', icon: Trophy, color: 'text-orange-400' },
     { id: 'maps' as AdminSection, label: 'Mapas', icon: Map, color: 'text-pink-400' },
+    { id: 'sponsors' as AdminSection, label: 'Sponsors', icon: Award, color: 'text-emerald-400' },
     { id: 'streaming' as AdminSection, label: 'Streaming', icon: Radio, color: 'text-red-400' },
     { id: 'banner' as AdminSection, label: 'Banner', icon: Image, color: 'text-cyan-400' },
     { id: 'moderation' as AdminSection, label: 'Moderación', icon: AlertTriangle, color: 'text-red-400' }
@@ -572,6 +574,10 @@ const Admin: React.FC = () => {
 
       {activeSection === 'streaming' && (
         <StreamingManager />
+      )}
+
+      {activeSection === 'sponsors' && (
+        <SponsorManager />
       )}
 
       {activeSection === 'player-stats' && (

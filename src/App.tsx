@@ -6,13 +6,14 @@ import Players from './components/Players';
 import Contact from './components/Contact';
 import UserPanel from './components/UserPanel';
 import Forum from './components/Forum';
+import Sponsors from './components/Sponsors';
 import SessionManager from './components/SessionManager';
 import ThemeSelector from './components/ThemeSelector';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { BannerProvider, useBanner } from './contexts/BannerContext';
 
-export type Section = 'home' | 'players' | 'download' | 'user-panel' | 'forum';
+export type Section = 'home' | 'players' | 'download' | 'user-panel' | 'forum' | 'sponsors';
 
 function AppContent() {
   const [currentSection, setCurrentSection] = useState<Section>('home');
@@ -51,6 +52,8 @@ function AppContent() {
         return <UserPanel />;
       case 'forum':
         return <Forum />;
+      case 'sponsors':
+        return <Sponsors />;
       default:
         return <Home />;
     }
