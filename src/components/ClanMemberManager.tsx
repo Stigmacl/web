@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Plus, UserMinus, Clock, CheckCircle, XCircle, AlertTriangle, User, Shield, MessageSquare, Calendar, Eye, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../config/api';
 
 interface MemberRequest {
   id: string;
@@ -32,24 +33,6 @@ interface ClanMemberManagerProps {
   isLeader: boolean;
 }
 
-// Detectar automáticamente la URL base de la API
-const getApiBaseUrl = () => {
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-  
-  if (hostname === 'localhost' && port === '5173') {
-    return 'http://localhost/api';
-  }
-  
-  if (port && port !== '80' && port !== '443') {
-    return `${protocol}//${hostname}:${port}/api`;
-  }
-  
-  return `${protocol}//${hostname}/api`;
-};
-
-const API_BASE_URL = getApiBaseUrl();
 
 const ClanMemberManager: React.FC<ClanMemberManagerProps> = ({ clanId, clanTag, isLeader }) => {
   const { user, users } = useAuth();

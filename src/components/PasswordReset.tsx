@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { KeyRound, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 const PasswordReset: React.FC = () => {
   const [token, setToken] = useState('');
@@ -42,7 +43,7 @@ const PasswordReset: React.FC = () => {
     }
 
     try {
-      const response = await fetch('http://localhost/api/auth/reset-password.php', {
+      const response = await fetch(`${API_BASE_URL}/auth/reset-password.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword })

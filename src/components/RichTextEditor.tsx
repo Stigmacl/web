@@ -2,6 +2,7 @@ import React, { useRef, useMemo, useState } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { Link2 as LinkIcon, X } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 interface RichTextEditorProps {
   value: string;
@@ -10,23 +11,6 @@ interface RichTextEditorProps {
   readOnly?: boolean;
 }
 
-const getApiBaseUrl = () => {
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-
-  if (hostname === 'localhost' && port === '5173') {
-    return 'http://localhost/api';
-  }
-
-  if (port && port !== '80' && port !== '443') {
-    return `${protocol}//${hostname}:${port}/api`;
-  }
-
-  return `${protocol}//${hostname}/api`;
-};
-
-const API_BASE_URL = getApiBaseUrl();
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,

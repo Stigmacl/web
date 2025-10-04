@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Shield, Star, Trophy, Clock, MapPin, Calendar, ArrowLeft, Eye, EyeOff, Award, Crown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import UserWall from './UserWall';
+import { API_BASE_URL } from '../config/api';
 
 interface UserProfileProps {
   userId: string;
@@ -78,7 +79,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId, onBack }) => {
 
   const loadPlayerStats = async () => {
     try {
-      const response = await fetch('http://localhost/api/stats/get-all.php', {
+      const response = await fetch(`${API_BASE_URL}/stats/get-all.php`, {
         credentials: 'include'
       });
       const data = await response.json();
@@ -95,7 +96,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId, onBack }) => {
 
   const loadPlayerTitles = async () => {
     try {
-      const response = await fetch('http://localhost/api/stats/get-all.php', {
+      const response = await fetch(`${API_BASE_URL}/stats/get-all.php`, {
         credentials: 'include'
       });
       const data = await response.json();

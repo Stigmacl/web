@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { API_BASE_URL, apiRequest as apiRequestHelper } from '../config/api';
 
 interface Comment {
   id: string;
@@ -134,28 +135,6 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-// Detectar automáticamente la URL base de la API
-const getApiBaseUrl = () => {
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-  
-  // Si estamos en desarrollo local (puerto 5173 de Vite)
-  if (hostname === 'localhost' && port === '5173') {
-    return 'http://localhost/api';
-  }
-  
-  // Si estamos en producción o en el servidor real
-  if (port && port !== '80' && port !== '443') {
-    return `${protocol}//${hostname}:${port}/api`;
-  }
-  
-  // Para dominios normales (como www.tacticalops.cl)
-  return `${protocol}//${hostname}/api`;
-};
-
-const API_BASE_URL = getApiBaseUrl();
-
 // Constantes de sesión - 20 minutos con verificación constante
 const SESSION_DURATION = 20 * 60 * 1000; // 20 minutos en milisegundos
 const AUTO_EXTEND_INTERVAL = 2 * 60 * 1000; // Auto-extender cada 2 minutos
@@ -163,76 +142,8 @@ const SESSION_CHECK_INTERVAL = 30 * 1000; // Verificar sesión cada 30 segundos
 const HEARTBEAT_INTERVAL = 60 * 1000; // Heartbeat cada 1 minuto
 const USERS_REFRESH_INTERVAL = 30 * 1000; // Actualizar lista de usuarios cada 30 segundos
 
-// Función helper para manejar respuestas de la API
-const handleApiResponse = async (response: Response, endpoint: string) => {
-  console.log(`Response status for ${endpoint}:`, response.status, response.statusText);
-  
-  // Obtener el texto de la respuesta primero
-  const responseText = await response.text();
-  console.log(`Raw response for ${endpoint}:`, responseText.substring(0, 500) + (responseText.length > 500 ? '...' : ''));
-  
-  // Verificar si la respuesta está vacía
-  if (!responseText.trim()) {
-    throw new Error(`El servidor devolvió una respuesta vacía para ${endpoint}`);
-  }
-  
-  // Verificar si la respuesta contiene HTML (errores de PHP)
-  if (responseText.trim().startsWith('<') || responseText.includes('<br />') || responseText.includes('<b>')) {
-    console.error(`PHP Error detected in ${endpoint}:`, responseText);
-    throw new Error(`Error del servidor PHP en ${endpoint}. Revisa los logs del servidor para más detalles.`);
-  }
-  
-  // Intentar parsear como JSON
-  let data;
-  try {
-    data = JSON.parse(responseText);
-  } catch (parseError) {
-    console.error(`JSON Parse Error for ${endpoint}:`, parseError);
-    console.error(`Response text:`, responseText);
-    throw new Error(`Respuesta inválida del servidor para ${endpoint}: ${parseError.message}`);
-  }
-  
-  // Verificar el código de estado HTTP
-  if (!response.ok) {
-    const errorMessage = data?.message || data?.error || `Error HTTP: ${response.status} ${response.statusText}`;
-    throw new Error(errorMessage);
-  }
-  
-  return data;
-};
-
-// Función helper para hacer peticiones a la API
-const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-  const url = `${API_BASE_URL}${endpoint}`;
-
-  const defaultOptions: RequestInit = {
-    credentials: 'include',
-    cache: 'no-store',
-    headers: {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-      ...options.headers,
-    },
-    ...options,
-  };
-
-  console.log(`🚀 API Request: ${options.method || 'GET'} ${url}`);
-  if (options.body) {
-    console.log(`📤 Request body:`, options.body);
-  }
-
-  try {
-    const response = await fetch(url, defaultOptions);
-    const data = await handleApiResponse(response, endpoint);
-    console.log(`✅ API Response for ${endpoint}:`, data);
-    return data;
-  } catch (error) {
-    console.error(`❌ API Error for ${endpoint}:`, error);
-    throw error;
-  }
-};
+// Usar la función helper de la configuración centralizada
+const apiRequest = apiRequestHelper;
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);

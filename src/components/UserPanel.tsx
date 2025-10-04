@@ -3,6 +3,7 @@ import { User, Camera, Settings, Save, Star, Shield, Trophy, Clock, Edit3, LogIn
 import { useAuth } from '../contexts/AuthContext';
 import UserWall from './UserWall';
 import Admin from './Admin';
+import { API_BASE_URL } from '../config/api';
 
 const UserPanel: React.FC = () => {
   const { user, updateUser, logout, login, register } = useAuth();
@@ -54,7 +55,7 @@ const UserPanel: React.FC = () => {
     if (!user) return;
 
     try {
-      const response = await fetch('http://localhost/api/stats/get-all.php', {
+      const response = await fetch(`${API_BASE_URL}/stats/get-all.php`, {
         credentials: 'include'
       });
       const data = await response.json();

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Trophy, Star, Target, Award, Crown, Plus, Save, X, Trash2, Edit } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../config/api';
 
 const PlayerStatsManager: React.FC = () => {
   const { users } = useAuth();
@@ -20,7 +21,7 @@ const PlayerStatsManager: React.FC = () => {
   const loadAllStats = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost/api/stats/get-all.php', {
+      const response = await fetch(`${API_BASE_URL}/stats/get-all.php`, {
         credentials: 'include'
       });
       const data = await response.json();
@@ -58,7 +59,7 @@ const PlayerStatsManager: React.FC = () => {
 
   const handleSaveStats = async () => {
     try {
-      const response = await fetch('http://localhost/api/stats/update-stats.php', {
+      const response = await fetch(`${API_BASE_URL}/stats/update-stats.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -95,7 +96,7 @@ const PlayerStatsManager: React.FC = () => {
     }
 
     try {
-      const response = await fetch('http://localhost/api/stats/add-title.php', {
+      const response = await fetch(`${API_BASE_URL}/stats/add-title.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -127,7 +128,7 @@ const PlayerStatsManager: React.FC = () => {
     if (!confirm('¿Estás seguro de eliminar este título?')) return;
 
     try {
-      const response = await fetch('http://localhost/api/stats/delete-title.php', {
+      const response = await fetch(`${API_BASE_URL}/stats/delete-title.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

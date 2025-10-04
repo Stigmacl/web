@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import UserProfile from './UserProfile';
 import ClanProfile from './ClanProfile';
 import TournamentDetail from './TournamentDetail';
+import { API_BASE_URL } from '../config/api';
 
 type ViewMode = 'players' | 'clans' | 'tournaments';
 
@@ -26,24 +27,6 @@ interface Tournament {
   createdAt: string;
 }
 
-// Detectar automáticamente la URL base de la API
-const getApiBaseUrl = () => {
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-  
-  if (hostname === 'localhost' && port === '5173') {
-    return 'http://localhost/api';
-  }
-  
-  if (port && port !== '80' && port !== '443') {
-    return `${protocol}//${hostname}:${port}/api`;
-  }
-  
-  return `${protocol}//${hostname}/api`;
-};
-
-const API_BASE_URL = getApiBaseUrl();
 
 const Players: React.FC = () => {
   const { users, user, clans } = useAuth();

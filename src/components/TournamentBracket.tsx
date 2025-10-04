@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Trophy, Users, Target, Edit, Save, X, Plus, Trash2, Settings, Crown, Shield, Star, Zap, AlertTriangle, CheckCircle, MapPin, Calendar, Clock, RefreshCw, Eye, EyeOff, Move, Lock, Unlock, Type, Tag, Award, Medal, UserCheck } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 interface Participant {
   id: string;
@@ -47,24 +48,6 @@ interface TournamentBracketProps {
   onRefreshData: () => void;
 }
 
-// Detectar automáticamente la URL base de la API
-const getApiBaseUrl = () => {
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-  
-  if (hostname === 'localhost' && port === '5173') {
-    return 'http://localhost/api';
-  }
-  
-  if (port && port !== '80' && port !== '443') {
-    return `${protocol}//${hostname}:${port}/api`;
-  }
-  
-  return `${protocol}//${hostname}/api`;
-};
-
-const API_BASE_URL = getApiBaseUrl();
 
 const TournamentBracket: React.FC<TournamentBracketProps> = ({
   tournamentId,

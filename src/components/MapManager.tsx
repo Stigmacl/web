@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Map, Plus, Edit, Trash2, Save, X, Upload, Image, Eye, EyeOff, MapPin, Users, Target, Mountain, Zap, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 interface MapData {
   id?: string;
@@ -18,24 +19,6 @@ interface MapData {
   updatedAt?: string;
 }
 
-// Detectar automáticamente la URL base de la API
-const getApiBaseUrl = () => {
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-  
-  if (hostname === 'localhost' && port === '5173') {
-    return 'http://localhost/api';
-  }
-  
-  if (port && port !== '80' && port !== '443') {
-    return `${protocol}//${hostname}:${port}/api`;
-  }
-  
-  return `${protocol}//${hostname}/api`;
-};
-
-const API_BASE_URL = getApiBaseUrl();
 
 const MapManager: React.FC = () => {
   const [maps, setMaps] = useState<MapData[]>([]);

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Trophy, Plus, Edit, Trash2, Save, X, Users, Calendar, Target, Award, Eye, Play, Pause, CheckCircle, AlertTriangle, UserPlus, UserMinus, Settings, Crown, Shield, Star, Zap, MapPin, Clock, TrendingUp, Activity, Medal, Swords, RefreshCw, Image, Upload, Camera } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import TournamentBracket from './TournamentBracket';
+import { API_BASE_URL } from '../config/api';
 
 interface Tournament {
   id: string;
@@ -108,24 +109,6 @@ interface MapData {
   createdAt: string;
 }
 
-// Detectar automáticamente la URL base de la API
-const getApiBaseUrl = () => {
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-  
-  if (hostname === 'localhost' && port === '5173') {
-    return 'http://localhost/api';
-  }
-  
-  if (port && port !== '80' && port !== '443') {
-    return `${protocol}//${hostname}:${port}/api`;
-  }
-  
-  return `${protocol}//${hostname}/api`;
-};
-
-const API_BASE_URL = getApiBaseUrl();
 
 const TournamentManager: React.FC = () => {
   const { user, users, clans } = useAuth();

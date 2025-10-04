@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MessageSquare, Plus, Pin, Lock, Eye, MessageCircle, User, Calendar, ArrowLeft, Send, Shield, Star, Users, Search, Filter, Clock, TrendingUp, ChevronRight, AlertCircle, LogIn, Trash2, Edit2, Quote, History, Unlock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import RichTextEditor from './RichTextEditor';
+import { API_BASE_URL } from '../config/api';
 
 interface ForumTopic {
   id: string;
@@ -48,24 +49,6 @@ interface TopicDetail extends ForumTopic {
   replies: ForumReply[];
 }
 
-// Detectar automáticamente la URL base de la API
-const getApiBaseUrl = () => {
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-  
-  if (hostname === 'localhost' && port === '5173') {
-    return 'http://localhost/api';
-  }
-  
-  if (port && port !== '80' && port !== '443') {
-    return `${protocol}//${hostname}:${port}/api`;
-  }
-  
-  return `${protocol}//${hostname}/api`;
-};
-
-const API_BASE_URL = getApiBaseUrl();
 
 const Forum: React.FC = () => {
   const { user } = useAuth();

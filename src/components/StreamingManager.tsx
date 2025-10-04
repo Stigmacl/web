@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Radio, Save, AlertCircle, CheckCircle, Eye } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 const StreamingManager: React.FC = () => {
   const [streamUrl, setStreamUrl] = useState('');
@@ -15,7 +16,7 @@ const StreamingManager: React.FC = () => {
 
   const loadConfig = async () => {
     try {
-      const response = await fetch('http://localhost/api/streaming/get-config.php', {
+      const response = await fetch(`${API_BASE_URL}/streaming/get-config.php`, {
         credentials: 'include'
       });
       const data = await response.json();
@@ -34,7 +35,7 @@ const StreamingManager: React.FC = () => {
     setMessage(null);
 
     try {
-      const response = await fetch('http://localhost/api/streaming/update-config.php', {
+      const response = await fetch(`${API_BASE_URL}/streaming/update-config.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

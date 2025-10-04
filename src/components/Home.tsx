@@ -3,6 +3,7 @@ import { Calendar, MessageCircle, Heart, Share2, Pin, Eye, User, Trash2, RotateC
 import { useAuth } from '../contexts/AuthContext';
 import StreamPlayer from './StreamPlayer';
 import TournamentsWidget from './TournamentsWidget';
+import { API_BASE_URL } from '../config/api';
 
 const Home: React.FC = () => {
   const { news, user, likeNews, addComment, incrementNewsViews, deleteComment, restoreComment, tournaments } = useAuth();
@@ -121,7 +122,7 @@ const Home: React.FC = () => {
   useEffect(() => {
     const fetchStreamConfig = async () => {
       try {
-        const response = await fetch('http://localhost/api/streaming/get-config.php', {
+        const response = await fetch(`${API_BASE_URL}/streaming/get-config.php`, {
           credentials: 'include'
         });
         const data = await response.json();

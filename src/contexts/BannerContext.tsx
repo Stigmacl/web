@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { API_BASE_URL } from '../config/api';
 
 interface BannerItem {
   id: string;
@@ -43,24 +44,6 @@ interface BannerProviderProps {
   children: ReactNode;
 }
 
-// Detectar automáticamente la URL base de la API
-const getApiBaseUrl = () => {
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-  
-  if (hostname === 'localhost' && port === '5173') {
-    return 'http://localhost/api';
-  }
-  
-  if (port && port !== '80' && port !== '443') {
-    return `${protocol}//${hostname}:${port}/api`;
-  }
-  
-  return `${protocol}//${hostname}/api`;
-};
-
-const API_BASE_URL = getApiBaseUrl();
 
 export const BannerProvider: React.FC<BannerProviderProps> = ({ children }) => {
   const [bannerItems, setBannerItems] = useState<BannerItem[]>([]);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, User, Mail, Shield, Star, Crown, Target, Zap, Eye, EyeOff, Key, Users, Image, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../config/api';
 
 interface UserEditModalProps {
   user: any;
@@ -9,24 +10,6 @@ interface UserEditModalProps {
   onSave: () => void;
 }
 
-// Detectar automáticamente la URL base de la API
-const getApiBaseUrl = () => {
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-  
-  if (hostname === 'localhost' && port === '5173') {
-    return 'http://localhost/api';
-  }
-  
-  if (port && port !== '80' && port !== '443') {
-    return `${protocol}//${hostname}:${port}/api`;
-  }
-  
-  return `${protocol}//${hostname}/api`;
-};
-
-const API_BASE_URL = getApiBaseUrl();
 
 const UserEditModal: React.FC<UserEditModalProps> = ({ user, isOpen, onClose, onSave }) => {
   const { clans, updateUser } = useAuth();
