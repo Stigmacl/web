@@ -70,7 +70,7 @@ const Servers: React.FC = () => {
   const fetchServerInfo = async (ip: string, port: number): Promise<{ info: ServerInfo | null; error: string | null }> => {
     try {
       const response = await fetch(
-        `https://api.lcto.cl/server-info?ip=${ip}&port=${port}&timeOut=8`
+        `/api/servers/get-info.php?ip=${ip}&port=${port}&timeout=8`
       );
 
       if (!response.ok) {
@@ -87,7 +87,7 @@ const Servers: React.FC = () => {
   const fetchPlayers = async (ip: string, port: number): Promise<Player[]> => {
     try {
       const response = await fetch(
-        `https://api.lcto.cl/players?ip=${ip}&port=${port}&timeOut=12`
+        `/api/servers/get-players.php?ip=${ip}&port=${port}&timeout=12`
       );
 
       if (!response.ok) {
