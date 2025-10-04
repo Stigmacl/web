@@ -176,7 +176,7 @@ const StreamingManager: React.FC = () => {
           <div className="flex justify-end">
             <button
               onClick={handleSave}
-              disabled={isSaving || !streamUrl}
+              disabled={isSaving}
               className="flex items-center space-x-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 rounded-xl text-white font-medium transition-colors"
             >
               <Save className="w-5 h-5" />

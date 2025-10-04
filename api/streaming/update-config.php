@@ -13,8 +13,13 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
 
 $data = getJsonInput();
 
-if (!isset($data['stream_url']) || !isset($data['is_active']) || !isset($data['descriptive_text'])) {
+if (!isset($data['is_active']) || !isset($data['descriptive_text'])) {
     errorResponse('Datos incompletos', 400);
+}
+
+// Permitir stream_url vacío
+if (!isset($data['stream_url'])) {
+    $data['stream_url'] = '';
 }
 
 try {
