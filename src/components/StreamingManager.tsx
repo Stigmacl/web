@@ -17,7 +17,8 @@ const StreamingManager: React.FC = () => {
   const loadConfig = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/streaming/get-config.php`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       if (data.success && data.config) {

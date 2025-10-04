@@ -137,7 +137,8 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
       
       // Cargar información del torneo
       const tournamentsResponse = await fetch(`${API_BASE_URL}/tournaments/get-all.php`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const tournamentsData = await tournamentsResponse.json();
       
@@ -183,7 +184,8 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
   const loadParticipants = async (tournamentId: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/tournaments/get-participants.php?tournamentId=${tournamentId}`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       
@@ -199,7 +201,8 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
   const loadMatches = async (tournamentId: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/tournaments/get-matches.php?tournamentId=${tournamentId}`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       
@@ -220,7 +223,8 @@ const TournamentDetail: React.FC<TournamentDetailProps> = ({ tournamentId, onBac
       const imagePromises = matches.map(async (match) => {
         try {
           const response = await fetch(`${API_BASE_URL}/tournaments/get-match-images.php?matchId=${match.id}`, {
-            credentials: 'include'
+            credentials: 'include',
+            cache: 'no-store'
           });
           const data = await response.json();
           

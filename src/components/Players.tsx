@@ -65,7 +65,8 @@ const Players: React.FC = () => {
     try {
       setIsLoadingTournaments(true);
       const response = await fetch(`${API_BASE_URL}/tournaments/get-all.php`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       

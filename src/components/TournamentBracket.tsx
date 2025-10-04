@@ -119,7 +119,8 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
   const loadRoundTitles = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/tournaments/get-round-titles.php?tournamentId=${tournamentId}`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       
@@ -134,7 +135,8 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
   const loadManualChampion = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/tournaments/get-champion.php?tournamentId=${tournamentId}`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       

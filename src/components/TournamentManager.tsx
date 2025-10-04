@@ -236,7 +236,8 @@ const TournamentManager: React.FC = () => {
     try {
       setIsLoading(true);
       const response = await fetch(`${API_BASE_URL}/tournaments/get-all.php`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       
@@ -253,7 +254,8 @@ const TournamentManager: React.FC = () => {
   const loadMaps = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/maps/get-all.php`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       
@@ -280,7 +282,8 @@ const TournamentManager: React.FC = () => {
   const loadParticipants = async (tournamentId: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/tournaments/get-participants.php?tournamentId=${tournamentId}`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       
@@ -295,7 +298,8 @@ const TournamentManager: React.FC = () => {
   const loadMatches = async (tournamentId: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/tournaments/get-matches.php?tournamentId=${tournamentId}`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       
@@ -328,7 +332,8 @@ const TournamentManager: React.FC = () => {
   const loadMatchImages = async (matchId: string): Promise<MatchImage[]> => {
     try {
       const response = await fetch(`${API_BASE_URL}/tournaments/get-match-images.php?matchId=${matchId}`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       
@@ -345,7 +350,8 @@ const TournamentManager: React.FC = () => {
   const loadChampion = async (tournamentId: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/tournaments/get-champion.php?tournamentId=${tournamentId}`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       
@@ -369,7 +375,8 @@ const TournamentManager: React.FC = () => {
       
       // Actualizar el torneo seleccionado con los nuevos datos
       const updatedTournaments = await fetch(`${API_BASE_URL}/tournaments/get-all.php`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       }).then(res => res.json());
       
       if (updatedTournaments.success) {

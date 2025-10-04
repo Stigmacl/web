@@ -56,7 +56,8 @@ const UserPanel: React.FC = () => {
 
     try {
       const response = await fetch(`${API_BASE_URL}/stats/get-all.php`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       if (data.success) {

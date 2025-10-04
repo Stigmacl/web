@@ -68,6 +68,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Configuración de respuesta JSON
 header('Content-Type: application/json; charset=utf-8');
 
+// Deshabilitar caché para todas las respuestas de API
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Cache-Control: post-check=0, pre-check=0', false);
+header('Pragma: no-cache');
+header('Expires: 0');
+
 // Función helper para respuestas JSON
 function jsonResponse($data, $status = 200) {
     // Limpiar cualquier output buffer que pueda contener errores HTML

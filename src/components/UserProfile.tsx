@@ -80,7 +80,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId, onBack }) => {
   const loadPlayerStats = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/stats/get-all.php`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       if (data.success) {
@@ -97,7 +98,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId, onBack }) => {
   const loadPlayerTitles = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/stats/get-all.php`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       if (data.success) {

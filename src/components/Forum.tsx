@@ -102,7 +102,8 @@ const Forum: React.FC = () => {
     try {
       setIsLoading(true);
       const response = await fetch(`${API_BASE_URL}/forum/get-topics.php?category=${selectedCategory}`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       
@@ -120,7 +121,8 @@ const Forum: React.FC = () => {
     try {
       setIsLoading(true);
       const response = await fetch(`${API_BASE_URL}/forum/get-topic.php?id=${topicId}`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
       
@@ -163,7 +165,7 @@ const Forum: React.FC = () => {
       if (data.success) {
         setNewTopic({ title: '', content: '', category: 'general' });
         setCurrentView('list');
-        loadTopics();
+        await loadTopics();
       } else {
         alert(data.message || 'Error al crear el tema');
       }
@@ -197,7 +199,7 @@ const Forum: React.FC = () => {
           setCurrentView('list');
           setSelectedTopic(null);
         }
-        loadTopics();
+        await loadTopics();
       } else {
         alert(data.message || 'Error al eliminar el tema');
       }
@@ -338,7 +340,8 @@ const Forum: React.FC = () => {
   const loadEditHistory = async (replyId: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/forum/get-edit-history.php?replyId=${replyId}`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
       const data = await response.json();
 
