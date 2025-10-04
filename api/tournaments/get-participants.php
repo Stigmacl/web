@@ -61,28 +61,29 @@ try {
 
     // Obtener participantes
     $query = "
-        SELECT tp.*, 
-               CASE 
-                   WHEN tp.participant_type = 'user' THEN u.username
-                   WHEN tp.participant_type = 'clan' THEN c.name
-                   WHEN tp.participant_type = 'team' THEN tp.team_name
+        SELECT tp.*,
+               CASE
+                   WHEN tp.participant_type = 'user' THEN COALESCE(u.username, 'Usuario Desconocido')
+                   WHEN tp.participant_type = 'clan' THEN COALESCE(c.name, 'Clan Desconocido')
+                   WHEN tp.participant_type = 'team' THEN COALESCE(tp.team_name, 'Equipo')
+                   ELSE 'Participante'
                END as participant_name,
-               CASE 
+               CASE
                    WHEN tp.participant_type = 'user' THEN u.avatar
                    WHEN tp.participant_type = 'clan' THEN c.logo
                    ELSE NULL
                END as participant_avatar,
-               CASE 
+               CASE
                    WHEN tp.participant_type = 'clan' THEN c.tag
                    ELSE NULL
                END as clan_tag,
-               CASE 
+               CASE
                    WHEN tp.participant_type = 'clan' THEN c.icon
                    ELSE NULL
                END as clan_icon
         FROM tournament_participants tp
-        LEFT JOIN users u ON tp.participant_type = 'user' AND tp.participant_id = u.id
-        LEFT JOIN clans c ON tp.participant_type = 'clan' AND tp.participant_id = c.id
+        LEFT JOIN users u ON tp.participant_type = 'user' AND CAST(tp.participant_id AS UNSIGNED) = u.id
+        LEFT JOIN clans c ON tp.participant_type = 'clan' AND CAST(tp.participant_id AS UNSIGNED) = c.id
         WHERE tp.tournament_id = :tournament_id
         ORDER BY tp.points DESC, tp.wins DESC, tp.registered_at ASC
     ";

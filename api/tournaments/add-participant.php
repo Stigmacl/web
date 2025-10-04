@@ -248,20 +248,10 @@ try {
 
     $insertStmt = $db->prepare($insertQuery);
     $insertStmt->bindValue(':tournament_id', $tournamentId, PDO::PARAM_INT);
-    $insertStmt->bindValue(':participant_type', $participantType);
-    $insertStmt->bindValue(':participant_id', $participantId);
-
-    if ($teamName !== null) {
-        $insertStmt->bindValue(':team_name', $teamName);
-    } else {
-        $insertStmt->bindValue(':team_name', null, PDO::PARAM_NULL);
-    }
-
-    if ($teamMembers !== null) {
-        $insertStmt->bindValue(':team_members', $teamMembers);
-    } else {
-        $insertStmt->bindValue(':team_members', null, PDO::PARAM_NULL);
-    }
+    $insertStmt->bindValue(':participant_type', $participantType, PDO::PARAM_STR);
+    $insertStmt->bindValue(':participant_id', $participantId, PDO::PARAM_STR);
+    $insertStmt->bindValue(':team_name', $teamName, $teamName === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+    $insertStmt->bindValue(':team_members', $teamMembers, $teamMembers === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
 
     if (!$insertStmt->execute()) {
         error_log("Error SQL al insertar participante: " . print_r($insertStmt->errorInfo(), true));
