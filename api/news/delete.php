@@ -17,6 +17,10 @@ if (!isset($data['id'])) {
     errorResponse('ID de noticia requerido');
 }
 
+// Log para debugging
+error_log('Intentando eliminar noticia con ID: ' . $data['id']);
+error_log('Tipo de ID recibido: ' . gettype($data['id']));
+
 try {
     $database = new Database();
     $db = $database->getConnection();
@@ -38,7 +42,16 @@ try {
     $checkStmt->bindParam(':id', $data['id']);
     $checkStmt->execute();
 
-    if (!$checkStmt->fetch()) {
+    $existingNews = $checkStmt->fetch();
+    error_log('Noticia encontrada en DB: ' . ($existingNews ? 'SI' : 'NO'));
+
+    if (!$existingNews) {
+        // Mostrar todas las noticias disponibles para debug
+        $allNewsQuery = "SELECT id, title FROM news LIMIT 10";
+        $allNewsStmt = $db->query($allNewsQuery);
+        $allNews = $allNewsStmt->fetchAll();
+        error_log('IDs disponibles en DB: ' . print_r(array_column($allNews, 'id'), true));
+
         errorResponse('Noticia no encontrada', 404);
     }
 
