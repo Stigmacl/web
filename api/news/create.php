@@ -50,8 +50,11 @@ try {
         'id' => $db->lastInsertId()
     ]);
 
+} catch (PDOException $e) {
+    error_log("Database error: " . $e->getMessage());
+    errorResponse('Error de base de datos: ' . $e->getMessage(), 500);
 } catch (Exception $e) {
-    error_log($e->getMessage());
-    errorResponse('Error interno del servidor', 500);
+    error_log("General error: " . $e->getMessage());
+    errorResponse('Error interno del servidor: ' . $e->getMessage(), 500);
 }
 ?>

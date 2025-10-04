@@ -20,9 +20,9 @@ ini_set('session.gc_divisor', 100); // Probabilidad 1%
 
 class Database {
     private $host = 'localhost';
-    private $db_name = 'tactical_ops_chile';
-    private $username = 'root';
-    private $password = '';
+    private $db_name = 'tactica2_tactical_ops_chile';
+    private $username = 'tactica2_root';
+    private $password = 'Trini3915..';
     private $conn;
 
     public function getConnection() {
@@ -52,8 +52,9 @@ class Database {
     }
 }
 
-// Configuración de CORS para desarrollo
-header('Access-Control-Allow-Origin: http://localhost');
+// Configuración de CORS - permitir origen actual
+$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
+header('Access-Control-Allow-Origin: ' . $origin);
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Access-Control-Allow-Credentials: true');
@@ -101,11 +102,16 @@ function startSecureSession() {
     if (session_status() === PHP_SESSION_NONE) {
         // Configurar parámetros de cookie antes de iniciar sesión - 20 minutos
         $sessionLifetime = 1200; // 20 minutos (1200 segundos)
+        // Detectar si estamos en HTTPS
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                   || $_SERVER['SERVER_PORT'] == 443
+                   || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
         session_set_cookie_params([
             'lifetime' => $sessionLifetime,
             'path' => '/',
             'domain' => '',
-            'secure' => false, // Cambiar a true en producción con HTTPS
+            'secure' => $isHttps, // Automático según el entorno
             'httponly' => true,
             'samesite' => 'Lax'
         ]);
