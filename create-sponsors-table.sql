@@ -1,0 +1,18 @@
+CREATE TABLE IF NOT EXISTS sponsors (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    logo TEXT NOT NULL,
+    website VARCHAR(255) DEFAULT NULL,
+    whatsapp VARCHAR(255) DEFAULT NULL,
+    instagram VARCHAR(255) DEFAULT NULL,
+    facebook VARCHAR(255) DEFAULT NULL,
+    youtube VARCHAR(255) DEFAULT NULL,
+    twitch VARCHAR(255) DEFAULT NULL,
+    kick VARCHAR(255) DEFAULT NULL,
+    display_order INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_display_order (display_order),
+    INDEX idx_is_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
