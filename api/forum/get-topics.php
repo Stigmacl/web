@@ -25,23 +25,24 @@ try {
     // Construir query base
     $whereClause = '';
     $params = [];
-    
-    if ($category !== 'all') {
+
+    if ($category !== 'all' && !empty($category)) {
         $whereClause = 'WHERE ft.category = :category';
         $params[':category'] = $category;
     }
 
     // Obtener temas con información del autor y última respuesta
-    $query = "SELECT ft.*, 
+    $baseQuery = "SELECT ft.*,
                      u.username as author_username,
                      u.avatar as author_avatar,
                      lr.username as last_reply_username,
                      lr.avatar as last_reply_avatar
               FROM forum_topics ft
-              JOIN users u ON ft.user_id = u.id
-              LEFT JOIN users lr ON ft.last_reply_by = lr.id
-              $whereClause
-              ORDER BY ft.is_pinned DESC, 
+              INNER JOIN users u ON ft.user_id = u.id
+              LEFT JOIN users lr ON ft.last_reply_by = lr.id";
+
+    $query = $baseQuery . " " . $whereClause . "
+              ORDER BY ft.is_pinned DESC,
                        COALESCE(ft.last_reply_at, ft.created_at) DESC
               LIMIT :limit OFFSET :offset";
     
