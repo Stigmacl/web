@@ -108,7 +108,7 @@ const Ranking: React.FC = () => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-4xl font-bold text-white mb-4">Ranking de Jugadores</h1>
-          <p className="text-blue-200 text-lg">Los mejores combatientes de Tactical Ops Chile</p>
+          <p className="text-blue-200 text-lg">Los mejores jugadores de Tactical Ops Chile</p>
         </div>
 
         <button
