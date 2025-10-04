@@ -1,382 +1,341 @@
 import React, { useState, useEffect } from 'react';
-import { Server, Users, Copy, RefreshCw, Wifi, WifiOff, Clock, MapPin, ExternalLink, AlertCircle, TrendingUp, Activity } from 'lucide-react';
+import { Server, Users, Map, Clock, Shield, Lock, Unlock, RefreshCw, Copy, AlertCircle, ExternalLink } from 'lucide-react';
 
 interface ServerInfo {
-  id: string;
-  name: string;
-  ip: string;
-  port: number;
-  gameTrackerUrl: string;
-  bannerUrl: string;
-  isOnline: boolean;
-  lastUpdate: string;
-  country: string;
-  version: string;
-  gameMode: string;
+  hostname: string;
+  hostport: number;
+  gameVer: number;
+  mapTitle: string;
+  mapName: string;
+  maxPlayers: number;
+  numPlayers: number;
+  gameType: string;
+  scoreTerrorists: number;
+  scoreSpecialForces: number;
+  roundNumber: number;
+  lastWinningTeam: number;
+  mutators: string;
+  timeLimit: number;
+  friendlyFire: string;
+  tostVersion: string | null;
+  adminName: string;
+  adminEmail: string;
+  password: string;
 }
 
 const Servers: React.FC = () => {
-  const [servers, setServers] = useState<ServerInfo[]>([
-    {
-      id: '1',
-      name: 'Tactical Ops 3.5 Chile #1',
-      ip: '45.7.230.230',
-      port: 7788,
-      gameTrackerUrl: 'https://www.gametracker.com/server_info/45.7.230.230:7788/',
-      bannerUrl: 'https://cache.gametracker.com/server_info/45.7.230.230:7788/b_560_95_1.png',
-      isOnline: true,
-      lastUpdate: new Date().toISOString(),
-      country: 'Chile',
-      version: '3.5',
-      gameMode: 'Deathmatch'
-    },
-    {
-      id: '2',
-      name: 'Tactical Ops 3.5 Chile #2',
-      ip: '45.7.230.230',
-      port: 7777,
-      gameTrackerUrl: 'https://www.gametracker.com/server_info/45.7.230.230:7777/',
-      bannerUrl: 'https://cache.gametracker.com/server_info/45.7.230.230:7777/b_560_95_1.png',
-      isOnline: true,
-      lastUpdate: new Date().toISOString(),
-      country: 'Chile',
-      version: '3.5',
-      gameMode: 'Team Deathmatch'
-    }
-  ]);
+  const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [copied, setCopied] = useState(false);
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [copiedServer, setCopiedServer] = useState<string | null>(null);
-  const [lastRefreshTime, setLastRefreshTime] = useState<string>('');
+  const serverIP = '38.225.91.120';
+  const serverPort = 7777;
 
-  const copyServerIP = async (server: ServerInfo) => {
-    const serverAddress = `${server.ip}:${server.port}`;
+  const fetchServerInfo = async () => {
     try {
-      await navigator.clipboard.writeText(serverAddress);
-      setCopiedServer(server.id);
-      setTimeout(() => setCopiedServer(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy server IP:', err);
-    }
-  };
+      setLoading(true);
+      setError(null);
 
-  // Simular obtención de datos básicos del servidor
-  const fetchServerData = async (server: ServerInfo): Promise<Partial<ServerInfo>> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Simular datos básicos sin información específica
-        const isServerOnline = Math.random() > 0.1; // 90% probabilidad de estar online
-        
-        resolve({
-          isOnline: isServerOnline,
-          lastUpdate: new Date().toISOString()
-        });
-      }, Math.random() * 2000 + 500); // Simular latencia de red
-    });
-  };
-
-  const refreshServers = async () => {
-    setIsRefreshing(true);
-    setLastRefreshTime(new Date().toLocaleTimeString('es-CL'));
-    
-    try {
-      const updatedServers = await Promise.all(
-        servers.map(async (server) => {
-          const updatedData = await fetchServerData(server);
-          return { ...server, ...updatedData };
-        })
+      const response = await fetch(
+        `https://api.lcto.cl/server-info?ip=${serverIP}&port=${serverPort}&timeOut=8`
       );
-      
-      setServers(updatedServers);
-    } catch (error) {
-      console.error('Error refreshing servers:', error);
+
+      if (!response.ok) {
+        throw new Error('No se pudo obtener la información del servidor');
+      }
+
+      const data = await response.json();
+      setServerInfo(data);
+      setLastUpdate(new Date());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
-      setIsRefreshing(false);
+      setLoading(false);
     }
-  };
-
-  const formatLastUpdate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('es-CL', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-  };
-
-  const getOnlineServers = () => {
-    return servers.filter(server => server.isOnline).length;
   };
 
   useEffect(() => {
-    // Refresh inicial
-    refreshServers();
-    
-    // Auto-refresh cada 30 segundos
-    const interval = setInterval(refreshServers, 30000);
+    fetchServerInfo();
+
+    const interval = setInterval(fetchServerInfo, 30000);
+
     return () => clearInterval(interval);
   }, []);
 
+  const copyServerAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(`${serverIP}:${serverPort}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const getTeamColor = (team: number) => {
+    if (team === 0) return 'text-red-400';
+    if (team === 1) return 'text-blue-400';
+    return 'text-gray-400';
+  };
+
+  const getServerStatus = () => {
+    if (!serverInfo) return { color: 'bg-gray-500', text: 'Desconocido', ringColor: 'ring-gray-500/30' };
+    if (serverInfo.numPlayers > 0) return { color: 'bg-green-500', text: 'Activo', ringColor: 'ring-green-500/30' };
+    return { color: 'bg-yellow-500', text: 'Disponible', ringColor: 'ring-yellow-500/30' };
+  };
+
+  const status = getServerStatus();
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-4xl font-bold text-white mb-4">Estado de Servidores</h1>
-          <p className="text-blue-200 text-lg">Monitoreo en tiempo real con datos de GameTracker</p>
-        </div>
-        
-        <button
-          onClick={refreshServers}
-          disabled={isRefreshing}
-          className="flex items-center space-x-2 px-6 py-3 bg-blue-600/20 backdrop-blur-sm border border-blue-500/30 rounded-xl text-blue-300 hover:bg-blue-600/30 hover:text-blue-200 transition-all duration-300 disabled:opacity-50"
-        >
-          <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-          <span>{isRefreshing ? 'Actualizando...' : 'Actualizar'}</span>
-        </button>
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold text-white mb-4">Estado del Servidor</h1>
+        <p className="text-blue-200 text-lg">Información en tiempo real del servidor Tactical Ops 3.5 Chile</p>
       </div>
 
-      {/* Server Statistics */}
-      <div className="grid md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-slate-800/40 backdrop-blur-lg rounded-xl border border-blue-700/30 p-4">
-          <div className="flex items-center space-x-3">
-            <Server className="w-8 h-8 text-blue-400" />
-            <div>
-              <p className="text-2xl font-bold text-white">{servers.length}</p>
-              <p className="text-blue-300 text-sm">Servidores Totales</p>
-            </div>
+      {loading && !serverInfo ? (
+        <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-12">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-blue-300 text-lg">Conectando al servidor...</span>
           </div>
         </div>
-        
-        <div className="bg-slate-800/40 backdrop-blur-lg rounded-xl border border-blue-700/30 p-4">
-          <div className="flex items-center space-x-3">
-            <Activity className="w-8 h-8 text-green-400" />
-            <div>
-              <p className="text-2xl font-bold text-white">{getOnlineServers()}</p>
-              <p className="text-green-300 text-sm">Servidores Online</p>
-            </div>
+      ) : error && !serverInfo ? (
+        <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-red-700/30 p-8">
+          <div className="text-center">
+            <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold text-red-300 mb-2">Error de Conexión</h3>
+            <p className="text-red-400 mb-6">{error}</p>
+            <button
+              onClick={fetchServerInfo}
+              className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-xl text-white font-medium transition-colors flex items-center space-x-2 mx-auto"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Reintentar</span>
+            </button>
           </div>
         </div>
-        
-        <div className="bg-slate-800/40 backdrop-blur-lg rounded-xl border border-blue-700/30 p-4">
-          <div className="flex items-center space-x-3">
-            <Clock className="w-8 h-8 text-purple-400" />
-            <div>
-              <p className="text-lg font-bold text-white">{lastRefreshTime || '--:--:--'}</p>
-              <p className="text-purple-300 text-sm">Última Actualización</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Server Cards with GameTracker Banners */}
-      <div className="grid gap-8">
-        {servers.map((server) => (
-          <div
-            key={server.id}
-            className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 overflow-hidden shadow-2xl hover:shadow-blue-500/10 transition-all duration-300"
-          >
-            {/* GameTracker Banner - Tamaño completo y visible */}
-            <div className="relative">
-              <a 
-                href={server.gameTrackerUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="block hover:opacity-90 transition-opacity"
-              >
-                <div className="w-full bg-slate-900/50 flex items-center justify-center min-h-[120px] overflow-hidden">
-                  <img
-                    src={server.bannerUrl}
-                    alt={`${server.name} - GameTracker Banner`}
-                    className="max-w-full h-auto"
-                    style={{ 
-                      maxHeight: '120px',
-                      width: 'auto',
-                      objectFit: 'contain'
-                    }}
-                    onError={(e) => {
-                      // Fallback en caso de error de imagen
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        parent.innerHTML = `
-                          <div class="flex items-center justify-center h-full text-blue-300">
-                            <div class="text-center">
-                              <Server class="w-12 h-12 mx-auto mb-2 opacity-50" />
-                              <p class="text-sm">Banner no disponible</p>
-                              <p class="text-xs opacity-75">Haz clic para ver en GameTracker</p>
-                            </div>
-                          </div>
-                        `;
-                      }
-                    }}
-                  />
-                </div>
-              </a>
-              
-              {/* Status Overlay */}
-              <div className="absolute top-4 right-4">
-                <div className={`flex items-center space-x-2 px-3 py-1 rounded-full backdrop-blur-sm ${
-                  server.isOnline 
-                    ? 'bg-green-500/20 border border-green-400/30' 
-                    : 'bg-red-500/20 border border-red-400/30'
-                }`}>
-                  {server.isOnline ? (
-                    <><Wifi className="w-4 h-4 text-green-300" /><span className="text-green-300 text-sm font-medium">Online</span></>
-                  ) : (
-                    <><WifiOff className="w-4 h-4 text-red-300" /><span className="text-red-300 text-sm font-medium">Offline</span></>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Server Information */}
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-2xl font-bold text-white mb-2">{server.name}</h3>
-                  <div className="flex items-center space-x-4 text-sm text-blue-300">
-                    <div className="flex items-center space-x-1">
-                      <MapPin className="w-4 h-4" />
-                      <span>{server.country}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Server className="w-4 h-4" />
-                      <span>v{server.version}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Activity className="w-4 h-4" />
-                      <span>{server.gameMode}</span>
-                    </div>
+      ) : serverInfo ? (
+        <div className="space-y-8">
+          <div className={`bg-slate-800/40 backdrop-blur-lg rounded-2xl border-2 ${status.ringColor} border-blue-700/30 overflow-hidden shadow-2xl`}>
+            <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 p-6 border-b border-blue-700/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <Server className="w-12 h-12 text-blue-300" />
+                    <div className={`absolute -top-1 -right-1 w-4 h-4 ${status.color} rounded-full border-2 border-slate-800 animate-pulse`}></div>
                   </div>
-                </div>
-                
-                <div className="text-right">
-                  <div className="flex items-center space-x-1 mb-1">
-                    <Activity className="w-4 h-4 text-blue-400" />
-                    <span className="text-lg font-bold text-blue-300">
-                      {server.isOnline ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-blue-400">
-                    Actualizado: {formatLastUpdate(server.lastUpdate)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Server Address - Single Card */}
-              <div className="bg-slate-700/40 rounded-xl p-4 mb-6">
-                <div className="flex items-center justify-between">
                   <div>
-                    <div className="flex items-center space-x-2 mb-2">
-                      <Server className="w-5 h-5 text-blue-400" />
-                      <h4 className="font-medium text-blue-300">Dirección del Servidor</h4>
+                    <h2 className="text-2xl font-bold text-white">{serverInfo.hostname}</h2>
+                    <div className="flex items-center space-x-3 mt-1">
+                      <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${status.color}/20 border border-${status.color}/30`}>
+                        <div className={`w-2 h-2 ${status.color} rounded-full animate-pulse`}></div>
+                        <span className="text-sm font-medium text-white">{status.text}</span>
+                      </div>
+                      <span className="text-sm text-blue-300">Versión {serverInfo.gameVer}</span>
                     </div>
-                    <p className="text-white font-mono text-lg">{server.ip}:{server.port}</p>
                   </div>
-                  
-                  <button
-                    onClick={() => copyServerIP(server)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-300 hover:text-blue-200 transition-all duration-300"
-                  >
-                    <Copy className="w-4 h-4" />
-                    <span>{copiedServer === server.id ? '¡Copiado!' : 'Copiar IP'}</span>
-                  </button>
                 </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex space-x-3">
                 <button
-                  onClick={() => window.open(server.gameTrackerUrl, '_blank')}
-                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-xl text-green-300 hover:text-green-200 font-medium transition-all duration-300"
+                  onClick={fetchServerInfo}
+                  disabled={loading}
+                  className="p-3 hover:bg-blue-500/20 rounded-xl transition-colors disabled:opacity-50"
+                  title="Actualizar"
                 >
-                  <ExternalLink className="w-4 h-4" />
-                  <span>Ver Detalles en GameTracker</span>
-                </button>
-                
-                <button
-                  onClick={() => copyServerIP(server)}
-                  disabled={!server.isOnline}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:text-slate-400 rounded-xl text-white font-medium transition-colors"
-                >
-                  {server.isOnline ? 'Conectar' : 'Offline'}
+                  <RefreshCw className={`w-6 h-6 text-blue-400 ${loading ? 'animate-spin' : ''}`} />
                 </button>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
 
-      {/* Connection Guide */}
-      <div className="mt-12 bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-6">
-        <h3 className="text-xl font-bold text-white mb-6 flex items-center space-x-2">
-          <AlertCircle className="w-6 h-6 text-blue-400" />
-          <span>Cómo Conectarse a los Servidores</span>
-        </h3>
-        
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="bg-slate-700/40 rounded-xl p-4">
-            <h4 className="text-blue-300 font-medium mb-3 flex items-center space-x-2">
-              <span className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold">1</span>
-              <span>Método Consola (Recomendado)</span>
-            </h4>
-            <ol className="text-blue-200 text-sm space-y-1">
-              <li>• Abre la consola con la tecla <kbd className="bg-slate-600 px-1 rounded">~</kbd></li>
-              <li>• Escribe: <code className="bg-slate-600 px-1 rounded">connect {servers[0]?.ip}:{servers[0]?.port}</code></li>
-              <li>• Presiona <kbd className="bg-slate-600 px-1 rounded">Enter</kbd></li>
-            </ol>
-          </div>
-          
-          <div className="bg-slate-700/40 rounded-xl p-4">
-            <h4 className="text-blue-300 font-medium mb-3 flex items-center space-x-2">
-              <span className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center text-white text-sm font-bold">2</span>
-              <span>Método Lista de Servidores</span>
-            </h4>
-            <ol className="text-blue-200 text-sm space-y-1">
-              <li>• Ve a <strong>Multijugador</strong> → <strong>Buscar servidores</strong></li>
-              <li>• Haz clic en <strong>Añadir servidor</strong></li>
-              <li>• Ingresa la IP y puerto manualmente</li>
-              <li>• Conecta directamente desde la lista</li>
-            </ol>
-          </div>
-        </div>
+            <div className="p-8">
+              <div className="grid lg:grid-cols-2 gap-6 mb-6">
+                <div className="bg-slate-700/40 rounded-xl p-6 border border-blue-600/30">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <Users className="w-6 h-6 text-blue-400" />
+                    <span className="text-lg font-medium text-blue-300">Jugadores Conectados</span>
+                  </div>
+                  <p className="text-5xl font-bold text-white mb-3">
+                    {serverInfo.numPlayers}<span className="text-2xl text-blue-400">/{serverInfo.maxPlayers}</span>
+                  </p>
+                  <div className="bg-slate-600/40 rounded-full h-3 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 h-full transition-all duration-500"
+                      style={{ width: `${(serverInfo.numPlayers / serverInfo.maxPlayers) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
 
-        <div className="mt-6 p-4 bg-blue-600/10 border border-blue-500/30 rounded-xl">
-          <h4 className="text-blue-300 font-medium mb-2 flex items-center space-x-2">
-            <AlertCircle className="w-4 h-4" />
-            <span>Problemas de Conexión?</span>
-          </h4>
-          <ul className="text-blue-200 text-sm space-y-1">
-            <li>• Verifica que tengas la versión correcta del juego (Tactical Ops 3.5)</li>
-            <li>• Asegúrate de que tu firewall no bloquee el juego</li>
-            <li>• Si el servidor aparece lleno, intenta conectarte en unos minutos</li>
-            <li>• Para soporte técnico, visita nuestra sección de <strong>Contacto</strong></li>
-          </ul>
-        </div>
-      </div>
+                <div className="bg-slate-700/40 rounded-xl p-6 border border-blue-600/30">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <Map className="w-6 h-6 text-blue-400" />
+                    <span className="text-lg font-medium text-blue-300">Mapa Actual</span>
+                  </div>
+                  <p className="text-2xl font-bold text-white mb-1">{serverInfo.mapTitle}</p>
+                  <p className="text-blue-400">{serverInfo.mapName}</p>
+                  <div className="mt-3 pt-3 border-t border-blue-700/30">
+                    <span className="text-sm text-blue-300">Modo: </span>
+                    <span className="text-sm font-medium text-white">{serverInfo.gameType}</span>
+                  </div>
+                </div>
+              </div>
 
-      {/* GameTracker Integration Info */}
-      <div className="mt-8 bg-gradient-to-r from-green-600/10 to-blue-600/10 border border-green-500/30 rounded-2xl p-6">
-        <div className="flex items-center space-x-3 mb-4">
-          <ExternalLink className="w-6 h-6 text-green-400" />
-          <h3 className="text-xl font-bold text-white">Datos Reales de GameTracker</h3>
-        </div>
-        <p className="text-green-200 mb-4">
-          Los banners mostrados arriba contienen información en tiempo real directamente desde GameTracker, 
-          incluyendo número de jugadores conectados, mapa actual, y estado del servidor.
-        </p>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="bg-slate-700/40 rounded-lg p-3">
-            <h4 className="text-green-300 font-medium mb-1">Información Actualizada</h4>
-            <p className="text-green-200 text-sm">Los banners se actualizan automáticamente cada pocos minutos</p>
+              <div className="grid md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-gradient-to-br from-red-600/20 to-red-800/20 rounded-xl p-6 border border-red-500/30">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <Shield className="w-6 h-6 text-red-400" />
+                    <span className="text-lg font-medium text-red-300">Terroristas</span>
+                  </div>
+                  <p className="text-4xl font-bold text-red-400">{serverInfo.scoreTerrorists}</p>
+                  <p className="text-sm text-red-300 mt-1">Puntos</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 rounded-xl p-6 border border-blue-500/30">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <Shield className="w-6 h-6 text-blue-400" />
+                    <span className="text-lg font-medium text-blue-300">Fuerzas Especiales</span>
+                  </div>
+                  <p className="text-4xl font-bold text-blue-400">{serverInfo.scoreSpecialForces}</p>
+                  <p className="text-sm text-blue-300 mt-1">Puntos</p>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-slate-700/40 rounded-xl p-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Clock className="w-5 h-5 text-blue-400" />
+                    <span className="text-sm text-blue-300">Ronda Actual</span>
+                  </div>
+                  <p className="text-2xl font-bold text-white">#{serverInfo.roundNumber}</p>
+                </div>
+
+                <div className="bg-slate-700/40 rounded-xl p-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Clock className="w-5 h-5 text-blue-400" />
+                    <span className="text-sm text-blue-300">Límite de Tiempo</span>
+                  </div>
+                  <p className="text-2xl font-bold text-white">{serverInfo.timeLimit} min</p>
+                </div>
+
+                <div className="bg-slate-700/40 rounded-xl p-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Shield className="w-5 h-5 text-blue-400" />
+                    <span className="text-sm text-blue-300">Fuego Amigo</span>
+                  </div>
+                  <p className="text-2xl font-bold text-white">{serverInfo.friendlyFire}</p>
+                </div>
+              </div>
+
+              {serverInfo.mutators && (
+                <div className="bg-slate-700/40 rounded-xl p-4 mb-6">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Server className="w-5 h-5 text-blue-400" />
+                    <span className="text-sm font-medium text-blue-300">Mutadores Activos</span>
+                  </div>
+                  <p className="text-white">{serverInfo.mutators}</p>
+                </div>
+              )}
+
+              <div className="grid md:grid-cols-2 gap-4 mb-6">
+                <div className="bg-slate-700/40 rounded-xl p-4">
+                  <span className="text-sm text-blue-300">Administrador:</span>
+                  <p className="text-white font-medium">{serverInfo.adminName}</p>
+                </div>
+                <div className="bg-slate-700/40 rounded-xl p-4">
+                  <div className="flex items-center space-x-2">
+                    {serverInfo.password === 'False' ? (
+                      <>
+                        <Unlock className="w-5 h-5 text-green-400" />
+                        <span className="text-green-300 font-medium">Servidor Público</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-5 h-5 text-yellow-400" />
+                        <span className="text-yellow-300 font-medium">Servidor Privado</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-xl p-6 border border-blue-600/30">
+                <div className="text-center">
+                  <p className="text-lg text-blue-300 mb-3 font-medium">Dirección del Servidor</p>
+                  <div className="flex items-center justify-center space-x-3">
+                    <code className="text-2xl text-white font-mono bg-slate-700/60 px-6 py-3 rounded-lg">
+                      {serverIP}:{serverPort}
+                    </code>
+                    <button
+                      onClick={copyServerAddress}
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition-colors flex items-center space-x-2"
+                    >
+                      <Copy className="w-5 h-5" />
+                      <span>{copied ? 'Copiado!' : 'Copiar'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-blue-700/30">
+                <div className="text-sm text-blue-400">
+                  Última actualización: {lastUpdate.toLocaleTimeString('es-CL')}
+                </div>
+                <div className="text-xs text-blue-500">
+                  Se actualiza automáticamente cada 30 segundos
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="bg-slate-700/40 rounded-lg p-3">
-            <h4 className="text-green-300 font-medium mb-1">Estadísticas Completas</h4>
-            <p className="text-green-200 text-sm">Haz clic en cualquier banner para ver estadísticas detalladas</p>
+
+          <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-8">
+            <h3 className="text-2xl font-bold text-white mb-6 flex items-center space-x-2">
+              <AlertCircle className="w-6 h-6 text-blue-400" />
+              <span>Cómo Conectarse</span>
+            </h3>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-slate-700/40 rounded-xl p-6">
+                <h4 className="text-blue-300 font-medium mb-4 flex items-center space-x-2">
+                  <span className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">1</span>
+                  <span>Método Consola (Recomendado)</span>
+                </h4>
+                <ol className="text-blue-200 space-y-2">
+                  <li>• Abre la consola con la tecla <kbd className="bg-slate-600 px-2 py-1 rounded text-white">~</kbd></li>
+                  <li>• Escribe: <code className="bg-slate-600 px-2 py-1 rounded text-white block my-2">connect {serverIP}:{serverPort}</code></li>
+                  <li>• Presiona <kbd className="bg-slate-600 px-2 py-1 rounded text-white">Enter</kbd></li>
+                </ol>
+              </div>
+
+              <div className="bg-slate-700/40 rounded-xl p-6">
+                <h4 className="text-blue-300 font-medium mb-4 flex items-center space-x-2">
+                  <span className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white font-bold">2</span>
+                  <span>Método Lista de Servidores</span>
+                </h4>
+                <ol className="text-blue-200 space-y-2">
+                  <li>• Ve a <strong>Multijugador</strong> → <strong>Buscar servidores</strong></li>
+                  <li>• Haz clic en <strong>Añadir servidor</strong></li>
+                  <li>• Ingresa la IP y puerto manualmente</li>
+                  <li>• Conecta directamente desde la lista</li>
+                </ol>
+              </div>
+            </div>
+
+            <div className="mt-6 p-6 bg-blue-600/10 border border-blue-500/30 rounded-xl">
+              <h4 className="text-blue-300 font-medium mb-3 flex items-center space-x-2">
+                <AlertCircle className="w-5 h-5" />
+                <span>Problemas de Conexión?</span>
+              </h4>
+              <ul className="text-blue-200 space-y-2">
+                <li>• Verifica que tengas la versión correcta del juego (Tactical Ops 3.5)</li>
+                <li>• Asegúrate de que tu firewall no bloquee el juego</li>
+                <li>• Si el servidor aparece lleno, intenta conectarte en unos minutos</li>
+                <li>• Para soporte técnico, visita nuestra sección de <strong>Contacto</strong></li>
+              </ul>
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 };
