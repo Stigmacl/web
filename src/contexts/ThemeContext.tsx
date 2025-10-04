@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export type ThemeMode = 'light' | 'dark';
-export type GameTheme = 'tactical' | 'counter-strike' | 'call-of-duty';
+export type GameTheme = 'tactical' | 'counter-strike' | 'metallic-orange';
 
 interface ThemeConfig {
   id: GameTheme;
@@ -93,9 +93,9 @@ const themes: ThemeConfig[] = [
     }
   },
   {
-    id: 'call-of-duty',
-    name: 'Call of Duty',
-    description: 'Negro intenso estilo COD con humo táctico',
+    id: 'metallic-orange',
+    name: 'Naranjo Metálico',
+    description: 'Negro intenso con detalles dorados',
     preview: 'from-black via-zinc-950 to-black',
     colors: {
       primary: 'rgb(234, 179, 8)',
@@ -126,27 +126,27 @@ const lightThemes: ThemeConfig[] = themes.map(theme => ({
     ...theme.colors,
     background: theme.id === 'tactical' ? 'from-blue-50 via-indigo-50 to-blue-100' :
                 theme.id === 'counter-strike' ? 'from-orange-50 via-amber-50 to-orange-100' :
-                theme.id === 'call-of-duty' ? 'from-zinc-100 via-yellow-50 to-amber-50' :
+                theme.id === 'metallic-orange' ? 'from-zinc-100 via-yellow-50 to-amber-50' :
                 'from-gray-50 via-slate-50 to-gray-100',
     surface: theme.id === 'tactical' ? 'rgba(255, 255, 255, 0.8)' :
              theme.id === 'counter-strike' ? 'rgba(255, 251, 235, 0.8)' :
-             theme.id === 'call-of-duty' ? 'rgba(254, 252, 232, 0.8)' :
+             theme.id === 'metallic-orange' ? 'rgba(254, 252, 232, 0.8)' :
              'rgba(249, 250, 251, 0.8)',
     text: 'rgb(17, 24, 39)',
     textSecondary: theme.id === 'tactical' ? 'rgb(30, 64, 175)' :
                    theme.id === 'counter-strike' ? 'rgb(194, 65, 12)' :
-                   theme.id === 'call-of-duty' ? 'rgb(161, 98, 7)' :
+                   theme.id === 'metallic-orange' ? 'rgb(161, 98, 7)' :
                    'rgb(75, 85, 99)',
     border: theme.id === 'tactical' ? 'rgba(59, 130, 246, 0.2)' :
             theme.id === 'counter-strike' ? 'rgba(251, 146, 60, 0.2)' :
-            theme.id === 'call-of-duty' ? 'rgba(234, 179, 8, 0.2)' :
+            theme.id === 'metallic-orange' ? 'rgba(234, 179, 8, 0.2)' :
             'rgba(156, 163, 175, 0.2)'
   },
   effects: {
     ...theme.effects,
     shadow: theme.id === 'tactical' ? 'shadow-xl shadow-blue-500/5' :
             theme.id === 'counter-strike' ? 'shadow-xl shadow-orange-500/5' :
-            theme.id === 'call-of-duty' ? 'shadow-xl shadow-yellow-600/5' :
+            theme.id === 'metallic-orange' ? 'shadow-xl shadow-yellow-600/5' :
             'shadow-xl shadow-gray-500/5'
   }
 }));
