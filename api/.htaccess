@@ -1,17 +1,19 @@
 RewriteEngine On
 
 # Configuración de sesiones PHP - 20 minutos
-php_value session.cookie_lifetime 1200
-php_value session.gc_maxlifetime 1200
-php_value session.cookie_httponly 1
-php_value session.use_strict_mode 1
-php_value session.gc_probability 1
-php_value session.gc_divisor 100
+<IfModule mod_php7.c>
+    php_value session.cookie_lifetime 1200
+    php_value session.gc_maxlifetime 1200
+    php_value session.cookie_httponly 1
+    php_value session.use_strict_mode 1
+    php_value session.gc_probability 1
+    php_value session.gc_divisor 100
+</IfModule>
 
-# Permitir CORS
-Header always set Access-Control-Allow-Origin "http://localhost"
+# Permitir CORS desde cualquier origen
+Header always set Access-Control-Allow-Origin "*"
 Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-Header always set Access-Control-Allow-Headers "Content-Type, Authorization"
+Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
 Header always set Access-Control-Allow-Credentials "true"
 
 # Manejar preflight requests
