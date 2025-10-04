@@ -3,6 +3,7 @@ import { Calendar, MessageCircle, Heart, Share2, Pin, Eye, User, Trash2, RotateC
 import { useAuth } from '../contexts/AuthContext';
 import StreamPlayer from './StreamPlayer';
 import TournamentsWidget from './TournamentsWidget';
+import ServerStatus from './ServerStatus';
 
 const Home: React.FC = () => {
   const { news, user, likeNews, addComment, incrementNewsViews, deleteComment, restoreComment, tournaments } = useAuth();
@@ -487,6 +488,7 @@ const Home: React.FC = () => {
             tournaments={tournaments || []}
             onViewTournament={handleViewTournament}
           />
+          <ServerStatus />
         </div>
       </div>
 
