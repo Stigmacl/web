@@ -137,7 +137,12 @@ const Admin: React.FC = () => {
 
   const handleDeleteNews = async (newsId: string) => {
     if (confirm('¿Estás seguro de que quieres eliminar esta noticia?')) {
-      await deleteNews(newsId);
+      const success = await deleteNews(newsId);
+      if (success) {
+        alert('Noticia eliminada exitosamente');
+      } else {
+        alert('Error al eliminar la noticia. Por favor, intenta de nuevo.');
+      }
     }
   };
 

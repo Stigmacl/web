@@ -46,11 +46,19 @@ try {
     $deleteQuery = "DELETE FROM news WHERE id = :id";
     $deleteStmt = $db->prepare($deleteQuery);
     $deleteStmt->bindParam(':id', $data['id']);
-    $deleteStmt->execute();
+
+    if (!$deleteStmt->execute()) {
+        error_log('Error al ejecutar DELETE: ' . print_r($deleteStmt->errorInfo(), true));
+        errorResponse('Error al eliminar la noticia', 500);
+    }
+
+    $rowsAffected = $deleteStmt->rowCount();
+    error_log("Filas eliminadas: $rowsAffected para noticia ID: {$data['id']}");
 
     jsonResponse([
         'success' => true,
-        'message' => 'Noticia eliminada exitosamente'
+        'message' => 'Noticia eliminada exitosamente',
+        'rowsAffected' => $rowsAffected
     ]);
 
 } catch (Exception $e) {
