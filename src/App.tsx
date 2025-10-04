@@ -34,7 +34,7 @@ function AppContent() {
       return;
     }
     // Simulate initial loading
-    const timer = setTimeout(() => setIsLoading(false), 5000);
+    const timer = setTimeout(() => setIsLoading(false), 2000);
     return () => clearTimeout(timer);
   }, []);
 
