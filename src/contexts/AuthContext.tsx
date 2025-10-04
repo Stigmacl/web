@@ -204,11 +204,15 @@ const handleApiResponse = async (response: Response, endpoint: string) => {
 // Función helper para hacer peticiones a la API
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   const defaultOptions: RequestInit = {
     credentials: 'include',
+    cache: 'no-store',
     headers: {
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
       ...options.headers,
     },
     ...options,
@@ -218,7 +222,7 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   if (options.body) {
     console.log(`📤 Request body:`, options.body);
   }
-  
+
   try {
     const response = await fetch(url, defaultOptions);
     const data = await handleApiResponse(response, endpoint);
