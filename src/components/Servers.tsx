@@ -23,6 +23,13 @@ interface ServerInfo {
   password: string;
 }
 
+interface Player {
+  name: string;
+  ping: number;
+  score: number;
+  team: number;
+}
+
 interface ServerConfig {
   ip: string;
   port: number;
@@ -31,6 +38,7 @@ interface ServerConfig {
 
 interface ServerWithStatus extends ServerConfig {
   info: ServerInfo | null;
+  players: Player[];
   loading: boolean;
   error: string | null;
 }
@@ -47,6 +55,7 @@ const Servers: React.FC = () => {
     serverConfigs.map(config => ({
       ...config,
       info: null,
+      players: [],
       loading: true,
       error: null
     }))
@@ -73,15 +82,36 @@ const Servers: React.FC = () => {
     }
   };
 
+  const fetchPlayers = async (ip: string, port: number): Promise<Player[]> => {
+    try {
+      const response = await fetch(
+        `https://api.lcto.cl/players?ip=${ip}&port=${port}&timeOut=12`
+      );
+
+      if (!response.ok) {
+        return [];
+      }
+
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      return [];
+    }
+  };
+
   const fetchAllServers = async () => {
     setIsRefreshing(true);
 
     const results = await Promise.all(
       serverConfigs.map(async (config) => {
-        const { info, error } = await fetchServerInfo(config.ip, config.port);
+        const [{ info, error }, players] = await Promise.all([
+          fetchServerInfo(config.ip, config.port),
+          fetchPlayers(config.ip, config.port)
+        ]);
         return {
           ...config,
           info,
+          players,
           loading: false,
           error
         };
@@ -299,6 +329,54 @@ const Servers: React.FC = () => {
                       </p>
                     </div>
                   </div>
+
+                  {server.players.length > 0 && (
+                    <div className="bg-slate-700/40 rounded-xl p-4 border border-blue-600/30 mb-4">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <Users className="w-5 h-5 text-blue-400" />
+                        <h3 className="text-lg font-bold text-white">Jugadores Conectados</h3>
+                        <span className="text-sm text-blue-300">({server.players.length})</span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-blue-600/30">
+                              <th className="text-left py-2 px-3 text-blue-300 font-medium">Jugador</th>
+                              <th className="text-center py-2 px-3 text-blue-300 font-medium">Equipo</th>
+                              <th className="text-center py-2 px-3 text-blue-300 font-medium">Puntos</th>
+                              <th className="text-center py-2 px-3 text-blue-300 font-medium">Ping</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {server.players.map((player, idx) => (
+                              <tr key={idx} className="border-b border-slate-600/30 hover:bg-slate-600/20">
+                                <td className="py-2 px-3 text-white font-medium">{player.name}</td>
+                                <td className="py-2 px-3 text-center">
+                                  <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                                    player.team === 0 ? 'bg-red-600/20 text-red-300 border border-red-500/30' :
+                                    player.team === 1 ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' :
+                                    'bg-gray-600/20 text-gray-300 border border-gray-500/30'
+                                  }`}>
+                                    {player.team === 0 ? 'Terroristas' : player.team === 1 ? 'Fuerzas Especiales' : 'Espectador'}
+                                  </span>
+                                </td>
+                                <td className="py-2 px-3 text-center text-white font-bold">{player.score}</td>
+                                <td className="py-2 px-3 text-center">
+                                  <span className={`font-medium ${
+                                    player.ping < 50 ? 'text-green-400' :
+                                    player.ping < 100 ? 'text-yellow-400' :
+                                    'text-red-400'
+                                  }`}>
+                                    {player.ping}ms
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-xl p-4 border border-blue-600/30">
                     <div className="flex items-center justify-between">
