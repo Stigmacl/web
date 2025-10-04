@@ -7,6 +7,7 @@ import Contact from './components/Contact';
 import UserPanel from './components/UserPanel';
 import Forum from './components/Forum';
 import Sponsors from './components/Sponsors';
+import Servers from './components/Servers';
 import SessionManager from './components/SessionManager';
 import ThemeSelector from './components/ThemeSelector';
 import PasswordReset from './components/PasswordReset';
@@ -14,7 +15,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { BannerProvider, useBanner } from './contexts/BannerContext';
 
-export type Section = 'home' | 'players' | 'download' | 'user-panel' | 'forum' | 'sponsors';
+export type Section = 'home' | 'players' | 'servers' | 'download' | 'user-panel' | 'forum' | 'sponsors';
 
 function AppContent() {
   const [currentSection, setCurrentSection] = useState<Section>('home');
@@ -55,6 +56,8 @@ function AppContent() {
         return <Home />;
       case 'players':
         return <Players />;
+      case 'servers':
+        return <Servers />;
       case 'download':
         return <Contact />;
       case 'user-panel':
