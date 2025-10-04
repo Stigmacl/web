@@ -122,8 +122,22 @@ try {
     $stmt->bindValue(':team_size', $teamSize, PDO::PARAM_INT);
     $stmt->bindValue(':max_participants', $data['maxParticipants'], PDO::PARAM_INT);
     $stmt->bindValue(':status', $data['status'] ?? 'draft');
-    $stmt->bindValue(':start_date', $data['startDate'] ?? null);
-    $stmt->bindValue(':end_date', $data['endDate'] ?? null);
+
+    $startDate = !empty($data['startDate']) ? $data['startDate'] : null;
+    $endDate = !empty($data['endDate']) ? $data['endDate'] : null;
+
+    if ($startDate) {
+        $stmt->bindValue(':start_date', $startDate);
+    } else {
+        $stmt->bindValue(':start_date', null, PDO::PARAM_NULL);
+    }
+
+    if ($endDate) {
+        $stmt->bindValue(':end_date', $endDate);
+    } else {
+        $stmt->bindValue(':end_date', null, PDO::PARAM_NULL);
+    }
+
     $stmt->bindValue(':prize_pool', $data['prizePool'] ?? null);
     $stmt->bindValue(':rules', $data['rules'] ?? null);
     $stmt->bindValue(':bracket_type', $data['bracketType'] ?? 'single_elimination');

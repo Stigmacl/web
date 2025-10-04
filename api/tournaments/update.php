@@ -107,12 +107,12 @@ try {
 
     if (isset($data['startDate'])) {
         $updateFields[] = "start_date = :start_date";
-        $params[':start_date'] = $data['startDate'];
+        $params[':start_date'] = !empty($data['startDate']) ? $data['startDate'] : null;
     }
 
     if (isset($data['endDate'])) {
         $updateFields[] = "end_date = :end_date";
-        $params[':end_date'] = $data['endDate'];
+        $params[':end_date'] = !empty($data['endDate']) ? $data['endDate'] : null;
     }
 
     if (isset($data['prizePool'])) {
@@ -134,11 +134,15 @@ try {
     if (!empty($updateFields)) {
         $query = "UPDATE tournaments SET " . implode(', ', $updateFields) . " WHERE id = :id";
         $stmt = $db->prepare($query);
-        
+
         foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
+            if ($value === null && (strpos($key, 'start_date') !== false || strpos($key, 'end_date') !== false)) {
+                $stmt->bindValue($key, null, PDO::PARAM_NULL);
+            } else {
+                $stmt->bindValue($key, $value);
+            }
         }
-        
+
         $stmt->execute();
     }
 

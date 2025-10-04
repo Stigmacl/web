@@ -247,11 +247,21 @@ try {
     ";
 
     $insertStmt = $db->prepare($insertQuery);
-    $insertStmt->bindParam(':tournament_id', $tournamentId);
-    $insertStmt->bindParam(':participant_type', $participantType);
-    $insertStmt->bindParam(':participant_id', $participantId);
-    $insertStmt->bindParam(':team_name', $teamName);
-    $insertStmt->bindParam(':team_members', $teamMembers);
+    $insertStmt->bindValue(':tournament_id', $tournamentId, PDO::PARAM_INT);
+    $insertStmt->bindValue(':participant_type', $participantType);
+    $insertStmt->bindValue(':participant_id', $participantId);
+
+    if ($teamName !== null) {
+        $insertStmt->bindValue(':team_name', $teamName);
+    } else {
+        $insertStmt->bindValue(':team_name', null, PDO::PARAM_NULL);
+    }
+
+    if ($teamMembers !== null) {
+        $insertStmt->bindValue(':team_members', $teamMembers);
+    } else {
+        $insertStmt->bindValue(':team_members', null, PDO::PARAM_NULL);
+    }
 
     if (!$insertStmt->execute()) {
         error_log("Error SQL al insertar participante: " . print_r($insertStmt->errorInfo(), true));
