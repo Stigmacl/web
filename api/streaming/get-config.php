@@ -7,7 +7,7 @@ try {
     $database = new Database();
     $conn = $database->getConnection();
 
-    $query = "SELECT stream_url, is_active, updated_at FROM streaming_config WHERE id = 1";
+    $query = "SELECT stream_url, is_active, descriptive_text, updated_at FROM streaming_config WHERE id = 1";
     $stmt = $conn->prepare($query);
     $stmt->execute();
 
@@ -24,6 +24,7 @@ try {
             'config' => [
                 'stream_url' => '',
                 'is_active' => false,
+                'descriptive_text' => 'Vuelve pronto para ver contenido en vivo',
                 'updated_at' => null
             ]
         ]);

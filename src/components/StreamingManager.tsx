@@ -4,6 +4,7 @@ import { Radio, Save, AlertCircle, CheckCircle, Eye } from 'lucide-react';
 const StreamingManager: React.FC = () => {
   const [streamUrl, setStreamUrl] = useState('');
   const [isActive, setIsActive] = useState(false);
+  const [descriptiveText, setDescriptiveText] = useState('Vuelve pronto para ver contenido en vivo');
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -21,6 +22,7 @@ const StreamingManager: React.FC = () => {
       if (data.success && data.config) {
         setStreamUrl(data.config.stream_url || '');
         setIsActive(data.config.is_active || false);
+        setDescriptiveText(data.config.descriptive_text || 'Vuelve pronto para ver contenido en vivo');
       }
     } catch (error) {
       console.error('Error loading streaming config:', error);
@@ -40,7 +42,8 @@ const StreamingManager: React.FC = () => {
         credentials: 'include',
         body: JSON.stringify({
           stream_url: streamUrl,
-          is_active: isActive
+          is_active: isActive,
+          descriptive_text: descriptiveText
         })
       });
 
@@ -105,6 +108,22 @@ const StreamingManager: React.FC = () => {
                 </span>
               </div>
             )}
+          </div>
+
+          <div>
+            <label className="block text-blue-300 text-sm font-medium mb-2">
+              Texto Descriptivo (cuando no hay transmisión activa)
+            </label>
+            <textarea
+              value={descriptiveText}
+              onChange={(e) => setDescriptiveText(e.target.value)}
+              placeholder="Mensaje personalizado para mostrar cuando no hay transmisión en vivo"
+              rows={3}
+              className="w-full px-4 py-3 bg-slate-700/40 border border-blue-600/30 rounded-xl text-white placeholder-blue-300/50 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+            />
+            <p className="text-blue-400 text-xs mt-2">
+              Este texto se mostrará cuando tengas una URL configurada pero el stream no esté activo.
+            </p>
           </div>
 
           <div className="flex items-center space-x-3 p-4 bg-slate-700/40 rounded-xl border border-blue-600/30">

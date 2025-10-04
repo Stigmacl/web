@@ -14,9 +14,10 @@ const Home: React.FC = () => {
   const [deleteReason, setDeleteReason] = useState('');
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-  const [streamConfig, setStreamConfig] = useState<{ stream_url: string; is_active: boolean }>({
+  const [streamConfig, setStreamConfig] = useState<{ stream_url: string; is_active: boolean; descriptive_text: string }>({
     stream_url: '',
-    is_active: false
+    is_active: false,
+    descriptive_text: 'Vuelve pronto para ver contenido en vivo'
   });
 
   const formatDate = (dateString: string) => {
@@ -127,7 +128,8 @@ const Home: React.FC = () => {
         if (data.success && data.config) {
           setStreamConfig({
             stream_url: data.config.stream_url || '',
-            is_active: data.config.is_active || false
+            is_active: data.config.is_active || false,
+            descriptive_text: data.config.descriptive_text || 'Vuelve pronto para ver contenido en vivo'
           });
         }
       } catch (error) {
@@ -476,7 +478,11 @@ const Home: React.FC = () => {
         </div>
 
         <div className="space-y-8">
-          <StreamPlayer streamUrl={streamConfig.stream_url} isActive={streamConfig.is_active} />
+          <StreamPlayer
+            streamUrl={streamConfig.stream_url}
+            isActive={streamConfig.is_active}
+            descriptiveText={streamConfig.descriptive_text}
+          />
           <TournamentsWidget
             tournaments={tournaments || []}
             onViewTournament={handleViewTournament}
