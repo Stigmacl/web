@@ -69,9 +69,12 @@ const Servers: React.FC = () => {
 
   const fetchServerInfo = async (ip: string, port: number): Promise<{ info: ServerInfo | null; error: string | null }> => {
     try {
-      const response = await fetch(
-        `/api/servers/get-info.php?ip=${ip}&port=${port}&timeout=8`
-      );
+      const isProduction = window.location.hostname !== 'localhost';
+      const apiUrl = isProduction
+        ? `/api/servers/get-info.php?ip=${ip}&port=${port}&timeout=8`
+        : `https://api.lcto.cl/server-info?ip=${ip}&port=${port}&timeOut=8`;
+
+      const response = await fetch(apiUrl);
 
       if (!response.ok) {
         throw new Error('No se pudo obtener la información del servidor');
@@ -86,9 +89,12 @@ const Servers: React.FC = () => {
 
   const fetchPlayers = async (ip: string, port: number): Promise<Player[]> => {
     try {
-      const response = await fetch(
-        `/api/servers/get-players.php?ip=${ip}&port=${port}&timeout=12`
-      );
+      const isProduction = window.location.hostname !== 'localhost';
+      const apiUrl = isProduction
+        ? `/api/servers/get-players.php?ip=${ip}&port=${port}&timeout=12`
+        : `https://api.lcto.cl/players?ip=${ip}&port=${port}&timeOut=12`;
+
+      const response = await fetch(apiUrl);
 
       if (!response.ok) {
         return [];
