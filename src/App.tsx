@@ -9,6 +9,7 @@ import Forum from './components/Forum';
 import Sponsors from './components/Sponsors';
 import SessionManager from './components/SessionManager';
 import ThemeSelector from './components/ThemeSelector';
+import PasswordReset from './components/PasswordReset';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { BannerProvider, useBanner } from './contexts/BannerContext';
@@ -18,10 +19,18 @@ export type Section = 'home' | 'players' | 'download' | 'user-panel' | 'forum' |
 function AppContent() {
   const [currentSection, setCurrentSection] = useState<Section>('home');
   const [isLoading, setIsLoading] = useState(true);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
   const { themeConfig } = useTheme();
   const { bannerItems, isEnabled } = useBanner();
 
   useEffect(() => {
+    // Check if we're on password reset page
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('token')) {
+      setShowPasswordReset(true);
+      setIsLoading(false);
+      return;
+    }
     // Simulate initial loading
     const timer = setTimeout(() => setIsLoading(false), 1000);
     return () => clearTimeout(timer);
@@ -110,6 +119,10 @@ function AppContent() {
         </div>
       </div>
     );
+  }
+
+  if (showPasswordReset) {
+    return <PasswordReset />;
   }
 
   return (
