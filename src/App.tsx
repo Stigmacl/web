@@ -90,7 +90,7 @@ function AppContent() {
             <img
               src="/Tactical_Ops_Logo.png"
               alt="Tactical Ops Logo"
-              className="h-32 md:h-48 mx-auto drop-shadow-2xl"
+              className="h-48 md:h-72 mx-auto drop-shadow-2xl"
             />
           </div>
 
