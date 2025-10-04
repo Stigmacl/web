@@ -86,11 +86,11 @@ function AppContent() {
         </div>
 
         <div className="text-center relative z-10">
-          <div className="mb-8 logo-pulse">
+          <div className="mb-8 logo-pulse px-4">
             <img
               src="/Tactical_Ops_Logo.png"
               alt="Tactical Ops Logo"
-              className="h-48 md:h-72 mx-auto drop-shadow-2xl"
+              className="w-full max-w-5xl mx-auto drop-shadow-2xl"
             />
           </div>
 
