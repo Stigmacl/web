@@ -15,8 +15,8 @@ API_PATH="$SCRIPT_DIR/api/rankings/collect-stats.php"
 echo "Ruta del script: $API_PATH"
 echo ""
 
-# Crear el cron job (se ejecuta cada 5 minutos)
-CRON_JOB="*/5 * * * * /usr/bin/php $API_PATH >> /var/log/ranking-stats.log 2>&1"
+# Crear el cron job (se ejecuta cada 2 minutos)
+CRON_JOB="*/2 * * * * /usr/bin/php $API_PATH >> /var/log/ranking-stats.log 2>&1"
 
 echo "Cron job a agregar:"
 echo "$CRON_JOB"
@@ -33,7 +33,7 @@ fi
 
 echo "✓ Cron job agregado exitosamente!"
 echo ""
-echo "El sistema recolectará estadísticas automáticamente cada 5 minutos."
+echo "El sistema recolectará estadísticas automáticamente cada 2 minutos."
 echo ""
 echo "Para verificar: crontab -l"
 echo "Para ver logs: tail -f /var/log/ranking-stats.log"

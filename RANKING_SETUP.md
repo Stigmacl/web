@@ -25,7 +25,7 @@ O ejecuta manualmente el contenido del archivo `create-ranking-tables.sql` en ph
 
 ### Paso 2: Configurar la Recolección Automática
 
-El sistema incluye un script que recolecta automáticamente las estadísticas de todos los servidores cada 5 minutos.
+El sistema incluye un script que recolecta automáticamente las estadísticas de todos los servidores cada 2 minutos.
 
 #### Opción A: Usando Cron (Linux/Unix)
 
@@ -35,14 +35,14 @@ Ejecuta el script de configuración:
 ./setup-ranking-cron.sh
 ```
 
-Este script configurará automáticamente un cron job que ejecuta la recolección cada 5 minutos.
+Este script configurará automáticamente un cron job que ejecuta la recolección cada 2 minutos.
 
 #### Opción B: Configuración Manual
 
 Agrega esta línea a tu crontab:
 
 ```bash
-*/5 * * * * /usr/bin/php /ruta/a/tu/proyecto/api/rankings/collect-stats.php >> /var/log/ranking-stats.log 2>&1
+*/2 * * * * /usr/bin/php /ruta/a/tu/proyecto/api/rankings/collect-stats.php >> /var/log/ranking-stats.log 2>&1
 ```
 
 Para editar el crontab:
