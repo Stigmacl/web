@@ -1,0 +1,33 @@
+RewriteEngine On
+
+# Configuración de sesiones PHP - 20 minutos
+<IfModule mod_php7.c>
+    php_value session.cookie_lifetime 1200
+    php_value session.gc_maxlifetime 1200
+    php_value session.cookie_httponly 1
+    php_value session.use_strict_mode 1
+    php_value session.gc_probability 1
+    php_value session.gc_divisor 100
+</IfModule>
+
+# Permitir CORS desde cualquier origen
+Header always set Access-Control-Allow-Origin "*"
+Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+Header always set Access-Control-Allow-Credentials "true"
+
+# Manejar preflight requests
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
+
+# Seguridad
+<Files "*.php">
+    Order allow,deny
+    Allow from all
+</Files>
+
+# Prevenir acceso directo a archivos de configuración
+<Files "database.php">
+    Order deny,allow
+    Deny from all
+</Files>

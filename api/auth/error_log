@@ -1,0 +1,9 @@
+[05-Oct-2025 19:52:17 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function getDBConnection() in /home/tactica2/public_html/api/auth/request-password-reset.php:30
+Stack trace:
+#0 {main}
+  thrown in /home/tactica2/public_html/api/auth/request-password-reset.php on line 30
+[05-Oct-2025 20:26:26 UTC] [PASSWORD RESET] Exception: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'reset_token' in 'SET'
+[05-Oct-2025 20:37:49 UTC] [MAILER] Correo enviado exitosamente a: ignaacioantonio@gmail.com
+[05-Oct-2025 20:50:09 UTC] [MAILER] Correo enviado exitosamente a: ignaacioantonio@gmail.com
+[05-Oct-2025 20:53:07 UTC] [MAILER] Correo enviado exitosamente a: ignaacioantonio@gmail.com
+[05-Oct-2025 20:55:31 UTC] [MAILER] Correo enviado exitosamente a: ignaacioantonio@gmail.com
