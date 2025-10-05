@@ -38,9 +38,9 @@ try {
     $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
     $defaultAvatar = '/Logo-Comunidad.png';
 
-    $insertQuery = "INSERT INTO users (username, email, password, avatar, status, is_online) 
-                    VALUES (:username, :email, :password, :avatar, :status, 1)";
-    
+    $insertQuery = "INSERT INTO users (username, email, password, avatar, status, is_online, last_login)
+                    VALUES (:username, :email, :password, :avatar, :status, 1, NOW())";
+
     $stmt = $db->prepare($insertQuery);
     $stmt->bindParam(':username', $data['username']);
     $stmt->bindParam(':email', $data['email']);
