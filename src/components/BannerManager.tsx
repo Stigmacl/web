@@ -223,7 +223,8 @@ const BannerManager: React.FC<BannerManagerProps> = ({ bannerItems, onUpdateBann
   ];
 
   return (
-    <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-6 shadow-2xl max-h-[85vh] overflow-y-auto">
+    <>
+    <div className="bg-slate-800/40 backdrop-blur-lg rounded-2xl border border-blue-700/30 p-6 shadow-2xl">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <div className="p-3 bg-blue-600/20 rounded-xl">
@@ -316,7 +317,7 @@ const BannerManager: React.FC<BannerManagerProps> = ({ bannerItems, onUpdateBann
       </div>
 
       {/* Lista de elementos del banner */}
-      <div className="space-y-4 mb-6">
+      <div className="space-y-4 mb-6 max-h-[50vh] overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -432,6 +433,7 @@ const BannerManager: React.FC<BannerManagerProps> = ({ bannerItems, onUpdateBann
           ))
         )}
       </div>
+    </div>
 
       {/* Modal de edición */}
       {isEditing && editingItem && (
@@ -801,7 +803,7 @@ const BannerManager: React.FC<BannerManagerProps> = ({ bannerItems, onUpdateBann
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
