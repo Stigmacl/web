@@ -244,17 +244,21 @@ main {
 .timeline {
     position: relative;
     padding: var(--spacing-xl) 0;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 /* Línea vertical de la timeline */
 .timeline-line {
     position: absolute;
     left: 50%;
+    top: 0;
     transform: translateX(-50%);
     width: 3px;
     height: 100%;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
+    z-index: 1;
 }
 
 .timeline-progress {
@@ -279,6 +283,11 @@ main {
     opacity: 0;
     transform: translateY(50px);
     transition: all 0.6s ease;
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: flex-start;
+    width: 100%;
+    padding: 0 var(--spacing-lg);
 }
 
 .timeline-item.visible {
@@ -286,12 +295,29 @@ main {
     transform: translateY(0);
 }
 
-/* Marcador circular */
+/* Alternancia izquierda-derecha */
+.timeline-item:nth-child(odd) {
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+.timeline-item:nth-child(odd) .timeline-content {
+    margin-left: auto;
+}
+
+.timeline-item:nth-child(even) {
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.timeline-item:nth-child(even) .timeline-content {
+    margin-right: auto;
+}
+
+/* Marcador circular - fuera del contenido */
 .timeline-marker {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
+    position: relative;
+    flex-shrink: 0;
     width: 24px;
     height: 24px;
     background: var(--color-accent);
@@ -300,6 +326,7 @@ main {
     box-shadow: 0 0 20px rgba(255, 102, 0, 0.5);
     z-index: 10;
     transition: all var(--transition-normal);
+    margin-top: var(--spacing-lg);
 }
 
 .timeline-item.visible .timeline-marker {
@@ -330,8 +357,7 @@ main {
     grid-template-columns: 1fr 1.5fr;
     gap: var(--spacing-lg);
     align-items: center;
-    max-width: 900px;
-    margin: 0 auto;
+    max-width: 500px;
 }
 
 .timeline-image {
@@ -579,17 +605,36 @@ main {
     }
 
     /* Timeline en móvil */
+    .timeline {
+        padding: var(--spacing-xl) 0;
+    }
+
     .timeline-line {
         left: 30px;
+        z-index: 1;
+    }
+
+    .timeline-item {
+        flex-direction: row !important;
+        justify-content: flex-start !important;
+        padding: 0;
+        margin-left: 60px;
+    }
+
+    .timeline-item:nth-child(odd) .timeline-content,
+    .timeline-item:nth-child(even) .timeline-content {
+        margin: 0 !important;
     }
 
     .timeline-marker {
-        left: 30px;
+        position: absolute;
+        left: -40px;
+        top: var(--spacing-lg);
     }
 
     .timeline-content {
-        margin-left: 60px;
         grid-template-columns: 1fr;
+        max-width: 100%;
     }
 
     .glass-card {
