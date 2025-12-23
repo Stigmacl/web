@@ -2,6 +2,8 @@
 
 Sitio web corporativo moderno con diseño Glassmorphism, desarrollado con HTML5, CSS3 y JavaScript puro.
 
+**Estado del Proyecto**: ✅ Funcional y listo para uso
+
 ## Características
 
 - Diseño Glassmorphism (efecto vidrio con transparencias y blur)

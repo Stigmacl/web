@@ -1,16 +1,207 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Fusión 360 - Transformando la experiencia corporativa con innovación y excelencia">
+    <title>Fusión 360 | Innovación Corporativa</title>
+
+    <!-- Estilos -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fusión 360 Modern Corporate Web</title>
-    <meta property="og:image" content="https://bolt.new/static/og_default.png">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="https://bolt.new/static/og_default.png">
 </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/main.js"></script>
-  </body>
+<body>
+
+    <!-- ================================
+         HEADER - Glass Effect
+         ================================ -->
+    <header class="glass-header">
+        <div class="header-content">
+            <!-- Logo -->
+            <div class="logo">
+                <h1>Fusión 360</h1>
+            </div>
+
+            <!-- Navegación -->
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="#inicio" class="nav-link active">Inicio</a></li>
+                    <li><a href="#quienes-somos" class="nav-link">Quiénes Somos</a></li>
+                </ul>
+            </nav>
+
+            <!-- Toggle para menú móvil -->
+            <button class="mobile-menu-toggle" aria-label="Abrir menú">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ================================
+         MAIN CONTENT
+         ================================ -->
+    <main>
+
+        <!-- ================================
+             SECCIÓN: LÍNEA DEL TIEMPO
+             ================================ -->
+        <section id="inicio" class="timeline-section">
+            <div class="container">
+
+                <!-- Header de la sección -->
+                <div class="section-header">
+                    <h2 class="section-title">Nuestros Proyectos</h2>
+                    <p class="section-subtitle">Transformando la experiencia corporativa</p>
+                </div>
+
+                <!-- Timeline Container -->
+                <div class="timeline">
+
+                    <!-- Línea vertical con progreso -->
+                    <div class="timeline-line">
+                        <div class="timeline-progress"></div>
+                    </div>
+
+                    <!-- ================================
+                         ITEM 1: Cliente Incógnito
+                         NOTA POWER PAGES: Este contenido será dinámico desde Dataverse
+                         ================================ -->
+                    <div class="timeline-item" data-index="0">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content glass-card">
+                            <div class="timeline-image">
+                                <img src="https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=800"
+                                     alt="Cliente Incógnito - Evaluación de servicios">
+                            </div>
+                            <div class="timeline-text">
+                                <h3 class="timeline-title">Cliente Incógnito</h3>
+                                <p class="timeline-description">
+                                    Programa especializado de evaluación de experiencia del cliente mediante visitas de mystery shoppers.
+                                    Análisis detallado del servicio, atención al cliente y cumplimiento de protocolos corporativos
+                                    en sucursales bancarias y puntos de atención.
+                                </p>
+                                <a href="#proyecto-cliente-incognito" class="btn-glass" target="_blank">
+                                    Ver proyecto
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================
+                         ITEM 2: Proyectos
+                         NOTA POWER PAGES: Este contenido será dinámico desde Dataverse
+                         ================================ -->
+                    <div class="timeline-item" data-index="1">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content glass-card">
+                            <div class="timeline-image">
+                                <img src="https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=800"
+                                     alt="Proyectos - Gestión corporativa">
+                            </div>
+                            <div class="timeline-text">
+                                <h3 class="timeline-title">Proyectos</h3>
+                                <p class="timeline-description">
+                                    Desarrollo e implementación de proyectos estratégicos para la mejora continua de procesos.
+                                    Gestión integral desde el diagnóstico hasta la evaluación de resultados, aplicando
+                                    metodologías ágiles y frameworks de gestión de proyectos reconocidos internacionalmente.
+                                </p>
+                                <a href="#proyecto-gestion" class="btn-glass" target="_blank">
+                                    Ver proyecto
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================
+                         ITEM 3: Viaje del Ejecutivo
+                         NOTA POWER PAGES: Este contenido será dinámico desde Dataverse
+                         ================================ -->
+                    <div class="timeline-item" data-index="2">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content glass-card">
+                            <div class="timeline-image">
+                                <img src="https://images.pexels.com/photos/3184360/pexels-photo-3184360.jpeg?auto=compress&cs=tinysrgb&w=800"
+                                     alt="Viaje del Ejecutivo - Capacitación">
+                            </div>
+                            <div class="timeline-text">
+                                <h3 class="timeline-title">Viaje del Ejecutivo</h3>
+                                <p class="timeline-description">
+                                    Programa de desarrollo y acompañamiento del ciclo de vida del ejecutivo bancario.
+                                    Desde el onboarding hasta la especialización avanzada, garantizando la excelencia
+                                    en atención al cliente y el cumplimiento de los más altos estándares de servicio.
+                                </p>
+                                <a href="#proyecto-viaje-ejecutivo" class="btn-glass" target="_blank">
+                                    Ver proyecto
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- Fin Timeline -->
+
+            </div>
+        </section>
+
+        <!-- ================================
+             SECCIÓN: QUIÉNES SOMOS
+             ================================ -->
+        <section id="quienes-somos" class="about-section">
+            <div class="container">
+                <div class="about-card glass-card">
+                    <h2 class="section-title">Quiénes Somos</h2>
+                    <p class="about-text">
+                        <strong>Fusión 360</strong> es una empresa especializada en transformación de la experiencia corporativa,
+                        con foco en el sector financiero y bancario.
+                    </p>
+                    <p class="about-text">
+                        Desarrollamos soluciones integrales que abarcan desde la evaluación de la experiencia del cliente
+                        hasta la gestión de proyectos estratégicos y programas de desarrollo profesional.
+                    </p>
+                    <p class="about-text">
+                        Nuestro enfoque combina metodologías ágiles, tecnología de punta y un profundo conocimiento
+                        del negocio para entregar resultados medibles y sostenibles en el tiempo.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ================================
+         BOTÓN FLOTANTE: AVANZAR
+         ================================ -->
+    <button id="nextButton" class="btn-float" aria-label="Avanzar al siguiente proyecto">
+        <span>Avanzar</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12l7 7 7-7"/>
+        </svg>
+    </button>
+
+    <!-- ================================
+         FOOTER
+         ================================ -->
+    <footer class="site-footer">
+        <p>&copy; 2024 Fusión 360. Todos los derechos reservados. | Transformando la experiencia corporativa.</p>
+    </footer>
+
+    <!-- ================================
+         JAVASCRIPT
+         ================================ -->
+    <script type="module" src="script.js"></script>
+
+</body>
 </html>
