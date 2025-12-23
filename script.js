@@ -42,7 +42,7 @@ function initScrollAnimations() {
 
 /**
  * Actualiza el progreso visual de la línea del tiempo
- * basado en la posición del scroll
+ * basado en la posición del scroll de la página
  */
 function updateTimelineProgress() {
     if (!timelineProgress) return;
@@ -50,21 +50,23 @@ function updateTimelineProgress() {
     const timeline = document.querySelector('.timeline');
     if (!timeline) return;
 
-    const timelineRect = timeline.getBoundingClientRect();
-    const windowHeight = window.innerHeight;
+    // Obtener posiciones absolutas basadas en el documento
+    const timelineStart = timeline.offsetTop;
+    const timelineHeight = timeline.offsetHeight;
+    const timelineEnd = timelineStart + timelineHeight;
 
-    // Calcular el porcentaje de scroll dentro de la timeline
-    const timelineTop = timelineRect.top;
-    const timelineHeight = timelineRect.height;
+    // Obtener la posición actual del scroll
+    const scrollPosition = window.scrollY + window.innerHeight / 2;
 
+    // Calcular el progreso basado en el scroll total
     let progress = 0;
 
-    if (timelineTop < windowHeight && timelineTop + timelineHeight > 0) {
-        const visibleHeight = Math.min(
-            windowHeight - Math.max(timelineTop, 0),
-            timelineHeight
-        );
-        progress = (visibleHeight / timelineHeight) * 100;
+    if (scrollPosition >= timelineStart && scrollPosition <= timelineEnd) {
+        progress = ((scrollPosition - timelineStart) / timelineHeight) * 100;
+    } else if (scrollPosition > timelineEnd) {
+        progress = 100;
+    } else if (scrollPosition < timelineStart) {
+        progress = 0;
     }
 
     // Limitar el progreso entre 0 y 100
