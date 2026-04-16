@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dotación Fusion - Supervisor Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Outfit', sans-serif; }
+        .bg-be-blue { background-color: #004b87; }
+        .bg-be-darkblue { background-color: #002D56; }
+        .text-be-orange { color: #F37021; }
+        .bg-be-orange { background-color: #F37021; }
+        .border-be-orange { border-color: #F37021; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex">
+
+    <!-- Sidebar Local Copy (will be replaced by ui-components) -->
+    <aside id="shared-sidebar" class="w-64 bg-be-darkblue flex flex-col shadow-2xl z-50 fixed h-full"></aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 ml-64">
+        <!-- Header -->
+        <header class="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200 px-8 py-5 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-black text-[#002D56] tracking-tight uppercase">Dotación Fusion</h1>
+                <p class="text-xs font-bold text-slate-400 tracking-widest uppercase mt-0.5" id="dotacion-subtitle">Cargando base de datos...</p>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="relative group">
+                    <input type="text" id="dot-search" placeholder="Buscar ejecutivo, RUT o supervisor..." 
+                           class="pl-11 pr-4 py-2.5 bg-slate-100 border-none rounded-2xl text-sm w-72 group-focus-within:ring-2 ring-be-orange/30 transition-all outline-none">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                </div>
+                <div class="h-10 w-px bg-slate-200"></div>
+                <div id="dot-count-badge" class="bg-[#004b87]/10 text-[#004b87] text-[10px] font-black px-4 py-2 rounded-xl border border-[#004b87]/20 uppercase tracking-widest">
+                    ... Registros
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- Filter Tabs -->
+            <div class="flex items-center gap-3 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+                <button onclick="filterByStatus('TODOS')" class="dot-tab active px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap" id="tab-TODOS">Todos</button>
+                <button onclick="filterByStatus('Activo')" class="dot-tab bg-white text-slate-500 border border-slate-200 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:border-be-orange transition-all whitespace-nowrap" id="tab-ACTIVO">Activos</button>
+                <button onclick="filterByStatus('Fuera Falta Grave')" class="dot-tab bg-white text-slate-500 border border-slate-200 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:border-be-orange transition-all whitespace-nowrap" id="tab-FUERA">Fuera Falta Grave</button>
+                <button onclick="filterByStatus('Renuncia/Termino')" class="dot-tab bg-white text-slate-500 border border-slate-200 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:border-be-orange transition-all whitespace-nowrap" id="tab-RENUNCIA">Renuncias / Términos</button>
+                <button onclick="filterByStatus('Licencia/Apoyo')" class="dot-tab bg-white text-slate-500 border border-slate-200 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:border-be-orange transition-all whitespace-nowrap" id="tab-LICENCIA">Licencias / Apoyos</button>
+            </div>
+
+            <!-- Dotación Table -->
+            <div class="bg-white rounded-[2rem] border border-slate-200 shadow-xl overflow-hidden mb-8">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/50 border-b border-slate-100">
+                                <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-1/4">Ejecutivo</th>
+                                <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">RUT</th>
+                                <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Responsable</th>
+                                <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estado / Motivo</th>
+                                <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Fecha Término</th>
+                                <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Gestión</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dotacion-table-body" class="divide-y divide-slate-100">
+                            <!-- JS populated -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Footer / Paginación -->
+                <div class="bg-white px-6 py-5 border-t border-slate-100 flex items-center justify-between">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest" id="dot-pagination-info">Mostrando ... registros</p>
+                    <div class="flex gap-2">
+                        <button onclick="prevPage()" class="p-2.5 rounded-xl border border-slate-200 text-slate-400 hover:text-be-orange hover:border-be-orange transition-all"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button onclick="nextPage()" class="p-2.5 rounded-xl border border-slate-200 text-slate-400 hover:text-be-orange hover:border-be-orange transition-all"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    
+    <script src="js/stores.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/db-init.js"></script>
+    <script src="js/ui-components.js"></script>
+    <script src="js/dotacion.js"></script>
+
+    <style>
+        .dot-tab.active {
+            background: #004b87;
+            color: white;
+            box-shadow: 0 10px 20px -5px rgba(0,75,135,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+    </style>
+</body>
+</html>

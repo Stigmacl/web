@@ -1,0 +1,342 @@
+<!doctype html>
+<head>
+    <title>Gestión Supervisor</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Outfit:300,400,600,700&display=swap" rel="stylesheet">
+    <!-- FontAwesome (modern) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Cargar CSS del login original modificado la ruta -->
+    <link rel="stylesheet" href="login/css/style.css">
+    
+    <style>
+        .custom-select-wrapper {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .custom-select-wrapper select {
+            width: 100%;
+            height: 50px;
+            padding: 10px 45px 10px 20px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            appearance: none;
+        }
+        .custom-select-wrapper select option { background: #002D56; color: #fff; }
+        .custom-select-wrapper select:focus {
+            outline: none; background: rgba(255, 255, 255, 0.2); border-color: #F37021;
+        }
+        .custom-select-wrapper i.fa-chevron-down {
+            position: absolute; right: 20px; top: 17px; color: rgba(255,255,255,0.7); pointer-events: none;
+        }
+        /* BancoEstado Colors override */
+        .bg-be-dark { background-color: #002D56; }
+        .text-be-orange { color: #F37021; }
+        .btn-be-orange { background-color: #F37021 !important; border: none !important; color: white !important; font-weight: bold; border-radius: 8px;}
+        .btn-be-orange:hover { background-color: #e26112 !important; box-shadow: 0 4px 15px rgba(243, 112, 33, 0.4); }
+    </style>
+</head>
+<body>
+<section class="ftco-section h-100 min-vh-100 d-flex align-items-center bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-12 col-lg-10 shadow-lg rounded" style="overflow: hidden;">
+                <div class="wrap d-md-flex">
+                    <!-- Sección Visual -->
+                    <div class="text-wrap p-4 p-lg-5 text-center d-flex align-items-center order-md-last bg-be-dark" style="background-image: radial-gradient(circle at top right, #004B87, #002D56);">
+                        <div class="text w-100">
+                            <div class="mb-4" style="width: 80px; height: 80px; background: #F37021; border-radius: 16px; display: inline-flex; justify-content: center; align-items: center; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
+                                <i class="fa-solid fa-list-check" style="font-size: 40px; color: white;"></i>
+                            </div>
+                            <h2>Gestión Supervisor</h2>
+                            <p>Plataforma centralizada para la gestión de dotaciòn y seguimiento de errores</p>
+                            <p class="text-white-50 mt-4 small"><i class="fa-solid fa-shield-halved"></i> Integración Backend Azure (Mockup)</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Formulario Login -->
+                    <div class="login-wrap p-4 p-lg-5 bg-white">
+                        <div class="d-flex mb-4">
+                            <div class="w-100">
+                                <h3 class="mb-2" style="font-weight: 700; color: #004B87;">Iniciar Sesión</h3>
+                                <p class="text-muted small">Seleccione su perfil</p>
+                            </div>
+                        </div>
+
+                        <form id="login-form" class="signin-form mt-4">
+                            
+                            <div class="form-group mb-4">
+                                <label class="label text-muted d-block mb-2" style="font-weight:600; font-size:12px; text-transform:uppercase;">Usuarios</label>
+                                <div class="custom-select-wrapper">
+                                    <select id="login-supervisor-select" class="form-control" style="color:#333; border:2px solid #e1e5eb; background:#f8f9fa; padding-left:15px; font-weight:600;" required>
+                                        <option value="" disabled selected>-- Busque y seleccione su nombre --</option>
+                                    </select>
+                                    <i class="fa-solid fa-chevron-down" style="color:#aaa;"></i>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group mb-4 mt-5">
+                                <button type="button" onclick="performLogin()" class="form-control btn btn-be-orange submit px-3 py-3 d-flex justify-content-center align-items-center" style="gap:8px; font-size: 16px;">
+                                    Entrar al Dashboard <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="form-group mt-5 text-center">
+                                <p class="small text-muted mb-0"><i class="fa-solid fa-cloud"></i> Dashboard Supervisor.</p>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Cargar los datos extraídos para poblar el dropdown -->
+
+
+<script src="login/js/jquery.min.js"></script>
+<script src="login/js/popper.js"></script>
+<script src="login/js/bootstrap.min.js"></script>
+
+<script>
+let LOGIN_DATA = {};
+
+function norm(txt) {
+    return (txt || '')
+        .toString()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toUpperCase();
+}
+
+function esVigente(estado) {
+    const e = norm(estado);
+
+    return (
+        e === 'VIGENTE' ||
+        e === 'ACTIVO' ||
+        e === ''
+    );
+}
+
+function addOption(nombre, isAdmin = false) {
+    if (!nombre) return;
+
+    const select = document.getElementById('login-supervisor-select');
+    const opt = document.createElement('option');
+
+    // Usamos el nombre limpio como valor
+    opt.value = nombre;
+    
+    // Guardamos el rol en un atributo de datos para recuperarlo fácilmente
+    opt.setAttribute('data-role', isAdmin ? 'admin' : 'supervisor');
+    
+    opt.innerText = isAdmin
+        ? nombre + ' (Administrador)'
+        : nombre;
+
+    if (isAdmin) {
+        opt.style.background = '#F37021';
+        opt.style.fontWeight = 'bold';
+    }
+
+    select.appendChild(opt);
+}
+
+async function cargarUsuarios() {
+
+    sessionStorage.clear();
+
+    const select = document.getElementById('login-supervisor-select');
+
+    try {
+
+        /*
+        ===================================================
+        SOLO TABLA tbl_dotacion_jefatura
+        ===================================================
+        */
+        const response = await fetch('api/get_login_users.php');
+        const data = await response.json();
+
+        if (data.status !== 'success') {
+            throw new Error('No fue posible cargar usuarios');
+        }
+
+        LOGIN_DATA = data;
+
+        const supUsados = {};
+        const adminsUsados = {};
+
+        /*
+        ===================================================
+        SI API TRAE rows CRUDAS DESDE tbl_dotacion_jefatura
+        ===================================================
+        */
+        if (data.rows && Array.isArray(data.rows)) {
+
+            data.rows.forEach(row => {
+
+                if (!esVigente(row.estado)) return;
+
+                const supervisor = row.supervisor || '';
+                const jefatura   = row.jefatura || '';
+
+                /*
+                SUPERVISORES
+                */
+                if (
+                    supervisor &&
+                    !supUsados[norm(supervisor)]
+                ) {
+                    supUsados[norm(supervisor)] = true;
+                    addOption(supervisor, false);
+                }
+
+                /*
+                JEFATURAS
+                */
+                if (
+                    jefatura &&
+                    !adminsUsados[norm(jefatura)]
+                ) {
+                    adminsUsados[norm(jefatura)] = true;
+                    addOption(jefatura, true);
+                }
+
+            });
+        }
+
+        /*
+        ===================================================
+        SI API YA TRAE ARRAYS LIMPIOS
+        ===================================================
+        */
+        else {
+
+            (data.supervisors || []).forEach(sup => {
+                if (!supUsados[norm(sup)]) {
+                    supUsados[norm(sup)] = true;
+                    addOption(sup, false);
+                }
+            });
+
+            (data.admins || []).forEach(admin => {
+                if (!adminsUsados[norm(admin)]) {
+                    adminsUsados[norm(admin)] = true;
+                    addOption(admin, true);
+                }
+            });
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+        /*
+        fallback mínimo
+        */
+        addOption('CRISTIAN', true);
+        addOption('MILADY', true);
+        addOption('MONICA', true);
+    }
+}
+
+function performLogin() {
+
+    const select = document.getElementById('login-supervisor-select');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (!selectedOption || !selectedOption.value) {
+        alert('Seleccione usuario');
+        return;
+    }
+
+    const clean = selectedOption.value;
+    const role = selectedOption.getAttribute('data-role');
+
+    sessionStorage.setItem(
+        'loggedInSupervisorName',
+        clean
+    );
+
+    /*
+    ======================================
+    ADMIN / JEFATURA
+    ======================================
+    */
+    if (role === 'admin') {
+
+        sessionStorage.setItem(
+            'userRole',
+            'admin'
+        );
+
+        let supervisores = [];
+
+        /*
+        Si viene mapa armado
+        */
+        if (LOGIN_DATA.jefaturas) {
+            const key = norm(clean);
+
+            if (LOGIN_DATA.jefaturas[key]) {
+                supervisores = LOGIN_DATA.jefaturas[key];
+            } else if (LOGIN_DATA.jefaturas[clean]) {
+                supervisores = LOGIN_DATA.jefaturas[clean];
+            }
+        }
+        
+        /*
+        Si viene rows cruda (fallback)
+        */
+        if (supervisores.length === 0 && LOGIN_DATA.rows && Array.isArray(LOGIN_DATA.rows)) {
+            LOGIN_DATA.rows.forEach(row => {
+                if (!esVigente(row.estado)) return;
+                if (norm(row.jefatura) === norm(clean)) {
+                    const sup = row.supervisor || '';
+                    if (sup && !supervisores.some(x => norm(x) === norm(sup))) {
+                        supervisores.push(sup);
+                    }
+                }
+            });
+        }
+
+        sessionStorage.setItem(
+            'loggedInJefaturaSups',
+            JSON.stringify(supervisores)
+        );
+
+        window.location.href = 'admin.html';
+        return;
+    }
+
+    /*
+    ======================================
+    SUPERVISOR
+    ======================================
+    */
+    sessionStorage.setItem(
+        'userRole',
+        'supervisor'
+    );
+
+    window.location.href = 'index.html';
+}
+
+document.addEventListener(
+    'DOMContentLoaded',
+    cargarUsuarios
+);
+</script>
+
+</body>
+</html>

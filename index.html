@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Supervisor - Gestión de Errores</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { 
+                        be: { 
+                            blue: '#004b87', 
+                            darkblue: '#002D56', 
+                            orange: '#f37021', 
+                            light: '#f1f5f9' 
+                        } 
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body class="bg-be-light text-slate-800 font-sans h-screen flex overflow-hidden">
+
+    <div id="dashboard-container" class="w-full h-full flex mt-0">
+        <aside id="shared-sidebar" class="bg-be-darkblue text-white w-64 flex-shrink-0 flex flex-col transition-all duration-300 relative z-20 shadow-xl"></aside>
+
+        <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-900/5 relative z-10" style="background-image: radial-gradient(at 0% 0%, hsla(210,100%,98%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(210,100%,94%,1) 0, transparent 50%); background-color: #f1f5f9;">
+            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 z-10 shadow-sm w-full">
+                <h1 class="text-lg font-black text-be-darkblue uppercase tracking-tight">Centro de Control de Errores</h1>
+                <div class="flex items-center gap-4">
+                    <button onclick="syncDatabaseData()" class="bg-white hover:bg-slate-50 text-be-blue px-6 py-2 rounded-xl text-[11px] font-black transition-all border border-slate-200 flex items-center gap-2 shadow-sm uppercase tracking-wider">
+                        <i class="fa-solid fa-rotate w-3 text-be-orange"></i> Sincronizar Sistema
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-auto p-8 relative w-full fade-in">
+                
+                <!-- KPIs (3D Premium Style) -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-3xl p-7 border-2 border-slate-100 shadow-[0_10px_40px_rgba(0,0,0,0.03)] border-t-[6px] border-t-be-blue flex justify-between items-start hover:-translate-y-2 hover:shadow-2xl hover:shadow-be-blue/10 transition-all duration-500 cursor-default group">
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 group-hover:text-be-blue transition-colors">Total de Casos Afectados</p>
+                            <h3 class="text-4xl font-black text-slate-800" id="kpi-total-casos">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-slate-50 text-be-blue flex items-center justify-center border border-slate-100 group-hover:bg-be-blue group-hover:text-white transition-all shadow-inner"><i class="fa-solid fa-list-ol text-lg"></i></div>
+                    </div>
+                    <div class="bg-white rounded-3xl p-7 border-2 border-slate-100 shadow-[0_10px_40px_rgba(0,0,0,0.03)] border-t-[6px] border-t-rose-500 flex justify-between items-start hover:-translate-y-2 hover:shadow-2xl hover:shadow-rose-500/10 transition-all duration-500 cursor-default group">
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 group-hover:text-rose-600 transition-colors">Falta Gestionar</p>
+                            <h3 class="text-4xl font-black text-rose-600" id="kpi-pendientes">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-slate-50 text-rose-500 flex items-center justify-center border border-slate-100 group-hover:bg-rose-500 group-hover:text-white transition-all shadow-inner"><i class="fa-solid fa-bell-concierge text-lg"></i></div>
+                    </div>
+                    <div class="bg-white rounded-3xl p-7 border-2 border-slate-100 shadow-[0_10px_40px_rgba(0,0,0,0.03)] border-t-[6px] border-t-emerald-500 flex justify-between items-start hover:-translate-y-2 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-500 cursor-default group">
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 group-hover:text-emerald-600 transition-colors">Casos Cerrados o Gestionados</p>
+                            <h3 class="text-4xl font-black text-emerald-600" id="kpi-realizados">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-slate-50 text-emerald-500 flex items-center justify-center border border-slate-100 group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-inner"><i class="fa-solid fa-check-double text-lg"></i></div>
+                    </div>
+                    <div class="bg-white rounded-3xl p-7 border-2 border-slate-100 shadow-[0_10px_40px_rgba(0,0,0,0.03)] border-t-[6px] border-t-be-orange flex justify-between items-start hover:-translate-y-2 hover:shadow-2xl hover:shadow-be-orange/10 transition-all duration-500 cursor-default group">
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 group-hover:text-be-orange transition-colors">Ejecutivos Implicados</p>
+                            <h3 class="text-4xl font-black text-be-orange" id="kpi-ejecutivos-implicados">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-slate-50 text-be-orange flex items-center justify-center border border-slate-100 group-hover:bg-be-orange group-hover:text-white transition-all shadow-inner"><i class="fa-solid fa-users text-lg"></i></div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100 mb-6 gap-4">
+                    <div class="flex items-center w-full gap-3">
+                        <div class="relative w-full sm:w-72">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input onkeyup="filterData()" id="search-input" type="text" placeholder="Buscar RUT, Ejecutivo..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-be-blue focus:bg-white transition-colors">
+                        </div>
+                        <select onchange="filterData()" id="filter-categoria" class="pl-4 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-be-blue focus:bg-white transition-colors appearance-none font-medium text-slate-700 cursor-pointer">
+                            <option value="">Categorías</option>
+                            <option value="Agendamientos">Agendamientos</option>
+                            <option value="Ley Fraude">Ley Fraude</option>
+                            <option value="Desbloqueos APP">Desbloqueos APP</option>
+                            <option value="ONP">ONP</option>
+                        </select>
+                        <select onchange="filterData()" id="filter-estado" class="hidden pl-4 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-be-blue focus:bg-white transition-colors appearance-none font-medium text-slate-700 cursor-pointer animate-fadeInLeft">
+                            <option value="">Todos los Estados</option>
+                            <option value="pendiente">Pendientes</option>
+                            <option value="realizado">Realizados (Gestión)</option>
+                            <option value="ejecutado">Ejecutados (Infodata)</option>
+                        </select>
+                        <!-- Segmented Time Control (Senior Frontend Design) -->
+                        <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200 shrink-0">
+                            <!-- Opción: Activos -->
+                            <button id="btn-time-active" onclick="toggleTimeView('activos')" 
+                                class="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black transition-all duration-300 bg-white text-be-blue shadow-lg shadow-be-blue/10">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-be-orange"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                                VISTA ACTIVA
+                            </button>
+                            
+                            <!-- Opción: Histórico + Calendario -->
+                            <div id="group-time-history" class="flex items-center rounded-xl transition-all duration-300 hover:bg-white/50 group shrink-0">
+                                <button onclick="toggleTimeView('historico')" class="flex items-center gap-2 px-3 py-2 text-[11px] font-black text-slate-400 group-hover:text-be-blue transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                                    HISTÓRICO
+                                </button>
+                                
+                                <!-- Subgrupo de Calendario (Oculto en vista activa) -->
+                                <div id="calendar-sub-group" class="hidden flex items-center pr-2 animate-fadeInLeft">
+                                    <div class="h-4 w-px bg-slate-200 mx-1"></div>
+                                    <input type="month" onchange="updateHistoryDate(this.value)" id="main-month-picker" 
+                                        class="bg-transparent border-none text-[10px] font-black text-be-blue focus:outline-none cursor-pointer uppercase">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- States persistentes (Hidden) -->
+                        <select id="filter-tiempo" class="hidden">
+                            <option value="activos" selected>activos</option>
+                            <option value="historico">historico</option>
+                        </select>
+                        <input type="month" id="filter-historico-mes" class="hidden">
+                    </div>
+                    <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200 gap-1 shrink-0">
+                        <button id="btn-view-table" class="px-3 py-1.5 rounded text-sm font-medium bg-white text-be-blue shadow-sm w-28 flex items-center justify-center gap-1" onclick="setView('table')"><i class="fa-solid fa-list text-xs"></i> Tabla</button>
+                        <button id="btn-view-cards" class="px-3 py-1.5 rounded text-sm font-medium text-slate-500 hover:text-slate-700 w-28 flex items-center justify-center gap-1 transition-all" onclick="setView('cards')"><i class="fa-solid fa-table-cells-large text-xs"></i> Cuadrículas</button>
+                    </div>
+                </div>
+
+                <div id="view-table" class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left min-w-[800px]">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider border-b border-slate-200">
+                                    <th class="px-5 py-4 font-bold">Categoría</th>
+                                    <th class="px-5 py-4 font-bold">Cliente / RUT</th>
+                                    <th class="px-5 py-4 font-bold">Ejecutivo</th>
+                                    <th id="table-header-fecha" class="px-5 py-4 font-bold">Fecha</th>
+                                    <th class="px-5 py-4 font-bold">Error Reportado</th>
+                                    <th class="px-5 py-4 font-bold text-center">Estado</th>
+                                    <th class="px-5 py-4 font-bold text-center w-[110px]">Gestión</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body" class="text-sm divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="view-cards" class="hidden-view grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+                
+                <!-- Paginación -->
+                <div id="pagination-container" class="mt-8 mb-4 flex justify-center items-center gap-2"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Detalle Error - 1:1 REPLICATION FROM IMAGE -->
+    <div id="observation-modal" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
+        <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl mx-auto overflow-hidden flex flex-col max-h-[92vh] animate-fadeInUp">
+            
+            <!-- Header (Exact Match) -->
+            <div class="bg-be-blue px-6 py-4 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 bg-white/10 rounded-lg flex justify-center items-center border border-white/20">
+                        <i class="fa-solid fa-folder-open text-be-orange text-xl"></i>
+                    </div>
+                    <div class="text-white">
+                        <h3 class="text-lg font-bold leading-tight">Ficha Detalle de Error</h3>
+                        <p class="text-[11px] font-bold uppercase opacity-80" id="modal-id">---</p>
+                    </div>
+                </div>
+                <button onclick="closeModal()" class="text-white/60 hover:text-white transition-all bg-white/10 p-2 rounded-lg"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <!-- Body (Exact Layout 1:1) -->
+            <div class="flex-1 overflow-y-auto bg-slate-50 p-6 lg:p-8">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    
+                    <!-- Columna Izquierda (Stacked Cards) -->
+                    <div class="lg:col-span-7 space-y-8">
+                        <!-- Card 1: Datos del Ejecutivo -->
+                        <div class="bg-white p-8 rounded-[1.5rem] border border-slate-100 shadow-sm">
+                            <h4 class="text-xs font-black text-be-blue uppercase tracking-widest mb-6 flex items-center gap-3">
+                                <i class="fa-solid fa-headset text-base"></i> DATOS DEL EJECUTIVO
+                            </h4>
+                            <div class="bg-slate-50/50 p-5 rounded-2xl border border-slate-100 flex items-center gap-5 mb-6">
+                                <div class="h-10 w-10 bg-be-blue text-white rounded-full flex items-center justify-center font-bold shadow-lg shadow-be-blue/20">
+                                    <i class="fa-solid fa-user-astronaut text-sm"></i>
+                                </div>
+                                <span id="modal-ejecutivo" class="text-sm font-black text-slate-900 uppercase tracking-tight">---</span>
+                            </div>
+                            <div class="pl-4 border-l-4 border-slate-200">
+                                <span class="block text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-wider">LO QUE INGRESÓ EL EJECUTIVO EN FUSIÓN:</span>
+                                <p id="modal-obs-fusion" class="text-[12px] text-slate-500 italic font-bold leading-relaxed uppercase">---</p>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: Datos del Cliente -->
+                        <div class="bg-white p-8 rounded-[1.5rem] border border-slate-100 shadow-sm">
+                            <h4 class="text-xs font-black text-be-orange uppercase tracking-widest mb-6 flex items-center gap-3">
+                                <i class="fa-regular fa-user text-base"></i> DATOS DEL CLIENTE
+                            </h4>
+                            <div class="grid grid-cols-2 gap-y-8 gap-x-12">
+                                <div>
+                                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Nombre Contacto</span>
+                                    <span id="modal-cliente" class="text-xs font-black text-slate-900 block leading-tight uppercase">---</span>
+                                </div>
+                                <div>
+                                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">RUT Cliente</span>
+                                    <span id="modal-rut" class="text-xs font-black text-slate-700 bg-slate-100 px-3 py-1.5 rounded-lg inline-block">---</span>
+                                </div>
+                                <div>
+                                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Fecha Captura</span>
+                                    <span id="modal-fecha" class="text-xs font-black text-slate-800 block uppercase">---</span>
+                                </div>
+                                <div>
+                                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tipo de Servicio</span>
+                                    <span id="modal-tipo" class="text-[10px] font-black text-be-blue bg-blue-50 px-3 py-1.5 rounded-lg inline-block border border-blue-100 uppercase">---</span>
+                                </div>
+                                <div class="col-span-2 space-y-4 pt-4 border-t border-slate-50" id="modal-extra-fields">
+                                    <!-- Campos Dinámicos Agregados por JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna Derecha (Single Card) -->
+                    <div class="lg:col-span-5 h-full">
+                        <div class="bg-white p-8 rounded-[1.5rem] border border-slate-100 shadow-sm h-full flex flex-col">
+                            <!-- Section: Reporte del Error -->
+                            <div class="mb-8 p-6 bg-red-50/30 rounded-2xl border border-red-100/30">
+                                <h4 class="text-xs font-black text-red-600 flex items-center gap-3 uppercase tracking-widest mb-4">
+                                    <i class="fa-solid fa-circle-exclamation text-xl"></i> Reporte del Error
+                                </h4>
+                                <p id="modal-error" class="text-sm font-black text-red-900 uppercase leading-snug">---</p>
+                            </div>
+
+                            <!-- Section: Tu Resolución -->
+                            <div class="flex-1 flex flex-col">
+                                <h4 class="text-[11px] font-black text-be-blue uppercase tracking-widest mb-2 flex items-center gap-3">
+                                    <i class="fa-solid fa-gavel text-base"></i> TU RESOLUCIÓN
+                                </h4>
+                                <p id="m-err-help-text" class="text-[10px] font-bold text-slate-400 mb-4 uppercase">INGRESA EL FEEDBACK / CORRECCIÓN PACTADA.</p>
+                                <textarea id="supervisor-obs"
+                                    class="w-full flex-1 min-h-[180px] bg-slate-50 border border-slate-200 rounded-2xl p-5 text-xs text-slate-700 italic focus:outline-none focus:ring-1 focus:ring-be-blue/40 transition-all resize-none font-bold placeholder:text-slate-300 mb-6"
+                                    placeholder="Ej: Me he contactado con el ejecutivo y se refuerza la revisión del manual de autenticación..."></textarea>
+                                
+                                <div class="flex items-center justify-between gap-3 mt-auto">
+                                    <button onclick="closeModal()" class="flex-1 bg-white hover:bg-slate-50 text-slate-500 py-3.5 px-6 rounded-xl border border-slate-200 text-[11px] font-black transition-all shadow-sm uppercase">Cerrar</button>
+                                    <button onclick="saveObservation()" class="flex-[2] bg-be-orange hover:bg-orange-600 text-white py-3.5 px-6 rounded-xl font-black text-[11px] flex items-center justify-center gap-3 shadow-lg shadow-orange-500/20 transition-all uppercase">
+                                        <span id="btn-save-text">Guardar Gestión Resuelta</span> 
+                                        <i class="fa-solid fa-check text-base"></i>
+                                    </button>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/stores.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/db-init.js"></script>
+    <script src="js/ui-components.js"></script>
+    <script src="js/errors.js"></script>
+    <script>
+        // Renderizar cuando la BD esté lista (db-init.js dispara este evento)
+        window.addEventListener('db_ready', () => {
+            if (typeof renderErroresUI === 'function') {
+                if (typeof getMyErrors === 'function') {
+                    window.filteredErrors = getMyErrors();
+                }
+                renderErroresUI();
+            }
+            // Abrir modal por URL param si viene de otra página
+            const params = new URLSearchParams(window.location.search);
+            const errorId = params.get('id');
+            if (errorId) setTimeout(() => openModal(errorId), 150);
+        });
+    </script>
+</body>
+</html>

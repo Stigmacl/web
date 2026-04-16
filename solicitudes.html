@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Solicitudes | Administración</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        be: {
+                            blue:     '#004b87',
+                            darkblue: '#002D56',
+                            orange:   '#f37021',
+                            light:    '#f1f5f9'
+                        }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-slate-800 font-sans h-screen flex overflow-hidden">
+    <div id="dashboard-container" class="w-full h-full flex mt-0">
+
+        <!-- Sidebar -->
+        <aside id="shared-sidebar"
+            class="bg-be-darkblue text-white w-64 flex-shrink-0 flex flex-col transition-all duration-300 relative z-20 shadow-[10px_0_30px_rgba(0,0,0,0.15)]">
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col min-w-0 overflow-y-auto relative bg-[#f8fafc]">
+            <div class="max-w-6xl mx-auto w-full p-6 sm:p-10 my-8">
+
+                <!-- Header -->
+                <header class="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                    <div>
+                        <h1 class="text-3xl font-black text-slate-800 tracking-tight uppercase flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-be-blue bg-opacity-10 text-be-blue flex items-center justify-center border border-be-blue/20">
+                                <i class="fa-solid fa-envelope-open-text text-2xl"></i>
+                            </div>
+                            Gestión de Dotación
+                        </h1>
+                        <p class="text-slate-500 font-black mt-2 text-[10px] uppercase tracking-[0.2em]">
+                            Monitor de Solicitudes · Desvinculaciones · Reincorporaciones · Bitácora
+                        </p>
+                    </div>
+                </header>
+
+                <!-- Tabs -->
+                <div class="flex flex-wrap gap-4 mb-8">
+                    <button id="tab-pending" onclick="setTab('PENDIENTE')"
+                        class="px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all shadow-lg flex items-center gap-3">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Pendientes por Revisar
+                    </button>
+                    <button id="tab-history" onclick="setTab('HISTORIAL')"
+                        class="px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all shadow-md flex items-center gap-3">
+                        <i class="fa-solid fa-box-archive"></i> Historial de Movimientos
+                    </button>
+                    <button id="tab-log" onclick="setTab('LOG')"
+                        class="px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all shadow-md flex items-center gap-3">
+                        <i class="fa-solid fa-scroll"></i> Bitácora de Auditoría
+                    </button>
+                </div>
+
+                <!-- Content Area -->
+                <div id="requests-container" class="grid grid-cols-1 gap-6">
+                    <!-- Cards via JS -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="hidden py-32 text-center">
+                    <div class="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-6 text-slate-300">
+                        <i class="fa-solid fa-folder-open text-4xl"></i>
+                    </div>
+                    <h3 class="text-xl font-black text-slate-400 uppercase tracking-tight">No hay solicitudes en esta bandeja</h3>
+                    <p class="text-slate-400 text-xs font-bold uppercase mt-2">Todo está al día</p>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/stores.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/db-init.js"></script>
+    <script src="js/ui-components.js"></script>
+    <script src="js/solicitudes.js"></script>
+</body>
+</html>

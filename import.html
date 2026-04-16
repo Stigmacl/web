@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carga de Datos | Contingencia Administrativa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { 
+                        be: { 
+                            blue: '#004b87', 
+                            darkblue: '#002D56', 
+                            orange: '#f37021', 
+                            emerald: '#10b981'
+                        } 
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS for Excel Parsing -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-[#f8fafc] text-slate-800 font-sans h-screen flex overflow-hidden">
+    <div id="dashboard-container" class="w-full h-full flex mt-0">
+        <!-- Sidebar -->
+        <aside id="shared-sidebar" class="bg-be-darkblue text-white w-64 flex-shrink-0 flex flex-col transition-all duration-300 relative z-20 shadow-2xl"></aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50">
+            <div class="max-w-6xl mx-auto w-full p-8 sm:p-12 my-8">
+                
+                <header class="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                    <div>
+                        <div class="flex items-center gap-4 mb-2">
+                             <div class="w-10 h-10 rounded-xl bg-be-orange/10 text-be-orange flex items-center justify-center border border-be-orange/20 shadow-sm">
+                                <i class="fa-solid fa-file-import text-xl"></i>
+                             </div>
+                             <h1 class="text-3xl font-black text-slate-800 tracking-tight uppercase">Carga de Datos</h1>
+                        </div>
+                        <p class="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">Centro de Contingencia y Sincronización Manual (Excel)</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div id="status-badge" class="px-4 py-2 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                            <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> Sistema Listo
+                        </div>
+                    </div>
+                </header>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                    <!-- Configuración de Dotación -->
+                    <div class="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-xl shadow-slate-200/50 group hover:border-be-orange/30 transition-all duration-500">
+                        <div class="flex items-center justify-between mb-8">
+                            <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Dotación Ejecutivos</h3>
+                            <div class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-be-orange group-hover:bg-be-orange group-hover:text-white transition-all">
+                                <i class="fa-solid fa-users-gear text-xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-slate-500 text-xs leading-relaxed mb-8">Carga la tabla maestra de ejecutivos con sus RUTs, usuarios, supervisores y fechas de ingreso.</p>
+                        
+                        <div id="drop-dotacion" class="border-2 border-dashed border-slate-200 rounded-[2rem] p-12 text-center hover:border-be-orange hover:bg-orange-50/30 transition-all cursor-pointer group/drop" onclick="document.getElementById('file-dotacion').click()">
+                            <input type="file" id="file-dotacion" class="hidden" accept=".xlsx, .xls, .csv">
+                            <i class="fa-solid fa-cloud-arrow-up text-4xl text-slate-300 group-hover/drop:text-be-orange group-hover/drop:scale-110 transition-all mb-4"></i>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover/drop:text-be-orange">Soltar archivo aquí o buscar</p>
+                        </div>
+                        
+                        <div id="info-dotacion" class="mt-6 flex items-center justify-between px-2 hidden">
+                            <span class="text-[9px] font-black text-emerald-500 uppercase tracking-widest"><i class="fa-solid fa-circle-check"></i> Cargado: <span id="count-dotacion">0</span> registros</span>
+                            <button onclick="clearImport('dotacion')" class="text-[9px] font-bold text-slate-400 hover:text-rose-500 uppercase underline">Eliminar</button>
+                        </div>
+                    </div>
+
+                    <!-- Configuración de Errores -->
+                    <div class="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-xl shadow-slate-200/50 group hover:border-be-blue/30 transition-all duration-500">
+                        <div class="flex items-center justify-between mb-8">
+                            <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Reporte de Errores</h3>
+                            <div class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-be-blue group-hover:bg-be-blue group-hover:text-white transition-all">
+                                <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-slate-500 text-xs leading-relaxed mb-8">Carga masiva de errores (ONP, etc.) para alimentar los dashboards de gestión.</p>
+                        
+                        <div id="drop-errores" class="border-2 border-dashed border-slate-200 rounded-[2rem] p-12 text-center hover:border-be-blue hover:bg-blue-50/30 transition-all cursor-pointer group/drop" onclick="document.getElementById('file-errores').click()">
+                            <input type="file" id="file-errores" class="hidden" accept=".xlsx, .xls, .csv">
+                            <i class="fa-solid fa-file-excel text-4xl text-slate-300 group-hover/drop:text-be-blue group-hover/drop:scale-110 transition-all mb-4"></i>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover/drop:text-be-blue">Sincronizar reporte de errores</p>
+                        </div>
+
+                         <div id="info-errores" class="mt-6 flex items-center justify-between px-2 hidden">
+                            <span class="text-[9px] font-black text-emerald-500 uppercase tracking-widest"><i class="fa-solid fa-circle-check"></i> Cargado: <span id="count-errores">0</span> errores</span>
+                            <button onclick="clearImport('errores')" class="text-[9px] font-bold text-slate-400 hover:text-rose-500 uppercase underline">Eliminar</button>
+                        </div>
+                    </div>
+
+                    <!-- Configuración de Agendamientos (NUEVO) -->
+                    <div class="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-xl shadow-slate-200/50 group hover:border-emerald-300/30 transition-all duration-500">
+                        <div class="flex items-center justify-between mb-8">
+                            <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Agendamientos</h3>
+                            <div class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                                <i class="fa-solid fa-calendar-check text-xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-slate-500 text-xs leading-relaxed mb-8">Carga de agendamientos con estados (RECHAZADO, EJECUTADO, EJECUTADOCONLLAMADO) para gestión de atención.</p>
+                        
+                        <div id="drop-agendamientos" class="border-2 border-dashed border-slate-200 rounded-[2rem] p-12 text-center hover:border-emerald-500 hover:bg-emerald-50/30 transition-all cursor-pointer group/drop" onclick="document.getElementById('file-agendamientos').click()">
+                            <input type="file" id="file-agendamientos" class="hidden" accept=".xlsx, .xls">
+                            <i class="fa-solid fa-phone-volume text-4xl text-slate-300 group-hover/drop:text-emerald-600 group-hover/drop:scale-110 transition-all mb-4"></i>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover/drop:text-emerald-600">Importar agendamientos</p>
+                        </div>
+
+                         <div id="info-agendamientos" class="mt-6 flex items-center justify-between px-2 hidden">
+                            <span class="text-[9px] font-black text-emerald-500 uppercase tracking-widest"><i class="fa-solid fa-circle-check"></i> Cargado: <span id="count-agendamientos">0</span> registros</span>
+                            <button onclick="clearImport('agendamientos')" class="text-[9px] font-bold text-slate-400 hover:text-rose-500 uppercase underline">Eliminar</button>
+                        </div>
+                    </div>
+
+                    <!-- Configuración de Desbloqueos APP (NUEVO) -->
+                    <div class="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-xl shadow-slate-200/50 group hover:border-amber-300/30 transition-all duration-500">
+                        <div class="flex items-center justify-between mb-8">
+                            <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Desbloqueos APP</h3>
+                            <div class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-all">
+                                <i class="fa-solid fa-mobile-screen text-xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-slate-500 text-xs leading-relaxed mb-8">Carga de desbloqueos de aplicación con información de EAT, cliente y estado de autenticación.</p>
+                        
+                        <div id="drop-desbloqueoapp" class="border-2 border-dashed border-slate-200 rounded-[2rem] p-12 text-center hover:border-amber-500 hover:bg-amber-50/30 transition-all cursor-pointer group/drop" onclick="document.getElementById('file-desbloqueoapp').click()">
+                            <input type="file" id="file-desbloqueoapp" class="hidden" accept=".xlsx, .xls">
+                            <i class="fa-solid fa-mobile-screen text-4xl text-slate-300 group-hover/drop:text-amber-600 group-hover/drop:scale-110 transition-all mb-4"></i>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover/drop:text-amber-600">Importar desbloqueos</p>
+                        </div>
+
+                         <div id="info-desbloqueoapp" class="mt-6 flex items-center justify-between px-2 hidden">
+                            <span class="text-[9px] font-black text-emerald-500 uppercase tracking-widest"><i class="fa-solid fa-circle-check"></i> Cargado: <span id="count-desbloqueoapp">0</span> registros</span>
+                            <button onclick="clearImport('desbloqueoapp')" class="text-[9px] font-bold text-slate-400 hover:text-rose-500 uppercase underline">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-12 bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-lg relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full translate-x-20 -translate-y-20 flex items-center justify-center opacity-50">
+                        <i class="fa-solid fa-circle-info text-slate-100 text-[120px]"></i>
+                    </div>
+                    <h4 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-be-orange"></i> Recomendaciones de Formato
+                    </h4>
+                    <ul class="text-[11px] text-slate-500 font-medium space-y-3 relative z-10 max-w-2xl">
+                        <li class="flex gap-3"><span class="text-be-orange font-bold">1.</span> Las columnas deben mantener los nombres estándar (RUT, NOMBRE, SUPERVISOR, ESTADO) para que el sistema las reconozca automáticamente.</li>
+                        <li class="flex gap-3"><span class="text-be-orange font-bold">2.</span> El archivo debe estar en formato .XLSX o .CSV (UTF-8) para evitar errores de caracteres especiales.</li>
+                        <li class="flex gap-3"><span class="text-be-orange font-bold">3.</span> Para Agendamientos: Los estados válidos son RECHAZADO (negativo), EJECUTADO (positivo) y EJECUTADOCONLLAMADO (positivo).</li>
+                        <li class="flex gap-3"><span class="text-be-orange font-bold">4.</span> El sistema cruza automáticamente los RUTs con la dotación vigente para asignar supervisores.</li>
+                    </ul>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Background Task Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4">
+            <div class="w-12 h-12 border-4 border-be-orange border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-xs font-black text-slate-700 uppercase tracking-widest">Procesando Excel...</p>
+        </div>
+    </div>
+
+    <!-- Modal de Resultado -->
+    <div id="result-modal" class="fixed inset-0 bg-slate-900/50 z-[200] flex items-center justify-center hidden">
+        <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Resultado de Importación</h3>
+                <button onclick="closeResultModal()" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
+            </div>
+            <div id="result-content" class="space-y-4 text-sm">
+                <!-- Contenido dinámico -->
+            </div>
+            <button onclick="closeResultModal()" class="w-full mt-6 py-3 bg-be-blue text-white rounded-xl font-bold uppercase tracking-widest hover:bg-be-darkblue transition-all">
+                Cerrar
+            </button>
+        </div>
+    </div>
+
+    <script src="js/stores.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/db-init.js"></script>
+    <script src="js/ui-components.js"></script>
+    <script src="js/import.js"></script>
+    <script src="js/import-agendamientos-simple.js"></script>
+    <script src="js/import-desbloqueoapp.js"></script>
+</body>
+</html>

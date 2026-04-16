@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis KPI - Gestión Supervisor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { be: { blue: '#004B87', darkblue: '#002D56', orange: '#F37021', light: '#F8FAFC' } },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+</head>
+
+<body class="bg-be-light text-slate-800 font-sans h-screen flex overflow-hidden">
+
+    <div id="dashboard-container" class="w-full h-full flex mt-0">
+        <aside id="shared-sidebar" class="bg-be-darkblue text-white w-64 flex-shrink-0 flex flex-col transition-all duration-300 relative z-20 shadow-xl"></aside>
+
+        <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10" style="background-image: radial-gradient(at 0% 0%, hsla(210,100%,98%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(210,100%,94%,1) 0, transparent 50%); background-color: #f1f5f9;">
+            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 z-10 shadow-sm w-full">
+                <h1 class="text-lg font-black text-be-darkblue uppercase tracking-tight">Análisis Predictivo y Rendimiento</h1>
+                <div class="flex items-center gap-4">
+                    <div class="relative flex items-center bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 focus-within:ring-1 focus-within:ring-be-blue transition-all shadow-sm">
+                        <i class="fa-regular fa-calendar text-slate-400 ml-2"></i>
+                        <input type="month" id="kpi-month-filter" onchange="renderKPIDetailUI()" class="bg-transparent border-none text-[11px] font-black text-slate-600 focus:outline-none focus:ring-0 cursor-pointer ml-2 py-1 outline-none">
+                    </div>
+                    <button class="bg-be-blue text-white px-6 py-2 rounded-xl text-[11px] font-black flex items-center gap-2 shadow-lg shadow-be-blue/20 hover:bg-be-darkblue transition-all uppercase tracking-wider">
+                        <i class="fa-solid fa-file-export w-3 text-be-orange"></i> Exportar
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-auto p-8 relative w-full fade-in">
+                <!-- KPI Tiles (3D Premium Style) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-3xl p-7 border-2 border-slate-100 shadow-[0_10px_40px_rgba(0,0,0,0.03)] border-t-[6px] border-t-be-blue hover:-translate-y-2 hover:shadow-2xl hover:shadow-be-blue/10 transition-all duration-500 group">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 group-hover:text-be-blue transition-colors">Ejecutivos Implicados</p>
+                        <h3 class="text-4xl font-black text-slate-800" id="kpi2-dotacion">0</h3>
+                        <p class="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-tight border-t border-slate-50 pt-2">Con errores reportados</p>
+                    </div>
+                    <div class="bg-white rounded-3xl p-7 border-2 border-slate-100 shadow-[0_10px_40px_rgba(0,0,0,0.03)] border-t-[6px] border-t-emerald-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-500 group">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 group-hover:text-emerald-600 transition-colors">% Tasa de Efectividad</p>
+                        <h3 class="text-4xl font-black text-emerald-600" id="kpi2-cumplimiento">0%</h3>
+                        <p class="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-tight border-t border-slate-50 pt-2">% Ejecutados vs Errores</p>
+                    </div>
+                    <div class="bg-white rounded-3xl p-7 border-2 border-slate-100 shadow-[0_10px_40px_rgba(0,0,0,0.03)] border-t-[6px] border-t-rose-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-rose-500/10 transition-all duration-500 group">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 group-hover:text-rose-600 transition-colors">Total Rechazos</p>
+                        <h3 class="text-4xl font-black text-rose-600" id="kpi2-rechazos">0</h3>
+                        <p class="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-tight border-t border-slate-50 pt-2">Histórico de errores</p>
+                    </div>
+                    <div class="bg-white rounded-3xl p-7 border-2 border-slate-100 shadow-[0_10px_40px_rgba(0,0,0,0.03)] border-t-[6px] border-t-be-orange hover:-translate-y-2 hover:shadow-2xl hover:shadow-be-orange/10 transition-all duration-500 group">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 group-hover:text-be-orange transition-colors">Tasa de Gestión</p>
+                        <h3 class="text-4xl font-black text-be-orange" id="kpi2-tasa-gestion">0%</h3>
+                        <p class="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-tight border-t border-slate-50 pt-2">Resolución promedio</p>
+                    </div>
+                </div>
+
+                <!-- Charts Section 1 -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                    <!-- Cumplimiento -->
+                    <div class="bg-white rounded-[2.5rem] border-2 border-slate-100 shadow-[0_15px_50px_rgba(0,0,0,0.02)] p-8 flex flex-col items-center hover:shadow-2xl transition-all duration-500">
+                        <h4 class="text-[10px] font-black text-slate-800 uppercase tracking-[0.15em] mb-8 w-full flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-be-blue"></i> Distribución de errores por categorías
+                        </h4>
+                        <div class="flex items-center gap-8">
+                            <div class="relative w-40 h-40">
+                                <canvas id="chart-cumplimiento"></canvas>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                    <span id="chart-cumplimiento-val" class="text-3xl font-black text-slate-800">0%</span>
+                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Efectividad</span>
+                                </div>
+                            </div>
+                            <!-- Leyenda dinámica renderizada en JS -->
+                            <div id="chart-cumplimiento-leyenda" class="space-y-2 max-h-32 overflow-y-auto pr-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- Distribución Errores -->
+                    <div class="bg-white rounded-[2.5rem] border-2 border-slate-100 shadow-[0_15px_50px_rgba(0,0,0,0.02)] p-8 hover:shadow-2xl transition-all duration-500">
+                        <h4 class="text-[10px] font-black text-slate-800 uppercase tracking-[0.15em] mb-8 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-column text-be-orange"></i> Incidencia por Categoría
+                        </h4>
+                        <div class="h-48">
+                            <canvas id="chart-errores-tipo"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Estado de Gestión -->
+                    <div class="bg-white rounded-[2.5rem] border-2 border-slate-100 shadow-[0_15px_50px_rgba(0,0,0,0.02)] p-8 hover:shadow-2xl transition-all duration-500">
+                        <h4 class="text-[10px] font-black text-slate-800 uppercase tracking-[0.15em] mb-8 flex items-center gap-2">
+                            <i class="fa-solid fa-signal text-emerald-500"></i> Estado de Gestión
+                        </h4>
+                        <div class="h-48">
+                            <canvas id="chart-estado-gestion"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ranking & Breakdown -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <!-- Top 5 Rechazos -->
+                    <div class="bg-white rounded-[2.5rem] border-2 border-slate-100 shadow-[0_15px_50px_rgba(0,0,0,0.02)] p-8 hover:shadow-2xl transition-all duration-500">
+                        <h4 class="text-[10px] font-black text-slate-800 uppercase tracking-[0.15em] mb-6 flex items-center gap-2">
+                            <i class="fa-solid fa-crown text-be-orange"></i> Ejecutivos con Más Rechazos
+                        </h4>
+                        <div id="top-rechazos-list" class="space-y-4">
+                            <!-- JS populated -->
+                        </div>
+                    </div>
+
+                    <!-- Agendamientos por Tipo -->
+                    <div class="bg-white rounded-[2.5rem] border-2 border-slate-100 shadow-[0_15px_50px_rgba(0,0,0,0.02)] p-8 hover:shadow-2xl transition-all duration-500 flex flex-col">
+                        <h4 class="text-[10px] font-black text-slate-800 uppercase tracking-[0.15em] mb-6 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-be-orange"></i> Análisis detallado por tipo de error
+                        </h4>
+                        <div class="flex-1 h-64 min-h-[16rem] w-full">
+                            <canvas id="chart-agendamientos-tipo"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Time Series -->
+                <div class="grid grid-cols-1 gap-8 mb-8">
+                    <!-- Evolución Mensual de Errores (Line Chart) -->
+                    <div class="bg-white rounded-[2.5rem] border-2 border-slate-100 shadow-[0_15px_50px_rgba(0,0,0,0.02)] p-8 hover:shadow-2xl transition-all duration-500 flex flex-col">
+                        <h4 class="text-[10px] font-black text-slate-800 uppercase tracking-[0.15em] mb-6 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line text-be-blue"></i> Tendencia Mensual y Diaria
+                        </h4>
+                        <div class="flex-1 h-80 min-h-[18rem] w-full">
+                            <canvas id="chart-errores-linea"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Desglose por Ejecutivo -->
+                <div class="bg-white border-2 border-slate-100 rounded-[2.5rem] shadow-[0_15px_60px_rgba(0,0,0,0.02)] overflow-hidden mb-8 hover:shadow-2xl transition-all duration-500">
+                    <div class="p-6 border-b border-gray-100 bg-slate-50 flex justify-between items-center">
+                        <h4 class="text-[10px] font-black tracking-widest text-slate-800 uppercase flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-list text-be-blue"></i> Desglose por Ejecutivo
+                        </h4>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-white text-slate-400 text-[10px] uppercase font-black tracking-widest border-b border-slate-100">
+                                    <th class="px-6 py-6 text-left">Ejecutivo</th>
+                                    <th class="px-4 py-6 text-center">Total Errores</th>
+                                    <th class="px-4 py-6 text-center">Pendientes</th>
+                                    <th class="px-4 py-6 text-center">Resueltos</th>
+                                    <th class="px-4 py-6 text-center w-[150px]">Cumplimiento</th>
+                                    <th class="px-4 py-6 text-center">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-kpi-ejecutivos" class="text-sm divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    
+    <script src="js/stores.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/db-init.js"></script>
+    <script src="js/ui-components.js"></script>
+    <script src="js/kpi.js"></script>
+</body>
+
+</html>

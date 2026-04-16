@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Desempeño - Gestión Supervisor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { be: { blue: '#004B87', darkblue: '#002D56', orange: '#F37021', light: '#F8FAFC' } },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body class="bg-be-light text-slate-800 font-sans h-screen flex overflow-hidden">
+
+    <div id="dashboard-container" class="w-full h-full flex mt-0">
+        <aside id="shared-sidebar" class="bg-be-darkblue text-white w-64 flex-shrink-0 flex flex-col transition-all duration-300 relative z-20 shadow-xl"></aside>
+
+        <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50 relative z-10">
+            <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 z-10 shadow-sm w-full">
+                <h1 class="text-lg font-bold text-be-blue uppercase tracking-tight">Gestión de Desempeño</h1>
+            </header>
+
+            <div class="flex-1 overflow-auto p-8 relative w-full fade-in">
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+                    
+                    <!-- Columna Izquierda: Formulario -->
+                    <div class="xl:col-span-4 space-y-6">
+                        <div class="bg-white rounded-xl border border-gray-200 be-shadow overflow-hidden">
+                            <div class="bg-be-darkblue px-6 py-4">
+                                <h3 class="text-white font-bold flex items-center gap-2">
+                                    <i class="fa-solid fa-pen-to-square text-be-orange"></i> Nuevo Registro de Gestión
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">RUT Ejecutivo</label>
+                                    <div class="relative">
+                                        <input type="text" id="reg-rut" onkeyup="lookupExecutive()" class="w-full pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-be-blue focus:bg-white transition-all font-bold text-gray-700" placeholder="12345678-K">
+                                        <i class="fa-solid fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-300"></i>
+                                    </div>
+                                </div>
+                                <div id="reg-exec-info" class="p-3 bg-blue-50/50 rounded-lg border border-blue-100 hidden animate-fadeIn">
+                                    <p class="text-[10px] font-bold text-blue-400 uppercase tracking-tighter">Ejecutivo Encontrado</p>
+                                    <h4 id="reg-exec-name" class="text-sm font-bold text-be-blue leading-tight mt-1"></h4>
+                                    <p id="reg-exec-sup" class="text-[10px] text-gray-500 font-medium"></p>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Tipo de Novedad</label>
+                                    <select id="reg-tipo" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-be-blue cursor-pointer font-medium">
+                                        <option value="Feedback">Feedback Preventivo</option>
+                                        <option value="Logro">Reconocimiento / Logro</option>
+                                        <option value="Amonestacion">Amonestación Verbal/Escrita</option>
+                                        <option value="Ausencia">Inasistencia / Atraso</option>
+                                        <option value="Compromiso">Carta de Compromiso</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Descripción / Coment.</label>
+                                    <textarea id="reg-comentario" rows="4" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-be-blue resize-none shadow-inner" placeholder="Detalle de la gestión..."></textarea>
+                                </div>
+                                <button onclick="saveExecutiveManagement()" class="w-full bg-be-orange hover:bg-orange-600 text-white font-bold py-3 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 transform active:scale-95">
+                                    <i class="fa-solid fa-floppy-disk"></i> Guardar en Hoja de Vida
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna Derecha: Hoja de Vida (Buscador + Perfil) -->
+                    <div class="xl:col-span-8 space-y-6">
+                        <div class="bg-white rounded-xl border border-gray-200 be-shadow overflow-hidden">
+                            <div class="px-6 py-5 border-b border-gray-200 bg-gray-50 flex flex-col gap-4">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="font-bold text-gray-800 flex items-center gap-2 uppercase text-sm tracking-tight">
+                                        <i class="fa-solid fa-address-card text-be-blue"></i> Consulta de Hoja de Vida
+                                    </h3>
+                                    <div class="flex bg-gray-200/50 p-1 rounded-xl">
+                                        <button id="tab-mi-equipo" onclick="setSearchScope('mi-equipo')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-be-darkblue shadow-sm">Mi Equipo</button>
+                                        <button id="tab-todos" onclick="setSearchScope('todos')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-gray-400 hover:text-gray-700">Toda la Dotación</button>
+                                    </div>
+                                </div>
+                                 <div class="flex items-center gap-3">
+                                    <div class="relative flex-1">
+                                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                        <input type="text" id="consult-input" onkeyup="searchHojaDeVida()" class="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-be-blue/20 outline-none transition-all font-medium" placeholder="Buscar por Nombre o RUT...">
+                                    </div>
+                                    <select id="filter-supervisor" onchange="searchHojaDeVida()" class="hidden px-4 py-3 bg-white border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-be-blue/20 outline-none transition-all">
+                                        <option value="">TODOS LOS SUPERVISORES</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="flex flex-col lg:flex-row h-[550px]">
+                                <!-- Lista -->
+                                <div class="w-full lg:w-1/3 border-r border-gray-100 overflow-y-auto bg-slate-50/50" id="consult-list"></div>
+                                <!-- Perfil -->
+                                <div class="flex-1 overflow-y-auto bg-white relative" id="consult-profile">
+                                    <div class="h-full flex flex-col items-center justify-center text-gray-400 p-8 text-center" id="profile-placeholder">
+                                        <i class="fa-solid fa-user-magnifying-glass text-5xl mb-4 opacity-20"></i>
+                                        <p class="font-medium text-sm italic">Selecciona un ejecutivo para ver su historial</p>
+                                    </div>
+                                    <div id="profile-content" class="hidden animate-fadeIn p-6">
+                                        <div class="flex items-start gap-5 mb-8 border-b border-gray-100 pb-6">
+                                            <div class="h-16 w-16 rounded-2xl bg-be-blue flex items-center justify-center text-2xl font-bold text-white shadow-xl" id="prof-avatar"></div>
+                                            <div class="flex-1 overflow-hidden">
+                                                <h2 class="text-xl font-bold text-be-darkblue leading-tight truncate" id="prof-name"></h2>
+                                                <p class="text-be-orange font-bold text-xs mt-0.5" id="prof-rut"></p>
+                                                <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                                                    <span class="text-[10px] font-bold text-gray-400 flex items-center gap-1"><i class="fa-solid fa-briefcase"></i> <span id="prof-area"></span></span>
+                                                    <span class="text-[10px] font-bold text-gray-400 flex items-center gap-1"><i class="fa-solid fa-user-tie"></i> <span id="prof-sup"></span></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">Línea de Tiempo</h4>
+                                        <div class="relative pl-8 border-l-2 border-gray-100 space-y-8 ml-4" id="prof-timeline"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Detalle Error Excel (Premium Design) -->
+    <div id="modal-error-detalle" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeErrorModal()"></div>
+        <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl mx-auto overflow-hidden flex flex-col max-h-[92vh] animate-fadeInUp">
+            
+            <!-- Header -->
+            <div class="bg-be-blue px-6 py-4 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 bg-white/10 rounded-lg flex justify-center items-center border border-white/20">
+                        <i class="fa-solid fa-folder-open text-be-orange text-xl"></i>
+                    </div>
+                    <div class="text-white">
+                        <h3 class="text-lg font-bold leading-tight">Ficha Detalle de Error</h3>
+                        <p class="text-[11px] font-bold uppercase opacity-80" id="m-err-id">---</p>
+                    </div>
+                </div>
+                <button onclick="closeErrorModal()" class="text-white/60 hover:text-white transition-all bg-white/10 p-2 rounded-lg"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <!-- Body -->
+            <div class="flex-1 overflow-y-auto bg-slate-50 p-6 lg:p-8">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    
+                    <!-- Columna Izquierda -->
+                    <div class="lg:col-span-6 space-y-6">
+                        <div class="bg-white p-8 rounded-[1.5rem] border border-slate-100 shadow-sm">
+                            <h4 class="text-xs font-black text-be-blue uppercase tracking-widest mb-6 flex items-center gap-3">
+                                <i class="fa-regular fa-user text-base"></i> DATOS DEL REPORTE
+                            </h4>
+                            <div class="grid grid-cols-2 gap-y-6 gap-x-12">
+                                <div>
+                                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Categoría</span>
+                                    <span id="m-err-cat" class="text-xs font-black text-be-blue bg-blue-50 px-3 py-1.5 rounded-lg inline-block border border-blue-100 uppercase">---</span>
+                                </div>
+                                <div>
+                                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Fecha del Error</span>
+                                    <span id="m-err-fecha" class="text-xs font-black text-slate-800 block uppercase">---</span>
+                                </div>
+                                <div class="col-span-2">
+                                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Cliente</span>
+                                    <div class="flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100 italic">
+                                        <div class="flex-1">
+                                            <span class="block text-[8px] font-bold text-slate-400 uppercase">Nombre</span>
+                                            <span id="m-err-name-client" class="text-[11px] font-black text-slate-700 uppercase">---</span>
+                                        </div>
+                                        <div class="w-px h-8 bg-slate-200"></div>
+                                        <div class="flex-1">
+                                            <span class="block text-[8px] font-bold text-slate-400 uppercase">RUT</span>
+                                            <span id="m-err-rut-client" class="text-[11px] font-black text-slate-700 uppercase">---</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-span-2 space-y-4" id="m-err-extra-fields">
+                                    <!-- Campos Dinámicos Agregados por JS -->
+                                </div>
+                                <div class="col-span-2">
+                                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Información del Ejecutivo / Historial Fusión</span>
+                                    <p id="m-err-fusion" class="text-[11px] text-slate-500 italic font-medium leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100 uppercase">---</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Columna Derecha -->
+                    <div class="lg:col-span-6 space-y-6 flex flex-col h-full">
+                        <div class="bg-white p-8 rounded-[1.5rem] border border-slate-100 shadow-sm flex-1 flex flex-col">
+                            <div class="mb-8 p-6 bg-red-50/50 rounded-2xl border border-red-100">
+                                <h4 class="text-xs font-black text-red-600 flex items-center gap-3 uppercase tracking-widest mb-4">
+                                    <i class="fa-solid fa-circle-exclamation text-xl"></i> Error Detectado
+                                </h4>
+                                <p id="m-err-desc" class="text-sm font-black text-red-900 uppercase leading-snug">---</p>
+                            </div>
+
+                            <div class="flex-1 flex flex-col">
+                                <h4 class="text-[11px] font-black text-be-blue uppercase tracking-widest mb-2 flex items-center gap-3">
+                                    <i class="fa-solid fa-gavel text-base"></i> RESOLUCIÓN / FEEDBACK
+                                </h4>
+                                <p class="text-[10px] font-bold text-slate-400 mb-4 uppercase">Ingresa o edita la retroalimentación para este caso.</p>
+                                <textarea id="m-err-feedback-input"
+                                    class="w-full flex-1 min-h-[150px] bg-slate-50 border border-slate-200 rounded-2xl p-5 text-xs text-slate-700 italic focus:outline-none focus:ring-1 focus:ring-be-blue/40 transition-all resize-none font-bold placeholder:text-slate-300 mb-6"
+                                    placeholder="Detalle de la retroalimentación brindada..."></textarea>
+                                
+                                <div class="flex items-center justify-between gap-3 mt-auto">
+                                    <button onclick="closeErrorModal()" class="flex-1 bg-white hover:bg-slate-50 text-slate-500 py-3 rounded-xl border border-slate-200 text-[10px] font-black transition-all shadow-sm uppercase">Cerrar</button>
+                                    <button onclick="saveErrorObservation()" class="flex-[2] bg-be-orange hover:bg-orange-600 text-white py-3 rounded-xl font-black text-[10px] flex items-center justify-center gap-3 shadow-lg shadow-orange-500/20 transition-all uppercase">
+                                        <span id="btn-save-err-text">Guardar Gestión</span> 
+                                        <i class="fa-solid fa-check text-base"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal Ver Perfil -->
+    <div id="modal-ver-perfil" class="fixed inset-0 bg-be-darkblue/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+
+        <div class="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-modalUp">
+            <div class="bg-be-darkblue p-8 text-center relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 w-32 h-32 bg-white/5 rounded-full"></div>
+                <div class="relative z-10">
+                    <div id="m-prof-avatar" class="w-20 h-20 bg-white text-be-blue rounded-2xl mx-auto flex items-center justify-center text-3xl font-black shadow-xl mb-4">--</div>
+                    <h2 id="m-prof-name" class="text-white text-xl font-black uppercase tracking-tight leading-tight">Nombre Completo</h2>
+                    <p id="m-prof-user" class="text-be-orange font-black text-sm mt-1">USUARIO</p>
+                    <div id="m-prof-mod-badge" class="mt-3 inline-block px-3 py-1 bg-white/10 border border-white/20 rounded-full text-[9px] font-black text-white uppercase tracking-widest">---</div>
+                </div>
+            </div>
+            <div class="p-8 grid grid-cols-2 gap-6 bg-slate-50">
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                    <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Contrato</span>
+                    <span id="m-prof-contrato" class="text-[12px] font-black text-be-blue uppercase tracking-tight">---</span>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                    <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Jornada</span>
+                    <span id="m-prof-jornada" class="text-[12px] font-black text-slate-700 uppercase">---</span>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                    <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ingreso</span>
+                    <span id="m-prof-ingreso" class="text-[12px] font-black text-slate-700 uppercase">---</span>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                    <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Cumpleaños</span>
+                    <span id="m-prof-cumple" class="text-[12px] font-black text-slate-700 uppercase">---</span>
+                </div>
+                <div class="col-span-2 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                    <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Código VPX (Teletrabajo)</span>
+                    <span id="m-prof-vpx" class="text-[12px] font-black text-be-blue uppercase tracking-tight">---</span>
+                </div>
+            </div>
+            <div class="p-6 bg-white border-t border-slate-100 flex justify-center">
+                <button onclick="closeProfileModal()" class="px-8 py-3 bg-be-blue text-white text-[11px] font-black rounded-xl hover:bg-be-darkblue transition-all uppercase shadow-lg shadow-be-blue/20">Cerrar Perfil</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    
+    <script src="js/stores.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/db-init.js"></script>
+    <script src="js/ui-components.js"></script>
+    <script src="js/gestion.js"></script>
+</body>
+</html>
