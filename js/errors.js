@@ -531,7 +531,7 @@ function openModal(id) {
     }
 
 
-    // Resolución del Supervisor
+    // Resolución del Supervisor (MODO PERMISIVO PARA IGNACIO Y SUPERVISORES)
     const userRole = localStorage.getItem('user_role') || "supervisor";
     const userRut = localStorage.getItem('user_rut') || "";
     

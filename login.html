@@ -40,6 +40,43 @@
         .text-be-orange { color: #F37021; }
         .btn-be-orange { background-color: #F37021 !important; border: none !important; color: white !important; font-weight: bold; border-radius: 8px;}
         .btn-be-orange:hover { background-color: #e26112 !important; box-shadow: 0 4px 15px rgba(243, 112, 33, 0.4); }
+        
+        /* Estilos para mensajes de error/carga */
+        .alert-message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+        }
+        .alert-error {
+            background-color: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+        }
+        .alert-success {
+            background-color: #efe;
+            color: #3c3;
+            border: 1px solid #cfc;
+        }
+        .alert-info {
+            background-color: #eef;
+            color: #33c;
+            border: 1px solid #ccf;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -55,7 +92,7 @@
                                 <i class="fa-solid fa-list-check" style="font-size: 40px; color: white;"></i>
                             </div>
                             <h2>Gestión Supervisor</h2>
-                            <p>Plataforma centralizada para la gestión de dotaciòn y seguimiento de errores</p>
+                            <p>Plataforma centralizada para la gestión de dotación y seguimiento de errores</p>
                             <p class="text-white-50 mt-4 small"><i class="fa-solid fa-shield-halved"></i> Integración Backend Azure (Mockup)</p>
                         </div>
                     </div>
@@ -65,24 +102,27 @@
                         <div class="d-flex mb-4">
                             <div class="w-100">
                                 <h3 class="mb-2" style="font-weight: 700; color: #004B87;">Iniciar Sesión</h3>
-                                <p class="text-muted small">Seleccione su perfil</p>
+                                <p class="text-muted small">Seleccione su perfil y acceda al dashboard</p>
                             </div>
                         </div>
+
+                        <!-- Mensaje de alerta -->
+                        <div id="alert-message" class="alert-message"></div>
 
                         <form id="login-form" class="signin-form mt-4">
                             
                             <div class="form-group mb-4">
-                                <label class="label text-muted d-block mb-2" style="font-weight:600; font-size:12px; text-transform:uppercase;">Usuarios</label>
+                                <label class="label text-muted d-block mb-2" style="font-weight:600; font-size:12px; text-transform:uppercase;">Usuarios Disponibles</label>
                                 <div class="custom-select-wrapper">
                                     <select id="login-supervisor-select" class="form-control" style="color:#333; border:2px solid #e1e5eb; background:#f8f9fa; padding-left:15px; font-weight:600;" required>
-                                        <option value="" disabled selected>-- Busque y seleccione su nombre --</option>
+                                        <option value="" disabled selected>-- Cargando usuarios... --</option>
                                     </select>
                                     <i class="fa-solid fa-chevron-down" style="color:#aaa;"></i>
                                 </div>
                             </div>
                             
                             <div class="form-group mb-4 mt-5">
-                                <button type="button" onclick="performLogin()" class="form-control btn btn-be-orange submit px-3 py-3 d-flex justify-content-center align-items-center" style="gap:8px; font-size: 16px;">
+                                <button type="button" onclick="performLogin()" id="login-btn" class="form-control btn btn-be-orange submit px-3 py-3 d-flex justify-content-center align-items-center" style="gap:8px; font-size: 16px;">
                                     Entrar al Dashboard <i class="fa-solid fa-arrow-right-to-bracket"></i>
                                 </button>
                             </div>
@@ -97,9 +137,6 @@
         </div>
     </div>
 </section>
-
-<!-- Cargar los datos extraídos para poblar el dropdown -->
-
 
 <script src="login/js/jquery.min.js"></script>
 <script src="login/js/popper.js"></script>
@@ -119,12 +156,23 @@ function norm(txt) {
 
 function esVigente(estado) {
     const e = norm(estado);
-
     return (
         e === 'VIGENTE' ||
         e === 'ACTIVO' ||
         e === ''
     );
+}
+
+function showAlert(message, type = 'error') {
+    const alertDiv = document.getElementById('alert-message');
+    alertDiv.textContent = message;
+    alertDiv.className = `alert-message alert-${type}`;
+    alertDiv.style.display = 'block';
+}
+
+function hideAlert() {
+    const alertDiv = document.getElementById('alert-message');
+    alertDiv.style.display = 'none';
 }
 
 function addOption(nombre, isAdmin = false) {
@@ -140,8 +188,8 @@ function addOption(nombre, isAdmin = false) {
     opt.setAttribute('data-role', isAdmin ? 'admin' : 'supervisor');
     
     opt.innerText = isAdmin
-        ? nombre + ' (Administrador)'
-        : nombre;
+        ? nombre + ' (Administrador/Jefatura)'
+        : nombre + ' (Supervisor)';
 
     if (isAdmin) {
         opt.style.background = '#F37021';
@@ -152,23 +200,26 @@ function addOption(nombre, isAdmin = false) {
 }
 
 async function cargarUsuarios() {
-
     sessionStorage.clear();
+    hideAlert();
 
     const select = document.getElementById('login-supervisor-select');
 
     try {
+        // Limpiar opciones previas
+        select.innerHTML = '<option value="" disabled selected>-- Cargando usuarios... --</option>';
 
-        /*
-        ===================================================
-        SOLO TABLA tbl_dotacion_jefatura
-        ===================================================
-        */
+        // Obtener usuarios desde el backend
         const response = await fetch('api/get_login_users.php');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
         const data = await response.json();
 
         if (data.status !== 'success') {
-            throw new Error('No fue posible cargar usuarios');
+            throw new Error(data.message || 'Error desconocido al cargar usuarios');
         }
 
         LOGIN_DATA = data;
@@ -176,166 +227,127 @@ async function cargarUsuarios() {
         const supUsados = {};
         const adminsUsados = {};
 
-        /*
-        ===================================================
-        SI API TRAE rows CRUDAS DESDE tbl_dotacion_jefatura
-        ===================================================
-        */
-        if (data.rows && Array.isArray(data.rows)) {
-
-            data.rows.forEach(row => {
-
-                if (!esVigente(row.estado)) return;
-
-                const supervisor = row.supervisor || '';
-                const jefatura   = row.jefatura || '';
-
-                /*
-                SUPERVISORES
-                */
-                if (
-                    supervisor &&
-                    !supUsados[norm(supervisor)]
-                ) {
-                    supUsados[norm(supervisor)] = true;
-                    addOption(supervisor, false);
-                }
-
-                /*
-                JEFATURAS
-                */
-                if (
-                    jefatura &&
-                    !adminsUsados[norm(jefatura)]
-                ) {
-                    adminsUsados[norm(jefatura)] = true;
-                    addOption(jefatura, true);
-                }
-
-            });
-        }
-
-        /*
-        ===================================================
-        SI API YA TRAE ARRAYS LIMPIOS
-        ===================================================
-        */
-        else {
-
-            (data.supervisors || []).forEach(sup => {
-                if (!supUsados[norm(sup)]) {
-                    supUsados[norm(sup)] = true;
-                    addOption(sup, false);
-                }
-            });
-
-            (data.admins || []).forEach(admin => {
-                if (!adminsUsados[norm(admin)]) {
+        // Procesar jefaturas/administradores primero
+        if (data.admins && Array.isArray(data.admins)) {
+            data.admins.forEach(admin => {
+                if (admin && !adminsUsados[norm(admin)]) {
                     adminsUsados[norm(admin)] = true;
                     addOption(admin, true);
                 }
             });
         }
 
+        // Procesar supervisores
+        if (data.supervisors && Array.isArray(data.supervisors)) {
+            data.supervisors.forEach(sup => {
+                if (sup && !supUsados[norm(sup)]) {
+                    supUsados[norm(sup)] = true;
+                    addOption(sup, false);
+                }
+            });
+        }
+
+        // Si no hay usuarios, mostrar fallback
+        if (Object.keys(adminsUsados).length === 0 && Object.keys(supUsados).length === 0) {
+            showAlert('No se encontraron usuarios en el sistema. Contacte al administrador.', 'error');
+            addOption('CRISTIAN', true);
+            addOption('MILADY', true);
+            addOption('MONICA', true);
+        } else {
+            select.innerHTML = '<option value="" disabled selected>-- Seleccione su nombre --</option>' + select.innerHTML;
+        }
+
     } catch (error) {
+        console.error('Error cargando usuarios:', error);
+        showAlert(`Error: ${error.message}`, 'error');
 
-        console.error(error);
-
-        /*
-        fallback mínimo
-        */
+        // Fallback mínimo
+        select.innerHTML = '<option value="" disabled selected>-- Seleccione su nombre --</option>';
         addOption('CRISTIAN', true);
         addOption('MILADY', true);
         addOption('MONICA', true);
     }
 }
 
-function performLogin() {
-
+async function performLogin() {
     const select = document.getElementById('login-supervisor-select');
     const selectedOption = select.options[select.selectedIndex];
     
     if (!selectedOption || !selectedOption.value) {
-        alert('Seleccione usuario');
+        showAlert('Por favor, seleccione un usuario', 'error');
         return;
     }
 
-    const clean = selectedOption.value;
-    const role = selectedOption.getAttribute('data-role');
+    hideAlert();
 
-    sessionStorage.setItem(
-        'loggedInSupervisorName',
-        clean
-    );
+    const loginBtn = document.getElementById('login-btn');
+    const originalText = loginBtn.innerHTML;
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<span class="loading-spinner"></span> Validando...';
 
-    /*
-    ======================================
-    ADMIN / JEFATURA
-    ======================================
-    */
-    if (role === 'admin') {
+    try {
+        const clean = selectedOption.value;
+        const role = selectedOption.getAttribute('data-role');
 
-        sessionStorage.setItem(
-            'userRole',
-            'admin'
-        );
+        // Validar en backend para mayor seguridad
+        const validateResponse = await fetch('api/validate_login.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                usuario: clean
+            })
+        });
 
-        let supervisores = [];
+        const validateData = await validateResponse.json();
 
-        /*
-        Si viene mapa armado
-        */
-        if (LOGIN_DATA.jefaturas) {
-            const key = norm(clean);
+        if (validateData.status !== 'success') {
+            console.error('Respuesta del servidor:', validateData);
+            throw new Error(validateData.message || 'Error en la validación del servidor');
+        }
 
-            if (LOGIN_DATA.jefaturas[key]) {
-                supervisores = LOGIN_DATA.jefaturas[key];
-            } else if (LOGIN_DATA.jefaturas[clean]) {
-                supervisores = LOGIN_DATA.jefaturas[clean];
+        // Guardar datos en sessionStorage y localStorage para persistencia total
+        sessionStorage.setItem('loggedInSupervisorName', clean);
+        sessionStorage.setItem('userRole', validateData.rol);
+        localStorage.setItem('loggedInSupervisorName', clean);
+        localStorage.setItem('userRole', validateData.rol);
+
+        // Si es admin, guardar los supervisores asociados
+        if (validateData.rol === 'admin' && validateData.supervisores_asociados) {
+            const supsJson = JSON.stringify(validateData.supervisores_asociados);
+            sessionStorage.setItem('loggedInJefaturaSups', supsJson);
+            localStorage.setItem('loggedInJefaturaSups', supsJson);
+        }
+
+        showAlert(`¡Bienvenido ${clean}!`, 'success');
+
+        // Redireccionar según rol
+        setTimeout(() => {
+            if (validateData.rol === 'admin') {
+                window.location.href = 'admin.html';
+            } else {
+                window.location.href = 'index.html';
             }
-        }
-        
-        /*
-        Si viene rows cruda (fallback)
-        */
-        if (supervisores.length === 0 && LOGIN_DATA.rows && Array.isArray(LOGIN_DATA.rows)) {
-            LOGIN_DATA.rows.forEach(row => {
-                if (!esVigente(row.estado)) return;
-                if (norm(row.jefatura) === norm(clean)) {
-                    const sup = row.supervisor || '';
-                    if (sup && !supervisores.some(x => norm(x) === norm(sup))) {
-                        supervisores.push(sup);
-                    }
-                }
-            });
-        }
+        }, 500);
 
-        sessionStorage.setItem(
-            'loggedInJefaturaSups',
-            JSON.stringify(supervisores)
-        );
-
-        window.location.href = 'admin.html';
-        return;
+    } catch (error) {
+        console.error('Error en login:', error);
+        showAlert(`Error: ${error.message}`, 'error');
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = originalText;
     }
-
-    /*
-    ======================================
-    SUPERVISOR
-    ======================================
-    */
-    sessionStorage.setItem(
-        'userRole',
-        'supervisor'
-    );
-
-    window.location.href = 'index.html';
 }
 
-document.addEventListener(
-    'DOMContentLoaded',
-    cargarUsuarios
-);
+// Cargar usuarios al iniciar
+document.addEventListener('DOMContentLoaded', cargarUsuarios);
+
+// Permitir Enter para enviar el formulario
+document.getElementById('login-form').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        performLogin();
+    }
+});
 </script>
 
 </body>
