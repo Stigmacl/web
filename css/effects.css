@@ -1,0 +1,199 @@
+/* effects.css — efectos visuales de SUBASTA 360 (aurora, grilla con haces,
+   meteoros, border beam, spotlight, shimmer, blur-in). Solo transform/opacity
+   en las animaciones continuas para que rinda bien en proyectores y notebooks. */
+
+@property --beam-angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+}
+
+/* ---------- Capas de fondo ---------- */
+.fx-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.fx-aurora span {
+    position: absolute;
+    width: 60vmax;
+    height: 60vmax;
+    border-radius: 50%;
+    opacity: 0.32;
+    will-change: transform;
+    animation: aurora-drift 26s ease-in-out infinite alternate;
+}
+.fx-aurora span:nth-child(1) {
+    top: -30vmax;
+    left: -18vmax;
+    background: radial-gradient(circle, var(--accent-1) 0%, transparent 62%);
+}
+.fx-aurora span:nth-child(2) {
+    bottom: -34vmax;
+    right: -20vmax;
+    background: radial-gradient(circle, var(--accent-2) 0%, transparent 62%);
+    opacity: 0.22;
+    animation-duration: 32s;
+    animation-delay: -8s;
+}
+.fx-aurora span:nth-child(3) {
+    top: 10%;
+    left: 35%;
+    width: 42vmax;
+    height: 42vmax;
+    background: radial-gradient(circle, var(--btn-2) 0%, transparent 62%);
+    opacity: 0.16;
+    animation-duration: 38s;
+    animation-delay: -14s;
+}
+@keyframes aurora-drift {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(7%, 5%, 0) scale(1.12); }
+    100% { transform: translate3d(-5%, 9%, 0) scale(0.94); }
+}
+
+.fx-grid {
+    --grid: 64px;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: var(--grid) var(--grid);
+    background-position: center center;
+    -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 42%, #000 20%, transparent 78%);
+    mask-image: radial-gradient(ellipse 75% 65% at 50% 42%, #000 20%, transparent 78%);
+}
+
+/* Haces de luz que recorren las líneas de la grilla. */
+.fx-beam {
+    position: absolute;
+    top: calc(50% + var(--grid) * var(--row, 0));
+    left: 0;
+    width: 22%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-2), transparent);
+    opacity: 0.8;
+    animation: beam-x var(--dur, 9s) linear infinite;
+    animation-delay: var(--delay, 0s);
+    transform: translateX(-110%);
+}
+.fx-beam.is-vertical {
+    top: 0;
+    left: calc(50% + var(--grid) * var(--col, 0));
+    width: 1px;
+    height: 24%;
+    background: linear-gradient(180deg, transparent, var(--accent-1), transparent);
+    animation-name: beam-y;
+    transform: translateY(-110%);
+}
+@keyframes beam-x { to { transform: translateX(560%); } }
+@keyframes beam-y { to { transform: translateY(520%); } }
+
+/* Meteoros */
+.meteor {
+    position: absolute;
+    top: -2%;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.5);
+    transform: rotate(215deg);
+    animation: meteor linear infinite;
+    opacity: 0;
+}
+.meteor::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 90px;
+    height: 1px;
+    transform: translateY(-50%);
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.7), transparent);
+}
+@keyframes meteor {
+    0% { transform: rotate(215deg) translateX(0); opacity: 0; }
+    5% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { transform: rotate(215deg) translateX(-110vmax); opacity: 0; }
+}
+
+.fx-vignette {
+    background: radial-gradient(ellipse 120% 90% at 50% 40%, transparent 55%, rgba(3, 4, 10, 0.75) 100%);
+}
+
+/* ---------- Border beam ---------- */
+.border-beam { position: relative; isolation: isolate; }
+.border-beam::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: conic-gradient(from var(--beam-angle), transparent 0% 68%, var(--beam-2, var(--accent-2)) 80%, var(--beam-1, var(--accent-1)) 88%, transparent 96%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    animation: beam-rotate var(--beam-speed, 7s) linear infinite;
+    pointer-events: none;
+}
+.border-beam.is-gold { --beam-1: var(--gold-2); --beam-2: var(--gold-1); }
+@keyframes beam-rotate { to { --beam-angle: 360deg; } }
+
+/* ---------- Spotlight que sigue al puntero ---------- */
+.spotlight { position: relative; isolation: isolate; }
+.spotlight::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    background: radial-gradient(420px circle at var(--mx, -999px) var(--my, -999px), rgba(139, 108, 255, 0.13), transparent 42%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+.spotlight:hover::after { opacity: 1; }
+.spotlight > * { position: relative; z-index: 1; }
+
+/* ---------- Shimmer ---------- */
+.btn-shimmer { overflow: hidden; isolation: isolate; }
+.btn-shimmer::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.32) 50%, transparent 70%);
+    transform: translateX(-120%);
+    animation: shimmer 3.6s ease-in-out infinite;
+}
+@keyframes shimmer { 55%, 100% { transform: translateX(120%); } }
+
+/* ---------- Texto degradado animado ---------- */
+.text-shine {
+    background: linear-gradient(100deg, var(--text-1) 20%, var(--accent-2) 40%, var(--accent-1) 55%, var(--text-1) 75%);
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: text-shine 7s linear infinite;
+}
+@keyframes text-shine { to { background-position: -220% 0; } }
+
+/* ---------- Entradas ---------- */
+@keyframes blur-in {
+    from { opacity: 0; filter: blur(12px); transform: translateY(0.6em) scale(0.98); }
+    to { opacity: 1; filter: blur(0); transform: none; }
+}
+@keyframes rise-in {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fx-aurora span, .fx-beam, .meteor, .border-beam::before, .btn-shimmer::before, .text-shine { animation: none !important; }
+    .fx-beam, .meteor { display: none; }
+}

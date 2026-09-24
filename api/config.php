@@ -69,3 +69,13 @@ function read_json_body(): array {
     $decoded = json_decode($raw, true);
     return is_array($decoded) ? $decoded : [];
 }
+
+// Recorta por caracteres (no bytes) sin depender de la extensión mbstring.
+function clean_text($value, int $max): string {
+    $text = trim((string)$value);
+    return preg_match('/^.{0,' . $max . '}/us', $text, $m) ? $m[0] : '';
+}
+
+function valid_hex_color($value, string $fallback): string {
+    return is_string($value) && preg_match('/^#[0-9a-fA-F]{6}$/', $value) ? $value : $fallback;
+}

@@ -22,7 +22,7 @@ switch ($method) {
     case 'POST':
         require_admin();
         $body = read_json_body();
-        $nombre = trim($body['nombre'] ?? '');
+        $nombre = clean_text($body['nombre'] ?? '', 60);
         if ($nombre === '') {
             json_response(['status' => 'error', 'message' => 'El premio necesita un nombre.'], 422);
         }
@@ -31,11 +31,11 @@ switch ($method) {
         $nuevo = [
             'id' => uniqid('premio_', true),
             'nombre' => $nombre,
-            'descripcion' => trim($body['descripcion'] ?? ''),
-            'color' => $body['color'] ?? '#0b3d91',
-            'icono' => trim($body['icono'] ?? '🎁'),
+            'descripcion' => clean_text($body['descripcion'] ?? '', 160),
+            'color' => valid_hex_color($body['color'] ?? null, '#6a45ff'),
+            'icono' => clean_text($body['icono'] ?? '', 32) ?: 'icon:gift',
             'peso' => max(1, (int)($body['peso'] ?? 1)),
-            'stock' => (int)($body['stock'] ?? -1), // -1 = ilimitado
+            'stock' => max(-1, (int)($body['stock'] ?? -1)), // -1 = ilimitado
         ];
         $premios[] = $nuevo;
         save_premios($premios);
@@ -50,12 +50,22 @@ switch ($method) {
         $found = false;
         foreach ($premios as &$p) {
             if ($p['id'] === $id) {
-                $p['nombre'] = trim($body['nombre'] ?? $p['nombre']);
-                $p['descripcion'] = trim($body['descripcion'] ?? $p['descripcion']);
-                $p['color'] = $body['color'] ?? $p['color'];
-                $p['icono'] = trim($body['icono'] ?? $p['icono']);
+                if (isset($body['nombre'])) {
+                    $nombre = clean_text($body['nombre'], 60);
+                    if ($nombre === '') {
+                        json_response(['status' => 'error', 'message' => 'El premio necesita un nombre.'], 422);
+                    }
+                    $p['nombre'] = $nombre;
+                }
+                if (isset($body['descripcion'])) {
+                    $p['descripcion'] = clean_text($body['descripcion'], 160);
+                }
+                $p['color'] = valid_hex_color($body['color'] ?? null, $p['color'] ?? '#6a45ff');
+                if (isset($body['icono'])) {
+                    $p['icono'] = clean_text($body['icono'], 32) ?: 'icon:gift';
+                }
                 $p['peso'] = max(1, (int)($body['peso'] ?? $p['peso']));
-                $p['stock'] = isset($body['stock']) ? (int)$body['stock'] : $p['stock'];
+                $p['stock'] = isset($body['stock']) ? max(-1, (int)$body['stock']) : $p['stock'];
                 $found = true;
                 break;
             }

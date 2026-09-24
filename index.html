@@ -3,160 +3,310 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Subasta 360</title>
-<meta name="description" content="Subasta 360 — reconociendo la excelencia integral del equipo.">
-<link rel="stylesheet" href="css/styles.css">
+<title>SUBASTA 360</title>
+<meta name="description" content="SUBASTA 360 — plataforma de experiencias y eventos.">
+<meta name="theme-color" content="#05060f">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/sora-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/effects.css">
 <link rel="stylesheet" href="css/stage.css">
 </head>
 <body class="stage-body">
-<div class="stage" id="stage">
-    <div class="stage-sparkles" aria-hidden="true"></div>
 
-    <div class="badge-live"><span class="dot" aria-hidden="true"></span>EN VIVO</div>
-
-    <button class="stage-nav-btn stage-fullscreen-btn" id="fullscreenBtn" aria-label="Pantalla completa">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3.75 3.75h4.5m-4.5 0v4.5m0-4.5L9 9m11.25-5.25h-4.5m4.5 0v4.5m0-4.5L15 9M3.75 20.25h4.5m-4.5 0v-4.5m0 4.5L9 15m11.25 5.25h-4.5m4.5 0v-4.5m0 4.5L15 15"/>
-        </svg>
-    </button>
-
-    <!-- Slide 1: Portada -->
-    <section class="slide active" id="slide-portada" aria-label="Portada">
-        <div class="marquee">
-            <div class="marquee-inner">
-                <div class="bulb-strip top" aria-hidden="true"></div>
-                <div class="bulb-strip bottom" aria-hidden="true"></div>
-                <div class="bulb-strip left" aria-hidden="true"></div>
-                <div class="bulb-strip right" aria-hidden="true"></div>
-                <span class="eyebrow" id="eventoSubtituloTop">Reconociendo la excelencia integral</span>
-                <h1 class="stage-title" id="eventoTituloPortada">Subasta 360</h1>
-            </div>
-        </div>
-        <p class="stage-tagline">Tu talento tiene valor… ¡hacé tu mejor oferta!</p>
-    </section>
-
-    <!-- Slide 2: Cómo funciona -->
-    <section class="slide" id="slide-como-funciona" aria-label="Cómo funciona">
-        <div class="marquee">
-            <div class="marquee-inner">
-                <div class="bulb-strip top" aria-hidden="true"></div>
-                <div class="bulb-strip bottom" aria-hidden="true"></div>
-                <div class="bulb-strip left" aria-hidden="true"></div>
-                <div class="bulb-strip right" aria-hidden="true"></div>
-                <span class="eyebrow">Cada punto cuenta</span>
-                <h2 class="stage-title" style="font-size:clamp(1.6rem,4vw,2.6rem)">¿Cómo funciona?</h2>
-                <div class="criterios-grid">
-                    <div class="criterios-col suma">
-                        <h3>Lo que suma</h3>
-                        <ul>
-                            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Cliente Incógnito</li>
-                            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>CAMPUSBE</li>
-                            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>ECM</li>
-                            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Perfil Resolución Epai / TMO</li>
-                        </ul>
-                    </div>
-                    <div class="criterios-col resta">
-                        <h3>Lo que resta</h3>
-                        <ul>
-                            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Ley de Fraude</li>
-                            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Agendamientos</li>
-                            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>ONP</li>
-                            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Req. contenibles seguros</li>
-                            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Rederivaciones</li>
-                            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>EMT</li>
-                            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Ausencias sin justif.</li>
-                            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Atrasos GV</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Slide 3: Reglas -->
-    <section class="slide" id="slide-reglas" aria-label="Reglas">
-        <span class="eyebrow">La subasta ha comenzado…</span>
-        <h2 class="stage-title" style="font-size:clamp(1.8rem,4.5vw,3rem)">Reglas del juego</h2>
-        <ul class="reglas-list">
-            <li>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                Los puntos no son acumulables entre distintos meses.
-            </li>
-            <li>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                Todas las ofertas deben realizarse en tiempo real durante la subasta.
-            </li>
-            <li>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                No está permitido compartir ni transferir puntos entre ejecutivos.
-            </li>
-        </ul>
-    </section>
-
-    <!-- Slide 4: Ruleta + cronómetro -->
-    <section class="slide" id="slide-ruleta" aria-label="Ruleta de premios">
-        <span class="eyebrow" id="eventoTituloRuleta">Subasta 360</span>
-
-        <div class="cronometro" role="timer" aria-label="Tiempo restante del evento">
-            <div class="unidad">
-                <span class="valor" id="cronoHoras">00</span>
-                <span class="etiqueta">Horas</span>
-            </div>
-            <div class="unidad">
-                <span class="valor" id="cronoMin">00</span>
-                <span class="etiqueta">Min</span>
-            </div>
-            <div class="unidad">
-                <span class="valor" id="cronoSeg">00</span>
-                <span class="etiqueta">Seg</span>
-            </div>
-        </div>
-
-        <div class="ruleta-wrap">
-            <div class="ruleta-puntero" aria-hidden="true"></div>
-            <div class="ruleta-canvas-holder">
-                <canvas id="ruletaCanvas" width="640" height="640" role="img" aria-label="Ruleta de premios"></canvas>
-                <div class="ruleta-hub" aria-hidden="true">
-                    <div class="emblem-360">
-                        <div class="emblem-360-inner">SUBASTA<br>360</div>
-                    </div>
-                </div>
-            </div>
-            <button class="btn btn-primary" id="girarBtn">Girar la ruleta</button>
-            <p class="muted" id="ruletaMensaje" hidden></p>
-        </div>
-    </section>
-
-    <!-- Slide 5: Ganador -->
-    <section class="slide slide-ganador" id="slide-ganador" aria-label="Ganador">
-        <div class="curtain-side left" aria-hidden="true"></div>
-        <div class="curtain-side right" aria-hidden="true"></div>
-        <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
-        <div class="ganador-content">
-            <span class="eyebrow">¡Felicitaciones!</span>
-            <div class="ganador-icono" aria-hidden="true">
-                <span id="ganadorIconoTexto" style="font-size:2.4rem;"></span>
-            </div>
-            <h2 class="ganador-nombre" id="ganadorNombre">—</h2>
-            <p class="ganador-desc" id="ganadorDesc"></p>
-            <button class="btn btn-ghost" id="volverRuletaBtn">Girar otra vez</button>
-        </div>
-    </section>
-
-    <div class="stage-nav">
-        <button class="stage-nav-btn" id="prevBtn" aria-label="Diapositiva anterior">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
-        </button>
-        <div class="stage-dots" id="stageDots"></div>
-        <button class="stage-nav-btn" id="nextBtn" aria-label="Siguiente diapositiva">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
-        </button>
+<div class="splash" id="splash" role="status" aria-live="polite">
+    <div class="loader">
+        <span class="brand-mark"></span>
+        <span class="brand"><span class="brand-word">Subasta<span class="brand-360">360</span></span></span>
+        <span class="sr-only">Preparando el escenario…</span>
     </div>
+</div>
 
-    <a class="stage-corner-link" href="admin.html">Panel admin</a>
+<div class="stage" id="stage">
+    <div class="fx-layer fx-aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="fx-layer fx-grid" id="fxGrid" aria-hidden="true"></div>
+    <div class="fx-layer" id="fxMeteors" aria-hidden="true"></div>
+    <div class="fx-layer fx-vignette" aria-hidden="true"></div>
+
+    <header class="stage-header">
+        <div class="stage-identity">
+            <span class="brand stage-brand"><span class="brand-mark is-orbiting"></span><span class="brand-word">Subasta<span class="brand-360">360</span></span></span>
+            <span class="stage-divider" aria-hidden="true"></span>
+            <div class="stage-event">
+                <p class="stage-event-name" data-bind="titulo">—</p>
+                <p class="stage-event-sub" data-bind="subtitulo"></p>
+            </div>
+        </div>
+        <div class="stage-controls">
+            <span class="badge badge-dot badge-warning" id="estadoBadge">En preparación</span>
+            <div class="stage-tools chrome">
+                <button type="button" class="btn btn-ghost btn-icon" id="soundBtn" aria-label="Silenciar sonido" aria-pressed="false"><i data-icon="volume"></i></button>
+                <button type="button" class="btn btn-ghost btn-icon" id="fullscreenBtn" aria-label="Pantalla completa (F)"><i data-icon="maximize"></i></button>
+                <a class="btn btn-ghost btn-icon" href="admin.html" aria-label="Panel de administración"><i data-icon="dashboard"></i></a>
+            </div>
+        </div>
+    </header>
+
+    <main class="slides">
+        <!-- 01 · Bienvenida -->
+        <section class="slide" id="bienvenida" data-label="Bienvenida" aria-label="Bienvenida">
+            <div class="hero">
+                <div class="emblem reveal" style="--i:0" aria-hidden="true">
+                    <span class="emblem-glow"></span>
+                    <span class="emblem-dial"></span>
+                    <span class="emblem-ring"></span>
+                    <span class="emblem-orbit"><i></i></span>
+                    <span class="emblem-orbit is-slow"><i></i></span>
+                    <div class="emblem-core">
+                        <span class="emblem-kicker">Subasta</span>
+                        <span class="emblem-number">360</span>
+                    </div>
+                </div>
+                <h1 class="hero-title reveal" style="--i:1" data-bind="titulo">—</h1>
+                <p class="hero-welcome reveal" style="--i:2" data-bind="bienvenida"></p>
+                <div class="countdown-block reveal" style="--i:3">
+                    <p class="countdown-caption" data-countdown-caption>El evento comienza en</p>
+                    <div class="countdown" role="timer" aria-label="Tiempo restante">
+                        <div class="cd-unit" data-unit="days" hidden><span class="cd-value">00</span><span class="cd-label">Días</span></div>
+                        <div class="cd-unit" data-unit="hours"><span class="cd-value">00</span><span class="cd-label">Horas</span></div>
+                        <span class="cd-sep" aria-hidden="true">:</span>
+                        <div class="cd-unit" data-unit="minutes"><span class="cd-value">00</span><span class="cd-label">Minutos</span></div>
+                        <span class="cd-sep" aria-hidden="true">:</span>
+                        <div class="cd-unit" data-unit="seconds"><span class="cd-value">00</span><span class="cd-label">Segundos</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 02 · Cómo funciona -->
+        <section class="slide" id="como-funciona" data-label="Cómo funciona" aria-label="Cómo funciona">
+            <div class="slide-inner">
+                <div class="slide-head">
+                    <span class="eyebrow reveal" style="--i:0">02 · Cómo funciona</span>
+                    <h2 class="slide-title reveal" style="--i:1">Tu desempeño es tu <span class="text-shine">mejor moneda</span></h2>
+                    <p class="slide-lead reveal" style="--i:2">Durante el período evaluado, cada ejecutivo acumuló puntos en base a criterios clave. En la subasta podrás pujar por los premios con esos puntos: mientras más alto tu puntaje, más opciones tendrás.</p>
+                </div>
+                <div class="criteria">
+                    <article class="criteria-card is-plus border-beam reveal" style="--i:3">
+                        <header class="criteria-head">
+                            <span class="criteria-icon"><i data-icon="plusCircle"></i></span>
+                            <div>
+                                <h3>Lo que suma</h3>
+                                <p class="muted">Criterios que aumentan tu puntaje</p>
+                            </div>
+                        </header>
+                        <ul class="criteria-list">
+                            <li>Cliente Incógnito</li>
+                            <li>CAMPUSBE</li>
+                            <li>ECM</li>
+                            <li>Perfil Resolución Epai / TMO</li>
+                        </ul>
+                    </article>
+                    <article class="criteria-card is-minus reveal" style="--i:4">
+                        <header class="criteria-head">
+                            <span class="criteria-icon"><i data-icon="minusCircle"></i></span>
+                            <div>
+                                <h3>Lo que resta</h3>
+                                <p class="muted">Criterios que descuentan puntos</p>
+                            </div>
+                        </header>
+                        <ul class="criteria-list is-two-cols">
+                            <li>Ley de Fraude</li>
+                            <li>Agendamientos</li>
+                            <li>ONP</li>
+                            <li>Req. contenibles seguros</li>
+                            <li>Rederivaciones</li>
+                            <li>EMT</li>
+                            <li>Ausencias sin justificación</li>
+                            <li>Atrasos GV</li>
+                        </ul>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- 03 · Premios -->
+        <section class="slide" id="premios" data-label="Premios" aria-label="Premios">
+            <div class="slide-inner">
+                <div class="slide-head is-row">
+                    <div>
+                        <span class="eyebrow reveal" style="--i:0">03 · Premios</span>
+                        <h2 class="slide-title reveal" style="--i:1">Premios de esta edición</h2>
+                    </div>
+                    <div class="head-stats reveal" style="--i:2">
+                        <div class="head-stat"><span class="head-stat-value" id="statPremios">0</span><span class="head-stat-label">Premios</span></div>
+                        <div class="head-stat"><span class="head-stat-value" id="statDisponibles">0</span><span class="head-stat-label">Disponibles</span></div>
+                    </div>
+                </div>
+                <div class="prize-grid" id="prizeGrid"></div>
+            </div>
+        </section>
+
+        <!-- 04 · Preparación -->
+        <section class="slide" id="preparacion" data-label="Preparación" aria-label="Preparación">
+            <div class="slide-inner">
+                <div class="slide-head is-center">
+                    <span class="badge badge-dot badge-live reveal" style="--i:0">La subasta está por comenzar</span>
+                    <h2 class="slide-title reveal" style="--i:1">Reglas de la subasta</h2>
+                    <p class="slide-lead reveal" style="--i:2">Una jornada competitiva, divertida y llena de sorpresas. Estas son las reglas para que todos jueguen en igualdad.</p>
+                </div>
+                <ol class="rules">
+                    <li class="rule-card spotlight reveal" style="--i:3">
+                        <span class="rule-index">01</span>
+                        <span class="rule-icon"><i data-icon="calendar"></i></span>
+                        <p>Los puntos no son acumulables entre distintos meses.</p>
+                    </li>
+                    <li class="rule-card spotlight reveal" style="--i:4">
+                        <span class="rule-index">02</span>
+                        <span class="rule-icon"><i data-icon="activity"></i></span>
+                        <p>Todas las ofertas deben realizarse en tiempo real durante la subasta.</p>
+                    </li>
+                    <li class="rule-card spotlight reveal" style="--i:5">
+                        <span class="rule-index">03</span>
+                        <span class="rule-icon"><i data-icon="lock"></i></span>
+                        <p>No está permitido compartir ni transferir puntos entre ejecutivos.</p>
+                    </li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- 05 · Ruleta -->
+        <section class="slide" id="ruleta" data-label="Ruleta" aria-label="Ruleta de premios">
+            <div class="roulette">
+                <aside class="roulette-panel reveal" style="--i:0">
+                    <span class="eyebrow">05 · Ruleta</span>
+                    <h2 class="panel-title">Gira y descubre el próximo premio</h2>
+                    <dl class="panel-stats">
+                        <div><dt>En juego</dt><dd id="enJuegoCount">0</dd></div>
+                        <div><dt>Giros</dt><dd id="girosCount">0</dd></div>
+                    </dl>
+                    <div class="panel-countdown">
+                        <p class="countdown-caption" data-countdown-caption>El evento comienza en</p>
+                        <div class="countdown is-compact" role="timer" aria-label="Tiempo restante">
+                            <div class="cd-unit" data-unit="days" hidden><span class="cd-value">00</span><span class="cd-label">D</span></div>
+                            <div class="cd-unit" data-unit="hours"><span class="cd-value">00</span><span class="cd-label">H</span></div>
+                            <span class="cd-sep" aria-hidden="true">:</span>
+                            <div class="cd-unit" data-unit="minutes"><span class="cd-value">00</span><span class="cd-label">M</span></div>
+                            <span class="cd-sep" aria-hidden="true">:</span>
+                            <div class="cd-unit" data-unit="seconds"><span class="cd-value">00</span><span class="cd-label">S</span></div>
+                        </div>
+                    </div>
+                    <div class="field operator-only">
+                        <label class="field-label" for="participanteInput">Ganador (opcional)</label>
+                        <input class="input" id="participanteInput" type="text" maxlength="60" autocomplete="off" placeholder="También puedes asignarlo tras la puja">
+                    </div>
+                </aside>
+
+                <div class="wheel-zone reveal" style="--i:1">
+                    <div class="wheel" id="wheel">
+                        <span class="wheel-aura" aria-hidden="true"></span>
+                        <div class="wheel-lights" id="wheelLights" aria-hidden="true"></div>
+                        <canvas id="wheelCanvas" class="wheel-canvas" role="img" aria-label="Ruleta de premios"></canvas>
+                        <span class="wheel-pointer" id="wheelPointer" aria-hidden="true"></span>
+                        <div class="wheel-hub" aria-hidden="true">
+                            <span class="brand-mark is-orbiting"></span>
+                            <span class="wheel-hub-text">360</span>
+                        </div>
+                    </div>
+                    <div class="spin-actions">
+                        <button type="button" class="btn btn-primary btn-lg btn-shimmer btn-spin" id="spinBtn">
+                            <i data-icon="wheel"></i><span id="spinLabel">Girar la ruleta</span>
+                        </button>
+                        <p class="spin-hint" id="spinHint"><kbd>Espacio</kbd> para girar</p>
+                    </div>
+                </div>
+
+                <aside class="roulette-panel is-list reveal" style="--i:2">
+                    <span class="eyebrow">Premios en juego</span>
+                    <ul class="inplay" id="inPlayList"></ul>
+                </aside>
+            </div>
+        </section>
+
+        <!-- 06 · Ganador -->
+        <section class="slide" id="ganador" data-label="Ganador" aria-label="Ganador">
+            <div class="winner" id="winner">
+                <span class="winner-rays" aria-hidden="true"></span>
+
+                <div class="winner-empty" id="winnerEmpty">
+                    <div class="empty">
+                        <span class="empty-icon"><i data-icon="trophy"></i></span>
+                        <p class="empty-title">Aún no hay resultado</p>
+                        <p class="empty-text">Gira la ruleta para descubrir el próximo premio.</p>
+                        <button type="button" class="btn btn-secondary" data-goto="ruleta"><i data-icon="wheel"></i>Ir a la ruleta</button>
+                    </div>
+                </div>
+
+                <div class="winner-content" id="winnerContent" hidden>
+                    <article class="winner-card border-beam is-gold">
+                        <div class="winner-trophy"><i data-icon="trophy" class="icon-lg"></i></div>
+                        <p class="winner-kicker" id="winnerKicker">Ganador</p>
+                        <h2 class="winner-name" id="winnerName"></h2>
+                        <div class="winner-prize">
+                            <span class="winner-prize-icon" id="winnerPrizeIcon"></span>
+                            <span class="winner-prize-name" id="winnerPrizeName"></span>
+                        </div>
+                        <p class="winner-desc" id="winnerDesc"></p>
+                        <footer class="winner-foot">
+                            <span class="brand"><span class="brand-mark"></span><span class="brand-word">Subasta<span class="brand-360">360</span></span></span>
+                            <span class="winner-foot-event" data-bind="titulo"></span>
+                        </footer>
+                    </article>
+
+                    <form class="winner-assign operator-only" id="assignForm" autocomplete="off">
+                        <label class="sr-only" for="assignInput">Nombre del ganador</label>
+                        <input class="input" id="assignInput" type="text" maxlength="60" placeholder="Nombre de quien ganó la puja" required>
+                        <button type="submit" class="btn btn-primary" id="assignBtn"><i data-icon="checkCircle"></i>Confirmar ganador</button>
+                    </form>
+
+                    <div class="winner-actions operator-only" id="winnerActions">
+                        <button type="button" class="btn btn-primary btn-shimmer" id="nextPrizeBtn"><i data-icon="rotate"></i>Siguiente premio</button>
+                        <button type="button" class="btn btn-secondary" data-goto="cierre"><i data-icon="flag"></i>Finalizar evento</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 07 · Cierre -->
+        <section class="slide" id="cierre" data-label="Cierre" aria-label="Cierre del evento">
+            <div class="finale">
+                <span class="badge badge-neutral reveal" style="--i:0">Evento finalizado</span>
+                <h2 class="finale-title reveal" style="--i:1">Gracias por <span class="text-shine">participar</span></h2>
+                <div class="finale-brand reveal" style="--i:2">
+                    <span class="brand"><span class="brand-mark is-orbiting"></span><span class="brand-word">Subasta<span class="brand-360">360</span></span></span>
+                    <p class="finale-event" data-bind="titulo"></p>
+                </div>
+                <div class="finale-stats reveal" style="--i:3" id="finaleStats" hidden>
+                    <div class="head-stat"><span class="head-stat-value" id="finaleEntregados">0</span><span class="head-stat-label">Premios entregados</span></div>
+                    <ul class="finale-winners" id="finaleWinners"></ul>
+                </div>
+                <p class="finale-tagline reveal" style="--i:4">Una experiencia creada para hacer de cada evento algo memorable.</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="stage-footer">
+        <nav class="stepper chrome" aria-label="Etapas del evento">
+            <button type="button" class="btn btn-ghost btn-icon" id="prevBtn" aria-label="Etapa anterior"><i data-icon="chevronLeft"></i></button>
+            <ol class="stepper-list" id="stepperList"></ol>
+            <button type="button" class="btn btn-ghost btn-icon" id="nextBtn" aria-label="Etapa siguiente"><i data-icon="chevronRight"></i></button>
+        </nav>
+        <p class="powered">Powered by <span class="brand"><span class="brand-mark"></span><span class="brand-word">Subasta<span class="brand-360">360</span></span></span></p>
+    </footer>
+
+    <div class="transition-veil" id="veil" aria-hidden="true"><span class="veil-ring"></span></div>
+    <div class="flash" id="flash" aria-hidden="true"></div>
+    <canvas class="confetti-canvas" id="confettiCanvas" aria-hidden="true"></canvas>
 </div>
 
 <script src="js/api.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/effects.js"></script>
+<script src="js/sound.js"></script>
+<script src="js/confetti.js"></script>
+<script src="js/wheel.js"></script>
 <script src="js/stage.js"></script>
 </body>
 </html>

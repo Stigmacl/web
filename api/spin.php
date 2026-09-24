@@ -41,15 +41,22 @@ foreach ($premios as &$p) {
 unset($p);
 write_json_file(PREMIOS_FILE, $premios);
 
+$body = read_json_body();
 $historial = read_json_file(HISTORIAL_FILE, []);
 $entrada = [
     'id' => uniqid('giro_', true),
     'premio_id' => $ganador['id'],
     'premio_nombre' => $ganador['nombre'],
     'icono' => $ganador['icono'] ?? '🎁',
+    'participante' => clean_text($body['participante'] ?? '', 60),
     'timestamp' => date('c'),
 ];
 $historial[] = $entrada;
 write_json_file(HISTORIAL_FILE, $historial);
 
-json_response(['status' => 'ok', 'ganador' => $ganador, 'orden_ruleta' => array_column($candidatos, 'id')]);
+json_response([
+    'status' => 'ok',
+    'ganador' => $ganador,
+    'giro' => $entrada,
+    'orden_ruleta' => array_column($candidatos, 'id'),
+]);

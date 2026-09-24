@@ -1,75 +1,129 @@
-# Subasta 360
+# SUBASTA 360
 
-**Subasta 360** es la dinámica de reconocimiento donde el equipo canjea los
+**Plataforma de experiencias y eventos.**
+
+SUBASTA 360 es la dinámica de reconocimiento donde el equipo canjea los
 puntos que ganó durante el período evaluado (Cliente Incógnito, CAMPUSBE,
 ECM, agendamientos, ausencias, atrasos, etc.) por premios, pujando en una
 subasta en vivo.
 
-Esta web es el "maestro de ceremonias" de ese evento: reemplaza el combo de
-Canva + Wooclap + PowerPoint por **una sola pestaña** con todo adentro —
-portada, cómo funciona, reglas, la ruleta de premios con cronómetro, y el
-reveal del ganador con telón y confeti — para compartir por Teams o
-proyectar en una TV sin estar abriendo y cerrando ventanas.
+Esta web es el "maestro de ceremonias" del evento: reemplaza el combo de
+Canva + Wooclap + PowerPoint por **una sola pestaña** que se comparte por
+Teams o se proyecta en una TV, sin abrir y cerrar ventanas. Incluye un panel
+de administración para preparar todo sin tocar código.
 
-Tiene además un panel de administración para cargar los premios (con su
-probabilidad y stock) y configurar el evento, sin tocar código.
+## Correr en local
 
-## Requisitos
+**Windows (doble clic):** abre **`Iniciar Subasta 360.cmd`**. Levanta el
+servidor PHP y abre el escenario en el navegador. Requiere PHP en el PATH o
+XAMPP en `C:\xampp`. Deja abierta la ventana "Subasta 360 - servidor" durante
+el evento; cerrarla apaga el servidor.
 
-- PHP 7.4+ (viene con XAMPP). No necesita MySQL: los premios y la
-  configuración del evento se guardan en `api/data/*.json`.
-
-## Correr en local (Windows, doble clic)
-
-Hacé doble clic en **`Iniciar Subasta 360.cmd`** (en la raíz del proyecto).
-Levanta el servidor PHP y abre la pantalla principal en el navegador solo.
-Requiere tener PHP en el PATH o XAMPP instalado en `C:\xampp`. Dejá abierta
-la ventana negra "Subasta 360 - servidor" mientras dure el evento; cerrarla
-apaga el servidor.
-
-## Correr en local (manual / Mac / Linux)
-
-Con XAMPP: copiá esta carpeta a `htdocs/subasta360` y entrá a
+**XAMPP:** copia la carpeta a `htdocs/subasta360` y entra a
 `http://localhost/subasta360/index.html`.
 
-Sin XAMPP, con el PHP embebido (más rápido para probar):
+**Manual (Mac / Linux / Windows):**
 
 ```bash
 php -S localhost:8000
 ```
 
-y abrí `http://localhost:8000/index.html`.
+y abre `http://localhost:8000/index.html`.
+
+Requisitos: PHP 7.4 o superior. No necesita MySQL, Node, npm ni internet:
+las tipografías vienen incluidas y los datos se guardan en `api/data/*.json`.
+
+## El escenario (`index.html`)
+
+Una presentación de 7 etapas con transiciones circulares "360°":
+
+| # | Etapa | Qué muestra |
+|---|-------|-------------|
+| 01 | Bienvenida | Emblema 360°, nombre del evento, texto de bienvenida y cuenta regresiva |
+| 02 | Cómo funciona | Lo que suma y lo que resta puntaje |
+| 03 | Premios | Tarjetas de cada premio con su stock |
+| 04 | Preparación | Reglas de la subasta |
+| 05 | Ruleta | Ruleta con luces, sonido, cronómetro y premios en juego |
+| 06 | Ganador | Premio seleccionado → nombre del ganador, con celebración |
+| 07 | Cierre | Agradecimiento, premios entregados y ganadores |
+
+Flujo de cada ronda: **Ruleta → Ganador → "Siguiente premio" → Ruleta**.
+El ganador se puede escribir antes de girar o después de la puja; queda
+guardado en el historial.
+
+Atajos (funcionan con presentadores inalámbricos):
+
+| Tecla | Acción |
+|-------|--------|
+| `→` / `←` (o Av Pág / Re Pág) | Siguiente / anterior etapa |
+| `Espacio` | Girar la ruleta |
+| `F` | Pantalla completa (los controles se ocultan solos) |
+| `M` | Activar / silenciar sonido |
+| `1`–`7` | Ir directo a una etapa |
 
 ## Uso durante el evento
 
-1. Antes de empezar, abrí `login.html` en esa misma pestaña/PC y entrá con
-   la contraseña de admin (por defecto: `subasta360` — cambiarla, ver abajo).
-2. Cargá los premios desde el **panel admin** (`admin.html`): nombre, color,
-   ícono, peso (probabilidad) y stock (-1 = ilimitado).
-3. Ajustá el título/subtítulo del evento y la fecha/hora objetivo del
-   cronómetro también desde el panel admin.
-4. Abrí `index.html`, apretá el ícono de pantalla completa (o tecla `F`) y
-   compartí esa ventana por Teams / proyectala.
-5. Navegá los slides con las flechas `←` `→` del teclado (o los botones de
-   abajo). En el slide de la ruleta, el botón "Girar la ruleta" solo
-   funciona si esa pestaña ya inició sesión como admin (paso 1).
+1. Entra a `login.html` (contraseña por defecto `subasta360`) y prepara el
+   evento desde el **panel admin**: nombre, subtítulo, bienvenida, fecha,
+   hora, estado y premios (ícono, color, peso y stock).
+2. Abre el escenario **en el mismo navegador** (el botón "Abrir escenario"
+   del panel). Solo una sesión admin puede girar la ruleta.
+3. Presiona `F`, comparte esa ventana por Teams o proyéctala, y avanza con las
+   flechas. Los cambios que hagas en el panel llegan al escenario en segundos.
+
+## Panel de administración (`admin.html`)
+
+- **Dashboard:** estado del evento, cuenta regresiva, premios, disponibles,
+  entregados, estado de la ruleta, último ganador y actividad reciente.
+- **Evento:** datos del evento con vista previa 16:9 en vivo.
+- **Premios:** crear, editar y eliminar; stock rápido (−/+); peso con
+  probabilidad calculada; ícono (set propio o emoji) y color.
+- **Ruleta:** vista previa y distribución de probabilidad.
+- **Historial:** todos los giros con fecha, premio y ganador.
+- **Configuración:** acento visual (Aurora, Océano, Magenta, Solar), atajos
+  y seguridad.
 
 ## Cambiar la contraseña de admin
 
-Generá un hash nuevo y pegalo en `api/config.php` (constante
+Genera un hash nuevo y pégalo en `api/config.php` (constante
 `ADMIN_PASSWORD_HASH`):
 
 ```bash
-php -r 'echo password_hash("tu_clave_nueva", PASSWORD_DEFAULT);'
+php -r "echo password_hash('tu_clave_nueva', PASSWORD_DEFAULT);"
 ```
 
 ## Estructura
 
-- `Iniciar Subasta 360.cmd` — lanzador de doble clic (Windows): levanta el
-  servidor y abre el navegador.
-- `index.html` + `js/stage.js` + `css/stage.css` — pantalla principal (proyector).
-- `admin.html` + `js/admin.js` — panel para cargar premios y configurar el evento.
-- `login.html` + `js/login.js` — acceso admin.
-- `api/*.php` — backend PHP (sesión, premios, ruleta, evento, historial).
-- `api/data/*.json` — datos persistidos (protegidos de acceso directo vía
-  `api/data/.htaccess`; funciona en Apache/XAMPP, no con `php -S`).
+```
+Iniciar Subasta 360.cmd   Lanzador de doble clic (Windows)
+index.html                Escenario del evento
+admin.html                Panel de administración
+login.html                Acceso admin
+css/
+  base.css                Sistema de diseño: tokens, marca y componentes
+  effects.css             Aurora, grilla con haces, border beam, spotlight, shimmer
+  stage.css               Escenario (escala proporcional 16:9)
+  admin.css / login.css   Panel y acceso
+js/
+  api.js                  Cliente de la API
+  icons.js                Íconos SVG de interfaz y premios
+  ui.js                   Toasts, modales, confirmaciones y formateadores
+  effects.js              Spotlight, meteoros, haces y contadores animados
+  wheel.js                Motor de la ruleta (canvas)
+  sound.js / confetti.js  Sonidos sintetizados y confeti
+  stage.js / admin.js / login.js
+api/
+  config.php              Sesión, contraseña y helpers
+  auth.php                Login / logout / estado
+  evento.php              Configuración del evento
+  premios.php             CRUD de premios
+  spin.php                Giro: elige premio por peso, descuenta stock, registra
+  historial.php           Historial y asignación de ganador
+  data/*.json             Datos (protegidos vía .htaccess en Apache/XAMPP)
+assets/
+  fonts/                  Inter y Sora (licencia SIL OFL)
+  img/favicon.svg
+```
+
+El resultado de cada giro lo decide el servidor (`api/spin.php`); el
+navegador solo anima la ruleta hasta ese premio.

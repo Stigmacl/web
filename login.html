@@ -3,30 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ingresar — Subasta 360</title>
-<link rel="stylesheet" href="css/styles.css">
-<style>
-    body { display: flex; align-items: center; justify-content: center; }
-    .login-card { width: 100%; max-width: 380px; }
-    .login-card h1 { font-size: 1.4rem; margin: 0 0 4px; text-align: center; }
-    .login-card p.muted { text-align: center; margin: 0 0 8px; }
-    .login-card .btn { width: 100%; margin-top: 20px; }
-</style>
+<title>Ingresar · SUBASTA 360</title>
+<meta name="theme-color" content="#05060f">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/sora-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/effects.css">
+<link rel="stylesheet" href="css/login.css">
 </head>
-<body>
-<div class="container">
-    <div class="card login-card">
-        <h1>Subasta 360</h1>
-        <p class="muted">Acceso admin</p>
-        <form id="loginForm">
-            <label for="password">Contraseña</label>
-            <input type="password" id="password" name="password" required autocomplete="current-password" autofocus>
-            <button type="submit" class="btn btn-primary" id="loginBtn">Ingresar</button>
-        </form>
-        <p class="muted" style="text-align:center; margin-top:16px;"><a href="index.html">← Volver a la pantalla principal</a></p>
+<body class="login-body">
+<div class="fx-layer fx-aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+<div class="fx-layer fx-grid" id="fxGrid" aria-hidden="true"></div>
+<div class="fx-layer" id="fxMeteors" aria-hidden="true"></div>
+
+<main class="login">
+    <div class="login-orbits" aria-hidden="true">
+        <span class="orbit o1"><i></i></span>
+        <span class="orbit o2"><i></i></span>
+        <span class="orbit o3"><i></i></span>
     </div>
-</div>
+
+    <section class="login-card border-beam" aria-labelledby="loginTitle">
+        <div class="login-emblem" aria-hidden="true">
+            <span class="brand-mark is-orbiting"></span>
+        </div>
+        <h1 class="login-brand" id="loginTitle">
+            <span class="brand"><span class="brand-word">Subasta<span class="brand-360">360</span></span></span>
+        </h1>
+        <p class="login-sub">Panel de administración</p>
+
+        <form id="loginForm" class="login-form" novalidate>
+            <div class="field">
+                <label class="field-label" for="password">Contraseña</label>
+                <div class="input-affix">
+                    <input class="input" type="password" id="password" name="password" required autocomplete="current-password" autofocus aria-describedby="loginError">
+                    <button type="button" class="btn btn-ghost btn-icon" id="togglePass" aria-label="Mostrar contraseña" aria-pressed="false"><i data-icon="eye"></i></button>
+                </div>
+            </div>
+            <p class="field-error" id="loginError" role="alert" hidden></p>
+            <button type="submit" class="btn btn-primary btn-lg btn-block btn-shimmer" id="loginBtn">Ingresar</button>
+        </form>
+
+        <p class="login-foot">Plataforma de gestión de eventos</p>
+    </section>
+
+    <a class="login-back" href="index.html"><i data-icon="chevronLeft" class="icon-sm"></i>Volver al escenario</a>
+</main>
+
 <script src="js/api.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/effects.js"></script>
 <script src="js/login.js"></script>
 </body>
 </html>

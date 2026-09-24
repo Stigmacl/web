@@ -38,6 +38,7 @@ const Api = {
     obtenerEvento: () => apiRequest('api/evento.php'),
     guardarEvento: (evento) => apiRequest('api/evento.php', { method: 'POST', body: evento }),
 
-    girar: () => apiRequest('api/spin.php', { method: 'POST' }),
+    girar: (participante = '') => apiRequest('api/spin.php', { method: 'POST', body: { participante } }),
     historial: () => apiRequest('api/historial.php'),
+    asignarGanador: (id, participante) => apiRequest('api/historial.php', { method: 'PUT', body: { id, participante } }),
 };
