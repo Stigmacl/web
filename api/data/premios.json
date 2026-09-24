@@ -1,0 +1,38 @@
+[
+    {
+        "id": "premio_seed_1",
+        "nombre": "2 horas de retiro anticipado",
+        "descripcion": "Salí 2 horas antes cualquier día que elijas.",
+        "color": "#d4af37",
+        "icono": "⏰",
+        "peso": 3,
+        "stock": -1
+    },
+    {
+        "id": "premio_seed_2",
+        "nombre": "Día administrativo libre",
+        "descripcion": "Un día libre a coordinar con tu jefatura.",
+        "color": "#0b3d91",
+        "icono": "🏖️",
+        "peso": 1,
+        "stock": 5
+    },
+    {
+        "id": "premio_seed_3",
+        "nombre": "Vale de almuerzo",
+        "descripcion": "Vale canjeable en restaurantes asociados.",
+        "color": "#1f8a70",
+        "icono": "🍽️",
+        "peso": 4,
+        "stock": -1
+    },
+    {
+        "id": "premio_seed_4",
+        "nombre": "Kit merchandising premium",
+        "descripcion": "Set exclusivo de la empresa.",
+        "color": "#8e44ad",
+        "icono": "🎁",
+        "peso": 2,
+        "stock": 10
+    }
+]

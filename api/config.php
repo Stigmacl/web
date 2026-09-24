@@ -1,50 +1,71 @@
 <?php
 // api/config.php
-// Configuración centralizada de XAMPP para el Backend API
+// Configuración central: sesión, rutas de datos y helpers JSON.
 
-// Forzar visualización de errores solo en entornos de desarrollo local
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Configuración de la zona horaria de Chile
 date_default_timezone_set('America/Santiago');
 
-// Parámetros nativos de XAMPP MySQL
-define('DB_HOST', '127.0.0.1');
-define('DB_USER', 'root');
-define('DB_PASS', ''); // Por defecto XAMPP no tiene contraseña en root
-define('DB_NAME', 'gestion_operativa');
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-class Database {
-    private static $conexion = null;
+header('Content-Type: application/json; charset=utf-8');
 
-    public static function conectar() {
-        if (self::$conexion == null) {
-            try {
-                // PDO asegurando que trabaje perfectamente con utf8mb4 (emojis, tildes, caracteres especiales)
-                self::$conexion = new PDO(
-                    "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
-                    DB_USER,
-                    DB_PASS,
-                    [
-                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, // Directo a array asociativo listo para JSON
-                        PDO::ATTR_EMULATE_PREPARES => false // Mejor seguridad vs inyecciones y tipos de datos precisos
-                    ]
-                );
-            } catch(PDOException $e) {
-                // Si la BD se cae, el Frontend de JS recibirá este JSON para poder arrojar su alerta gráfica
-                http_response_code(500);
-                echo json_encode([
-                    "status" => "error", 
-                    "message" => "Ocurrió un problema conectándose al servidor de bases de datos.", 
-                    "sys_err" => $e->getMessage()
-                ]);
-                exit; // Cortafuegos
-            }
-        }
-        return self::$conexion;
+define('DATA_DIR', __DIR__ . '/data');
+define('PREMIOS_FILE', DATA_DIR . '/premios.json');
+define('CONFIG_FILE', DATA_DIR . '/config.json');
+define('HISTORIAL_FILE', DATA_DIR . '/historial.json');
+
+// Contraseña del panel admin: "subasta360" (cambiala editando esta línea
+// con el resultado de: php -r 'echo password_hash("tu_clave", PASSWORD_DEFAULT);')
+define('ADMIN_PASSWORD_HASH', '$2y$12$orwYZgWlQjP6n84D6pmYRu9pT5qvGqsuCZPxOKvLlAKoK3An93lZe');
+
+function json_response($data, int $status = 200): void {
+    http_response_code($status);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+function read_json_file(string $path, $default) {
+    if (!file_exists($path)) {
+        return $default;
+    }
+    $raw = file_get_contents($path);
+    if ($raw === false || trim($raw) === '') {
+        return $default;
+    }
+    $decoded = json_decode($raw, true);
+    return $decoded === null ? $default : $decoded;
+}
+
+function write_json_file(string $path, $data): void {
+    if (!is_dir(dirname($path))) {
+        mkdir(dirname($path), 0775, true);
+    }
+    $fp = fopen($path, 'c+');
+    if ($fp === false) {
+        json_response(['status' => 'error', 'message' => 'No se pudo escribir el archivo de datos.'], 500);
+    }
+    flock($fp, LOCK_EX);
+    ftruncate($fp, 0);
+    rewind($fp);
+    fwrite($fp, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    fflush($fp);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+}
+
+function require_admin(): void {
+    if (empty($_SESSION['is_admin'])) {
+        json_response(['status' => 'error', 'message' => 'No autorizado. Iniciá sesión como admin.'], 401);
     }
 }
-?>
+
+function read_json_body(): array {
+    $raw = file_get_contents('php://input');
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : [];
+}
