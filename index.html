@@ -132,10 +132,11 @@
                 <div class="slide-head is-row">
                     <div>
                         <span class="eyebrow reveal" style="--i:0">03 · Premios</span>
-                        <h2 class="slide-title reveal" style="--i:1">Premios de esta edición</h2>
+                        <h2 class="slide-title reveal" style="--i:1" id="premiosTitle">Premios de esta edición</h2>
+                        <p class="slide-lead reveal" style="--i:2" id="premiosLead" hidden>Cada premio es un misterio hasta que la ruleta lo revele.</p>
                     </div>
                     <div class="head-stats reveal" style="--i:2">
-                        <div class="head-stat"><span class="head-stat-value" id="statPremios">0</span><span class="head-stat-label">Premios</span></div>
+                        <div class="head-stat"><span class="head-stat-value" id="statPremios">0</span><span class="head-stat-label" id="statPremiosLabel">Premios</span></div>
                         <div class="head-stat"><span class="head-stat-value" id="statDisponibles">0</span><span class="head-stat-label">Disponibles</span></div>
                     </div>
                 </div>
@@ -192,10 +193,6 @@
                             <div class="cd-unit" data-unit="seconds"><span class="cd-value">00</span><span class="cd-label">S</span></div>
                         </div>
                     </div>
-                    <div class="field operator-only">
-                        <label class="field-label" for="participanteInput">Ganador (opcional)</label>
-                        <input class="input" id="participanteInput" type="text" maxlength="60" autocomplete="off" placeholder="También puedes asignarlo tras la puja">
-                    </div>
                 </aside>
 
                 <div class="wheel-zone reveal" style="--i:1">
@@ -222,9 +219,77 @@
                     <ul class="inplay" id="inPlayList"></ul>
                 </aside>
             </div>
+
+            <!-- Revelación del premio al terminar el giro -->
+            <div class="reveal-overlay" id="revealOverlay" hidden>
+                <span class="reveal-rays" aria-hidden="true"></span>
+                <div class="reveal-inner">
+                    <p class="eyebrow reveal-eyebrow" id="revealEyebrow">Revelando premio…</p>
+                    <div class="flip" id="flipCard">
+                        <div class="flip-face flip-front">
+                            <span class="mystery-orb"><span>?</span></span>
+                            <p class="flip-title">Premio incógnito</p>
+                            <span class="brand flip-brand"><span class="brand-mark"></span><span class="brand-word">Subasta<span class="brand-360">360</span></span></span>
+                        </div>
+                        <div class="flip-face flip-back" id="flipBack">
+                            <span class="reveal-icon" id="revealIcon"></span>
+                            <p class="flip-title" id="revealName"></p>
+                            <p class="flip-desc" id="revealDesc"></p>
+                            <span class="brand flip-brand"><span class="brand-mark"></span><span class="brand-word">Subasta<span class="brand-360">360</span></span></span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-lg btn-shimmer reveal-cta operator-only" id="startBidBtn"><i data-icon="gavel"></i>Iniciar la puja</button>
+                </div>
+            </div>
         </section>
 
-        <!-- 06 · Ganador -->
+        <!-- 06 · Puja -->
+        <section class="slide" id="puja" data-label="Puja" aria-label="Puja en vivo">
+            <div class="bid" id="bid">
+                <div class="live-feed" id="liveFeed" aria-hidden="true"></div>
+                <div class="live-stream" id="liveStream" aria-hidden="true"></div>
+
+                <div class="bid-empty" id="bidEmpty">
+                    <div class="empty">
+                        <span class="empty-icon"><i data-icon="gavel"></i></span>
+                        <p class="empty-title">No hay una puja en curso</p>
+                        <p class="empty-text">Gira la ruleta para revelar el próximo premio.</p>
+                        <button type="button" class="btn btn-secondary" data-goto="ruleta"><i data-icon="wheel"></i>Ir a la ruleta</button>
+                    </div>
+                </div>
+
+                <div class="bid-content" id="bidContent" hidden>
+                    <div class="bid-status reveal" style="--i:0">
+                        <span class="badge badge-dot badge-live" id="bidBadge">En vivo · Pujando</span>
+                        <span class="bid-timer" role="timer" aria-label="Tiempo de puja"><i data-icon="clock"></i><span id="bidTimer">00:00</span></span>
+                    </div>
+                    <p class="bid-kicker reveal" style="--i:1">Estamos pujando por</p>
+                    <div class="bid-prize reveal" style="--i:2">
+                        <span class="bid-icon" id="bidIcon"></span>
+                        <h2 class="bid-name" id="bidName"></h2>
+                    </div>
+                    <p class="bid-desc reveal" style="--i:3" id="bidDesc"></p>
+
+                    <div class="bid-controls operator-only reveal" style="--i:4">
+                        <div class="rx-buttons" role="group" aria-label="Lanzar reacciones">
+                            <button type="button" class="rx-btn is-heart" data-burst="heart" aria-label="Lanzar corazones (H)"><i data-icon="heart"></i></button>
+                            <button type="button" class="rx-btn is-like" data-burst="like" aria-label="Lanzar likes (L)"><i data-icon="thumbsUp"></i></button>
+                            <button type="button" class="rx-btn is-clap" data-burst="clap" aria-label="Lanzar aplausos (A)"><i data-icon="hand"></i></button>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-lg btn-shimmer" id="finishBidBtn"><i data-icon="gavel"></i>Finalizar puja</button>
+                    </div>
+
+                    <form class="bid-finish operator-only" id="finishForm" autocomplete="off" hidden>
+                        <label class="sr-only" for="finishInput">Nombre de quien ganó la puja</label>
+                        <input class="input" id="finishInput" type="text" maxlength="60" placeholder="¿Quién ganó la puja?" required>
+                        <button type="submit" class="btn btn-primary" id="finishBtn"><i data-icon="trophy"></i>Anunciar ganador</button>
+                        <button type="button" class="btn btn-ghost" id="finishCancel">Cancelar</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- 07 · Ganador -->
         <section class="slide" id="ganador" data-label="Ganador" aria-label="Ganador">
             <div class="winner" id="winner">
                 <span class="winner-rays" aria-hidden="true"></span>
@@ -268,7 +333,7 @@
             </div>
         </section>
 
-        <!-- 07 · Cierre -->
+        <!-- 08 · Cierre -->
         <section class="slide" id="cierre" data-label="Cierre" aria-label="Cierre del evento">
             <div class="finale">
                 <span class="badge badge-neutral reveal" style="--i:0">Evento finalizado</span>
@@ -306,6 +371,7 @@
 <script src="js/effects.js"></script>
 <script src="js/sound.js"></script>
 <script src="js/confetti.js"></script>
+<script src="js/reactions.js"></script>
 <script src="js/wheel.js"></script>
 <script src="js/stage.js"></script>
 </body>

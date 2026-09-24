@@ -15,6 +15,8 @@ $default = [
     'bienvenida' => 'Prepárate para participar',
     'estado' => 'preparacion',
     'acento' => 'aurora',
+    // Premios sorpresa: el escenario oculta los nombres hasta que la ruleta los revela.
+    'sorpresa' => true,
     'objetivo' => date('c', strtotime('+2 hours')),
 ];
 
@@ -46,6 +48,9 @@ if ($method === 'POST') {
     }
     if (isset($body['acento']) && in_array($body['acento'], ACENTOS, true)) {
         $actual['acento'] = $body['acento'];
+    }
+    if (isset($body['sorpresa'])) {
+        $actual['sorpresa'] = (bool)$body['sorpresa'];
     }
     if (!empty($body['objetivo'])) {
         $ts = strtotime((string)$body['objetivo']);

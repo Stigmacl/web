@@ -25,7 +25,30 @@
         enJuego: $('#enJuegoCount'),
         giros: $('#girosCount'),
         inPlay: $('#inPlayList'),
-        participante: $('#participanteInput'),
+        premiosTitle: $('#premiosTitle'),
+        premiosLead: $('#premiosLead'),
+        statPremiosLabel: $('#statPremiosLabel'),
+        revealOverlay: $('#revealOverlay'),
+        revealEyebrow: $('#revealEyebrow'),
+        flip: $('#flipCard'),
+        flipBack: $('#flipBack'),
+        revealIcon: $('#revealIcon'),
+        revealName: $('#revealName'),
+        revealDesc: $('#revealDesc'),
+        startBidBtn: $('#startBidBtn'),
+        bid: $('#bid'),
+        bidEmpty: $('#bidEmpty'),
+        bidContent: $('#bidContent'),
+        bidBadge: $('#bidBadge'),
+        bidTimer: $('#bidTimer'),
+        bidPrize: $('.bid-prize'),
+        bidIcon: $('#bidIcon'),
+        bidName: $('#bidName'),
+        bidDesc: $('#bidDesc'),
+        finishBidBtn: $('#finishBidBtn'),
+        finishForm: $('#finishForm'),
+        finishInput: $('#finishInput'),
+        finishBtn: $('#finishBtn'),
         winner: $('#winner'),
         winnerEmpty: $('#winnerEmpty'),
         winnerContent: $('#winnerContent'),
@@ -55,6 +78,7 @@
         historial: [],
         current: -1,
         spinning: false,
+        revealing: false,
         result: null,
         wheelKey: '',
     };
@@ -62,10 +86,14 @@
     const HEX = /^#[0-9a-f]{6}$/i;
     const safeColor = (c) => (HEX.test(c || '') ? c : '#6a45ff');
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    // Colores neutros para los gajos incógnitos: el color real delataría el premio.
+    const MYSTERY_COLORS = ['#6a45ff', '#2f6bff', '#0891b2', '#9333ea', '#4338ca', '#0d9488', '#7c3aed', '#1d4ed8'];
+    const isSurprise = () => !state.evento || state.evento.sorpresa !== false;
 
     ui.hydrateIcons();
     fx.beams($('#fxGrid'));
     fx.meteors($('#fxMeteors'), 6);
+    const reactions = S360.createReactions($('#liveStream'), $('#liveFeed'));
 
     // ---------- Etapas ----------
     slides.forEach((slide, i) => {
@@ -86,6 +114,7 @@
 
         const prev = slides[state.current];
         if (prev) {
+            onLeave(prev.id);
             prev.classList.remove('is-active');
             if (!fx.reducedMotion) {
                 prev.classList.add('is-leaving');
@@ -122,8 +151,14 @@
             els.wheel.classList.remove('is-win');
             syncWheel(true);
         }
+        if (id === 'puja') enterBid();
         if (id === 'ganador') renderWinner();
         if (id === 'cierre') renderFinale();
+    }
+
+    function onLeave(id) {
+        if (id === 'ruleta') hideReveal();
+        if (id === 'puja') reactions.stop();
     }
 
     window.addEventListener('hashchange', () => {
@@ -153,7 +188,11 @@
         else if ((key === ' ' || key === 'Enter') && slides[state.current].id === 'ruleta') {
             if (e.target.tagName === 'BUTTON' && e.target !== els.spinBtn) return;
             e.preventDefault();
-            spin();
+            if (state.revealing) goTo('puja');
+            else spin();
+        } else if (slides[state.current].id === 'puja' && state.isAdmin) {
+            const burst = { h: 'heart', l: 'like', a: 'clap' }[key.toLowerCase()];
+            if (burst) reactions.burst(burst);
         }
     });
 
@@ -202,6 +241,10 @@
         els.estadoBadge.textContent = estado.label;
         document.title = `${ev.titulo} · SUBASTA 360`;
         tickCountdown();
+        // El modo sorpresa cambia cómo se muestran premios, lista y ruleta.
+        renderPremios();
+        renderInPlay();
+        syncWheel();
     }
 
     function tickCountdown() {
@@ -247,19 +290,37 @@
         }
         const n = premios.length;
         const cols = n <= 4 ? n : n <= 8 ? 4 : n <= 10 ? 5 : 6;
+        const surprise = isSurprise();
+        els.premiosTitle.textContent = surprise ? 'Premios sorpresa' : 'Premios de esta edición';
+        els.premiosLead.hidden = !surprise;
+        els.statPremiosLabel.textContent = surprise ? 'Sorpresas' : 'Premios';
         els.prizeGrid.style.setProperty('--cols', cols);
         els.prizeGrid.classList.toggle('is-compact', n > 8);
-        els.prizeGrid.innerHTML = premios.map((p, i) => `
-            <article class="prize-card ${p.stock === 0 ? 'is-out' : ''}" style="--prize:${safeColor(p.color)};--i:${i}">
+        els.prizeGrid.innerHTML = premios.map((p, i) => {
+            // En modo sorpresa solo se muestran los premios ya entregados (stock 0).
+            if (surprise && p.stock !== 0) {
+                return `<article class="prize-card is-mystery" style="--prize:${MYSTERY_COLORS[i % MYSTERY_COLORS.length]};--i:${i}">
+                    <span class="prize-glow" aria-hidden="true"></span>
+                    <div class="prize-icon"><span class="prize-orbit" aria-hidden="true"></span><span class="mystery-q">?</span></div>
+                    <h3 class="prize-name">Premio incógnito</h3>
+                    <p class="prize-desc">Se revela al girar la ruleta</p>
+                    <div class="prize-foot">
+                        <span class="prize-number">#${ui.pad(i + 1)}</span>
+                        <span class="prize-brand"><span class="brand-mark" aria-hidden="true"></span>SUBASTA 360</span>
+                    </div>
+                </article>`;
+            }
+            return `<article class="prize-card ${p.stock === 0 ? 'is-out' : ''}" style="--prize:${safeColor(p.color)};--i:${i}">
                 <span class="prize-glow" aria-hidden="true"></span>
                 <div class="prize-icon"><span class="prize-orbit" aria-hidden="true"></span>${icons.prize(p.icono)}</div>
                 <h3 class="prize-name">${ui.escapeHtml(p.nombre)}</h3>
                 <p class="prize-desc">${ui.escapeHtml(p.descripcion || '')}</p>
                 <div class="prize-foot">
-                    <span class="prize-stock ${stockClass(p.stock)}">${ui.escapeHtml(ui.stockLabel(p.stock))}</span>
+                    <span class="prize-stock ${stockClass(p.stock)}">${ui.escapeHtml(p.stock === 0 && surprise ? 'Entregado' : ui.stockLabel(p.stock))}</span>
                     <span class="prize-brand"><span class="brand-mark" aria-hidden="true"></span>360</span>
                 </div>
-            </article>`).join('');
+            </article>`;
+        }).join('');
     }
 
     // ---------- Ruleta ----------
@@ -277,25 +338,34 @@
 
     // El orden de los gajos debe ser el mismo que usa api/spin.php (orden del archivo).
     function syncWheel(force = false) {
-        const key = state.candidatos.map((p) => `${p.id}|${p.nombre}|${p.color}`).join(';');
+        const surprise = isSurprise();
+        const key = `${surprise}:` + state.candidatos.map((p) => `${p.id}|${p.nombre}|${p.color}`).join(';');
         if (!force && (state.spinning || key === state.wheelKey)) return;
         if (key !== state.wheelKey) {
             state.wheelKey = key;
-            state.wheel.setItems(state.candidatos.map((p) => ({ ...p, color: safeColor(p.color) })));
+            state.wheel.setItems(state.candidatos.map((p, i) => (surprise
+                ? { id: p.id, nombre: '?', color: MYSTERY_COLORS[i % MYSTERY_COLORS.length], mystery: true }
+                : { ...p, color: safeColor(p.color) })));
         }
         highlightInPlay(state.wheel.indexAtPointer());
     }
 
     function renderInPlay() {
         const list = state.candidatos;
+        const surprise = isSurprise();
         els.enJuego.textContent = list.length;
         const max = 7;
-        const items = list.slice(0, max).map((p) => `
-            <li style="--prize:${safeColor(p.color)}" data-id="${ui.escapeHtml(p.id)}">
+        const items = list.slice(0, max).map((p, i) => (surprise
+            ? `<li style="--prize:${MYSTERY_COLORS[i % MYSTERY_COLORS.length]}" data-id="${ui.escapeHtml(p.id)}">
+                <span class="inplay-icon"><span class="mystery-q">?</span></span>
+                <span class="inplay-name">Premio incógnito</span>
+                <span class="inplay-stock">#${ui.pad(i + 1)}</span>
+            </li>`
+            : `<li style="--prize:${safeColor(p.color)}" data-id="${ui.escapeHtml(p.id)}">
                 <span class="inplay-icon">${icons.prize(p.icono)}</span>
                 <span class="inplay-name">${ui.escapeHtml(p.nombre)}</span>
                 <span class="inplay-stock">${p.stock < 0 ? '∞' : p.stock}</span>
-            </li>`);
+            </li>`));
         if (list.length > max) items.push(`<li class="inplay-more">+${list.length - max} premios más</li>`);
         if (!list.length) items.push('<li class="inplay-more">Sin premios disponibles</li>');
         els.inPlay.innerHTML = items.join('');
@@ -366,7 +436,7 @@
 
         let res;
         try {
-            res = await Api.girar(els.participante.value.trim());
+            res = await Api.girar();
         } catch (err) {
             state.spinning = false;
             stage.classList.remove('is-spinning');
@@ -403,24 +473,120 @@
         els.wheel.classList.add('is-win');
         stage.classList.remove('is-spinning');
         highlightInPlay(index);
-        sound.win();
 
-        state.result = { giro: res.giro, premio: res.ganador, fresh: true };
-        els.participante.value = '';
-        await wait(fx.reducedMotion ? 200 : 1300);
+        state.result = { giro: res.giro, premio: res.ganador, fresh: false, bidStartedAt: null, bidEndedAt: null };
+        await wait(fx.reducedMotion ? 150 : 800);
         state.spinning = false;
         renderSpinButton();
-        goTo('ganador');
+        showReveal();
 
         loadPremios();
         loadHistorial();
     }
 
     els.spinBtn.addEventListener('click', spin);
-    els.participante.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            spin();
+
+    // ---------- Revelación del premio ----------
+    let revealTimer;
+    function showReveal() {
+        const { premio } = state.result;
+        state.revealing = true;
+        els.flipBack.style.setProperty('--prize', safeColor(premio.color));
+        els.revealIcon.innerHTML = icons.prize(premio.icono);
+        els.revealName.textContent = premio.nombre;
+        els.revealDesc.textContent = premio.descripcion || '';
+        els.revealDesc.hidden = !premio.descripcion;
+        els.revealOverlay.classList.remove('is-revealed');
+        els.flip.classList.remove('is-flipped');
+        els.revealEyebrow.textContent = 'Revelando premio…';
+        els.revealOverlay.hidden = false;
+
+        clearTimeout(revealTimer);
+        revealTimer = setTimeout(() => {
+            els.flip.classList.add('is-flipped');
+            els.revealOverlay.classList.add('is-revealed');
+            els.revealEyebrow.textContent = '¡Premio revelado!';
+            sound.win();
+            celebrate(false);
+            if (state.isAdmin) els.startBidBtn.focus({ preventScroll: true });
+        }, fx.reducedMotion || !isSurprise() ? 0 : 1300);
+    }
+
+    function hideReveal() {
+        clearTimeout(revealTimer);
+        state.revealing = false;
+        els.revealOverlay.hidden = true;
+    }
+
+    els.startBidBtn.addEventListener('click', () => goTo('puja'));
+
+    // ---------- Puja en vivo ----------
+    function tickBid() {
+        const r = state.result;
+        if (!r || !r.bidStartedAt) return;
+        const secs = Math.floor(((r.bidEndedAt || Date.now()) - r.bidStartedAt) / 1000);
+        els.bidTimer.textContent = `${ui.pad(Math.floor(secs / 60))}:${ui.pad(secs % 60)}`;
+    }
+    setInterval(tickBid, 1000);
+
+    function closeFinishForm() {
+        els.finishForm.hidden = true;
+        els.bid.classList.remove('is-finishing');
+    }
+
+    function enterBid() {
+        const r = state.result;
+        els.bidEmpty.hidden = !!r;
+        els.bidContent.hidden = !r;
+        closeFinishForm();
+        if (!r) {
+            reactions.stop();
+            return;
+        }
+        const closed = !!(r.giro && r.giro.participante);
+        if (!r.bidStartedAt) r.bidStartedAt = Date.now();
+        els.bid.classList.toggle('is-closed', closed);
+        els.bidBadge.className = `badge badge-dot ${closed ? 'badge-neutral' : 'badge-live'}`;
+        els.bidBadge.textContent = closed ? 'Puja finalizada' : 'En vivo · Pujando';
+        els.bidPrize.style.setProperty('--prize', safeColor(r.premio.color));
+        els.bidIcon.innerHTML = icons.prize(r.premio.icono);
+        els.bidName.textContent = r.premio.nombre;
+        els.bidDesc.textContent = r.premio.descripcion || '';
+        els.bidDesc.hidden = !r.premio.descripcion;
+        tickBid();
+        if (closed) reactions.stop();
+        else reactions.start();
+    }
+
+    $$('[data-burst]').forEach((b) => b.addEventListener('click', () => reactions.burst(b.dataset.burst)));
+
+    els.finishBidBtn.addEventListener('click', () => {
+        els.bid.classList.add('is-finishing');
+        els.finishForm.hidden = false;
+        els.finishInput.value = '';
+        els.finishInput.focus();
+    });
+    $('#finishCancel').addEventListener('click', closeFinishForm);
+
+    els.finishForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nombre = els.finishInput.value.trim();
+        const r = state.result;
+        if (!nombre || !r) return;
+        ui.setBusy(els.finishBtn, true);
+        try {
+            await Api.asignarGanador(r.giro.id, nombre);
+            r.giro.participante = nombre;
+            r.bidEndedAt = Date.now();
+            r.fresh = true;
+            closeFinishForm();
+            loadHistorial();
+            goTo('ganador');
+            sound.win();
+        } catch (err) {
+            ui.toast({ type: 'error', title: 'No se pudo anunciar el ganador', message: err.message });
+        } finally {
+            ui.setBusy(els.finishBtn, false);
         }
     });
 

@@ -133,6 +133,7 @@
         $('#evHora').value = hora;
         const radio = $(`input[name="estado"][value="${ev.estado}"]`) || $('#estPrep');
         radio.checked = true;
+        $('#evSorpresa').checked = ev.sorpresa !== false;
         eventoDirty = false;
         renderPreview();
     }
@@ -202,6 +203,7 @@
                     subtitulo: $('#evSubtitulo').value.trim(),
                     bienvenida: $('#evBienvenida').value.trim(),
                     estado: $('input[name="estado"]:checked').value,
+                    sorpresa: $('#evSorpresa').checked,
                     objetivo: objetivo.toISOString(),
                 });
                 store.evento = evento;

@@ -106,6 +106,19 @@
                 c.save();
                 c.translate(center, center);
                 c.rotate(a0 + seg / 2);
+                if (item.mystery) {
+                    // Gajo incógnito: un "?" grande, girado para leerse desde el borde.
+                    c.rotate(Math.PI / 2);
+                    c.textAlign = 'center';
+                    c.textBaseline = 'middle';
+                    c.fillStyle = 'rgba(255, 255, 255, 0.92)';
+                    c.shadowColor = 'rgba(0, 0, 0, 0.45)';
+                    c.shadowBlur = 10;
+                    c.font = `800 ${Math.round(baseFont * 2.1)}px Sora, Inter, sans-serif`;
+                    c.fillText('?', 0, -R * 0.66);
+                    c.restore();
+                    return;
+                }
                 const light = isLight(item.color);
                 const label = fitLabel(c, item.nombre, R * 0.58, baseFont);
                 c.textAlign = 'right';
@@ -171,7 +184,7 @@
         }
 
         function setItems(next) {
-            items = next.map((p) => ({ id: p.id, nombre: p.nombre, color: p.color }));
+            items = next.map((p) => ({ id: p.id, nombre: p.nombre, color: p.color, mystery: !!p.mystery }));
             highlight = -1;
             face = null;
             draw();
