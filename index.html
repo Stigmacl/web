@@ -11,6 +11,7 @@
 <link rel="preload" href="assets/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/effects.css">
+<link rel="stylesheet" href="css/theater.css">
 <link rel="stylesheet" href="css/stage.css">
 </head>
 <body class="stage-body">
@@ -24,10 +25,98 @@
 </div>
 
 <div class="stage" id="stage">
-    <div class="fx-layer fx-aurora" aria-hidden="true"><span></span><span></span><span></span></div>
-    <div class="fx-layer fx-grid" id="fxGrid" aria-hidden="true"></div>
-    <div class="fx-layer" id="fxMeteors" aria-hidden="true"></div>
-    <div class="fx-layer fx-vignette" aria-hidden="true"></div>
+    <!-- Mundo del teatro: exterior e interior con cámara (js/theater.js) -->
+    <div class="world" id="world" data-cam="exterior" data-curtain="closed" data-board="live" aria-hidden="true">
+        <div class="scene scene-ext">
+            <div class="set">
+                <div class="scene-media ext-media" data-media="fachada"></div>
+                <div class="ext-art">
+                    <div class="ext-sky"></div>
+                    <div class="ext-stars"></div>
+                    <span class="searchlight is-left"></span>
+                    <span class="searchlight is-right"></span>
+                    <div class="city is-left"></div>
+                    <div class="city is-right"></div>
+                    <span class="lamp is-left"></span>
+                    <span class="lamp is-right"></span>
+                    <div class="building">
+                        <div class="tower"></div>
+                        <div class="neon-ring"><span>360</span></div>
+                        <div class="facade"></div>
+                        <div class="lobby-windows"></div>
+                        <div class="flag is-left"><span>Subasta 360</span></div>
+                        <div class="flag is-right"><span>En vivo</span></div>
+                        <div class="canopy">
+                            <div class="canopy-sign">
+                                <p class="bulb-letters"><span>SUBASTA</span><span class="is-360">360</span></p>
+                            </div>
+                            <div class="canopy-board">
+                                <p class="board-main board-live" data-bind="titulo"></p>
+                                <p class="board-sub board-live" data-bind="bienvenida"></p>
+                                <p class="board-main board-outro">¡Gracias por participar!</p>
+                                <p class="board-sub board-outro">Hasta la próxima función</p>
+                            </div>
+                            <div class="canopy-soffit"></div>
+                        </div>
+                        <div class="led-board">
+                            <p class="countdown-caption" data-countdown-caption>El evento comienza en</p>
+                            <div class="countdown">
+                                <div class="cd-unit" data-unit="days" hidden><span class="cd-value">00</span><span class="cd-label">D</span></div>
+                                <div class="cd-unit" data-unit="hours"><span class="cd-value">00</span><span class="cd-label">H</span></div>
+                                <span class="cd-sep">:</span>
+                                <div class="cd-unit" data-unit="minutes"><span class="cd-value">00</span><span class="cd-label">M</span></div>
+                                <span class="cd-sep">:</span>
+                                <div class="cd-unit" data-unit="seconds"><span class="cd-value">00</span><span class="cd-label">S</span></div>
+                            </div>
+                        </div>
+                        <div class="poster is-left"><div class="poster-inner"><span class="poster-q">?</span><span class="poster-text">Premios<br>sorpresa</span></div></div>
+                        <div class="entrance">
+                            <div class="doorway"></div>
+                            <div class="door is-left"><span class="porthole"></span><span class="pushbar"></span></div>
+                            <div class="door is-right"><span class="porthole"></span><span class="pushbar"></span></div>
+                        </div>
+                        <div class="poster is-right"><div class="poster-inner"><span class="poster-q">360</span><span class="poster-text">Esta noche<br>en vivo</span></div></div>
+                    </div>
+                    <div class="ground">
+                        <div class="carpet"></div>
+                        <div class="rope is-left"><i></i><i></i><i></i><span></span><span></span></div>
+                        <div class="rope is-right"><i></i><i></i><i></i><span></span><span></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="scene scene-int">
+            <div class="set">
+                <div class="int-walls"></div>
+                <div class="chandelier"></div>
+                <span class="sconce" style="--x:5cqw"></span>
+                <span class="sconce" style="--x:95cqw"></span>
+                <div class="box is-left"></div>
+                <div class="box is-right"></div>
+                <div class="proscenium">
+                    <div class="opening">
+                        <div class="backdrop"><div class="stage-media" data-media="escenario"></div></div>
+                        <div class="curtain is-left"><div class="cloth"></div></div>
+                        <div class="curtain is-right"><div class="cloth"></div></div>
+                        <div class="valance"></div>
+                        <div class="footglow"></div>
+                    </div>
+                    <div class="crest">SUBASTA 360</div>
+                </div>
+                <div class="apron"></div>
+                <div class="footlights"></div>
+                <span class="beam" style="--x:28cqw;--r:-24deg;--d:9s"></span>
+                <span class="beam" style="--x:50cqw;--r:6deg;--d:11s"></span>
+                <span class="beam" style="--x:72cqw;--r:22deg;--d:10s"></span>
+                <canvas class="seats"></canvas>
+            </div>
+        </div>
+
+        <canvas class="smoke-canvas"></canvas>
+        <div class="world-smoke-video" data-media="humo"></div>
+        <div class="world-vignette"></div>
+    </div>
 
     <header class="stage-header">
         <div class="stage-identity">
@@ -51,7 +140,10 @@
     <main class="slides">
         <!-- 01 · Bienvenida -->
         <section class="slide" id="bienvenida" data-label="Bienvenida" aria-label="Bienvenida">
-            <div class="hero">
+            <h1 class="sr-only" data-bind="titulo">SUBASTA 360</h1>
+            <p class="welcome-hint reveal" style="--i:2"><kbd>→</kbd> Pasa adelante, la función está por comenzar</p>
+            <!-- Respaldo si se usa una foto propia de fachada (assets/img/fachada.*) -->
+            <div class="hero welcome-fallback">
                 <div class="emblem reveal" style="--i:0" aria-hidden="true">
                     <span class="emblem-glow"></span>
                     <span class="emblem-dial"></span>
@@ -63,7 +155,7 @@
                         <span class="emblem-number">360</span>
                     </div>
                 </div>
-                <h1 class="hero-title reveal" style="--i:1" data-bind="titulo">—</h1>
+                <p class="hero-title reveal" style="--i:1" data-bind="titulo">—</p>
                 <p class="hero-welcome reveal" style="--i:2" data-bind="bienvenida"></p>
                 <div class="countdown-block reveal" style="--i:3">
                     <p class="countdown-caption" data-countdown-caption>El evento comienza en</p>
@@ -249,28 +341,47 @@
                 <div class="live-feed" id="liveFeed" aria-hidden="true"></div>
                 <div class="live-stream" id="liveStream" aria-hidden="true"></div>
 
-                <div class="bid-empty" id="bidEmpty">
-                    <div class="empty">
-                        <span class="empty-icon"><i data-icon="gavel"></i></span>
-                        <p class="empty-title">No hay una puja en curso</p>
-                        <p class="empty-text">Gira la ruleta para revelar el próximo premio.</p>
-                        <button type="button" class="btn btn-secondary" data-goto="ruleta"><i data-icon="wheel"></i>Ir a la ruleta</button>
+                <!-- Pantalla colgada frente al telón -->
+                <div class="tv" id="tv">
+                    <span class="tv-cable is-left" aria-hidden="true"></span>
+                    <span class="tv-cable is-right" aria-hidden="true"></span>
+                    <div class="tv-frame">
+                        <div class="tv-screen">
+                            <div class="tv-content">
+                                <div class="bid-empty" id="bidEmpty">
+                                    <div class="empty">
+                                        <span class="empty-icon"><i data-icon="gavel"></i></span>
+                                        <p class="empty-title">Sin puja en curso</p>
+                                        <p class="empty-text">Gira la ruleta para revelar el próximo premio.</p>
+                                        <button type="button" class="btn btn-secondary" data-goto="ruleta"><i data-icon="wheel"></i>Ir a la ruleta</button>
+                                    </div>
+                                </div>
+                                <div class="bid-content" id="bidContent" hidden>
+                                    <div class="bid-status">
+                                        <span class="badge badge-dot badge-live" id="bidBadge">En vivo · Pujando</span>
+                                        <span class="bid-timer" role="timer" aria-label="Tiempo de puja"><i data-icon="clock"></i><span id="bidTimer">00:00</span></span>
+                                    </div>
+                                    <p class="bid-kicker">Estamos pujando por</p>
+                                    <div class="bid-prize">
+                                        <span class="bid-icon" id="bidIcon"></span>
+                                        <h2 class="bid-name" id="bidName"></h2>
+                                    </div>
+                                    <p class="bid-desc" id="bidDesc"></p>
+                                </div>
+                            </div>
+                            <span class="tv-scan" aria-hidden="true"></span>
+                            <span class="tv-glare" aria-hidden="true"></span>
+                            <span class="tv-power" aria-hidden="true"></span>
+                        </div>
+                        <div class="tv-foot">
+                            <span class="brand"><span class="brand-mark"></span><span class="brand-word">Subasta<span class="brand-360">360</span></span></span>
+                            <span class="tv-led" aria-hidden="true"></span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bid-content" id="bidContent" hidden>
-                    <div class="bid-status reveal" style="--i:0">
-                        <span class="badge badge-dot badge-live" id="bidBadge">En vivo · Pujando</span>
-                        <span class="bid-timer" role="timer" aria-label="Tiempo de puja"><i data-icon="clock"></i><span id="bidTimer">00:00</span></span>
-                    </div>
-                    <p class="bid-kicker reveal" style="--i:1">Estamos pujando por</p>
-                    <div class="bid-prize reveal" style="--i:2">
-                        <span class="bid-icon" id="bidIcon"></span>
-                        <h2 class="bid-name" id="bidName"></h2>
-                    </div>
-                    <p class="bid-desc reveal" style="--i:3" id="bidDesc"></p>
-
-                    <div class="bid-controls operator-only reveal" style="--i:4">
+                <div class="bid-console operator-only">
+                    <div class="bid-controls">
                         <div class="rx-buttons" role="group" aria-label="Lanzar reacciones">
                             <button type="button" class="rx-btn is-heart" data-burst="heart" aria-label="Lanzar corazones (H)"><i data-icon="heart"></i></button>
                             <button type="button" class="rx-btn is-like" data-burst="like" aria-label="Lanzar likes (L)"><i data-icon="thumbsUp"></i></button>
@@ -278,8 +389,7 @@
                         </div>
                         <button type="button" class="btn btn-primary btn-lg btn-shimmer" id="finishBidBtn"><i data-icon="gavel"></i>Finalizar puja</button>
                     </div>
-
-                    <form class="bid-finish operator-only" id="finishForm" autocomplete="off" hidden>
+                    <form class="bid-finish" id="finishForm" autocomplete="off" hidden>
                         <label class="sr-only" for="finishInput">Nombre de quien ganó la puja</label>
                         <input class="input" id="finishInput" type="text" maxlength="60" placeholder="¿Quién ganó la puja?" required>
                         <button type="submit" class="btn btn-primary" id="finishBtn"><i data-icon="trophy"></i>Anunciar ganador</button>
@@ -360,7 +470,6 @@
         <p class="powered">Powered by <span class="brand"><span class="brand-mark"></span><span class="brand-word">Subasta<span class="brand-360">360</span></span></span></p>
     </footer>
 
-    <div class="transition-veil" id="veil" aria-hidden="true"><span class="veil-ring"></span></div>
     <div class="flash" id="flash" aria-hidden="true"></div>
     <canvas class="confetti-canvas" id="confettiCanvas" aria-hidden="true"></canvas>
 </div>
@@ -373,6 +482,7 @@
 <script src="js/confetti.js"></script>
 <script src="js/reactions.js"></script>
 <script src="js/wheel.js"></script>
+<script src="js/theater.js"></script>
 <script src="js/stage.js"></script>
 </body>
 </html>

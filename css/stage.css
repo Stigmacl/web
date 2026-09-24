@@ -13,11 +13,8 @@
     /* clip (no hidden): un #ancla en la URL no puede desplazar el escenario. */
     overflow: clip;
     font-size: clamp(12px, min(1.04vw, 1.86vh), 30px);
-    background:
-        radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--accent-1) 18%, transparent), transparent 70%),
-        linear-gradient(180deg, #070919 0%, var(--bg-0) 70%);
+    background: #040308;
 }
-.stage .fx-grid { --grid: 4em; }
 
 /* Escala en em de los componentes base dentro del escenario. */
 .stage .btn { --btn-h: 2.75em; font-size: 0.85em; padding: 0 1.3em; border-radius: 0.85em; }
@@ -40,7 +37,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 2em;
-    padding: 1.5em 2.4em 0.5em;
+    padding: 1.5em 2.4em 1.6em;
+    background: linear-gradient(180deg, rgba(4, 3, 8, 0.78), rgba(4, 3, 8, 0));
 }
 .stage-identity { display: flex; align-items: center; gap: 1.2em; min-width: 0; }
 .stage-brand { font-size: 1.02em; }
@@ -96,15 +94,10 @@
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
-    animation: slide-reveal 0.95s var(--ease-out);
 }
 .slide.is-leaving {
     visibility: visible;
     animation: slide-leave 0.45s ease forwards;
-}
-@keyframes slide-reveal {
-    from { clip-path: circle(0% at 50% 50%); }
-    to { clip-path: circle(150% at 50% 50%); }
 }
 @keyframes slide-leave {
     from { opacity: 1; }
@@ -114,7 +107,7 @@
 .reveal { opacity: 0; }
 .slide.is-active .reveal {
     animation: blur-in 0.9s var(--ease-out) both;
-    animation-delay: calc(140ms + var(--i, 0) * 95ms);
+    animation-delay: calc(var(--enter-delay, 0ms) + 140ms + var(--i, 0) * 95ms);
 }
 
 .slide-inner {
@@ -354,7 +347,7 @@
 }
 .slide.is-active .prize-card {
     animation: blur-in 0.85s var(--ease-out) both;
-    animation-delay: calc(320ms + var(--i, 0) * 85ms);
+    animation-delay: calc(var(--enter-delay, 0ms) + 320ms + var(--i, 0) * 85ms);
 }
 .prize-card::before {
     content: "";
@@ -805,7 +798,17 @@ kbd {
 .reveal-overlay.is-revealed .reveal-cta { opacity: 1; transform: none; pointer-events: auto; }
 
 /* ---------- 06 · Puja ---------- */
-.bid { position: relative; width: 100%; height: 100%; display: grid; place-items: center; }
+.bid {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.1em;
+}
+.bid:not(.has-result) .bid-console { display: none; }
 .bid-content {
     position: relative;
     z-index: 2;
@@ -814,7 +817,7 @@ kbd {
     align-items: center;
     gap: 1.1em;
     text-align: center;
-    max-width: 52em;
+    max-width: 100%;
 }
 .bid-status { display: flex; align-items: center; gap: 0.9em; }
 .bid-timer {
@@ -843,8 +846,8 @@ kbd {
     position: relative;
     display: grid;
     place-items: center;
-    width: 7em;
-    height: 7em;
+    width: 5.2em;
+    height: 5.2em;
     border-radius: 50%;
     color: #fff;
     background: radial-gradient(circle at 32% 26%, color-mix(in srgb, var(--prize) 70%, #fff), color-mix(in srgb, var(--prize) 75%, #000));
@@ -859,14 +862,14 @@ kbd {
     border: 1px dashed color-mix(in srgb, var(--prize) 55%, transparent);
     animation: spin-360 16s linear infinite;
 }
-.bid-icon .icon { width: 3.2em; height: 3.2em; }
-.bid-icon .prize-emoji { font-size: 3em; }
+.bid-icon .icon { width: 2.5em; height: 2.5em; }
+.bid-icon .prize-emoji { font-size: 2.4em; }
 @keyframes bid-pulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.05); }
 }
 .bid-name {
-    font-size: 3.6em;
+    font-size: 2.9em;
     font-weight: 800;
     line-height: 1.05;
     letter-spacing: -0.04em;
@@ -1154,7 +1157,8 @@ kbd {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 0.8em 2.4em 1.4em;
+    padding: 1.6em 2.4em 1.4em;
+    background: linear-gradient(0deg, rgba(4, 3, 8, 0.7), rgba(4, 3, 8, 0));
 }
 .stepper {
     display: flex;
@@ -1201,30 +1205,6 @@ kbd {
 .stage-footer .powered .brand { font-size: 1em; }
 
 /* ---------- Transición, flash y confeti ---------- */
-.transition-veil {
-    position: absolute;
-    inset: 0;
-    z-index: var(--z-overlay);
-    display: grid;
-    place-items: center;
-    pointer-events: none;
-}
-.veil-ring {
-    width: 22em;
-    height: 22em;
-    border-radius: 50%;
-    background: conic-gradient(from 0deg, transparent 0deg 70deg, var(--accent-1), var(--accent-2));
-    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-    mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-    opacity: 0;
-}
-.transition-veil.is-playing .veil-ring { animation: veil 0.95s var(--ease-out); }
-@keyframes veil {
-    0% { opacity: 0; transform: scale(0.3) rotate(-120deg); }
-    30% { opacity: 0.9; }
-    100% { opacity: 0; transform: scale(3.4) rotate(160deg); }
-}
-
 .flash {
     position: absolute;
     inset: 0;
@@ -1290,4 +1270,162 @@ kbd {
     .emblem *, .emblem-glow, .wheel-aura, .prize-orbit, .winner-rays, .winner-trophy,
     .reveal-rays, .flip-front, .bid-icon, .prize-card.is-mystery::after { animation: none !important; }
     .flip-face { transition: none; }
+}
+
+/* ================== Teatro: piezas del escenario ================== */
+
+/* ---------- Bienvenida sobre la fachada ---------- */
+.welcome-fallback { display: none; }
+.stage.has-fachada .welcome-fallback { display: flex; }
+.welcome-hint {
+    position: absolute;
+    left: 50%;
+    bottom: 1.2em;
+    transform: translateX(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    padding: 0.55em 1.1em;
+    border-radius: 999px;
+    background: rgba(4, 3, 8, 0.6);
+    border: 1px solid rgba(255, 214, 150, 0.25);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    font-size: 0.8em;
+    color: #fbe8c4;
+    white-space: nowrap;
+}
+.welcome-hint kbd { color: #fbe8c4; border-color: rgba(255, 214, 150, 0.35); background: rgba(255, 214, 150, 0.1); }
+.stage.has-fachada .welcome-hint { display: none; }
+
+/* ---------- Pantalla de la puja ---------- */
+.tv {
+    position: relative;
+    width: min(50em, 84vw);
+    transform: translateY(-130vh);
+}
+.tv.is-in { transform: none; transition: transform 1.1s cubic-bezier(0.34, 1.3, 0.5, 1); }
+.tv-cable {
+    position: absolute;
+    bottom: 100%;
+    width: 0.18em;
+    height: 130vh;
+    background: linear-gradient(180deg, transparent, #2c2c33 40%, #6c6c78);
+}
+.tv-cable.is-left { left: 14%; }
+.tv-cable.is-right { right: 14%; }
+.tv-frame {
+    position: relative;
+    padding: 0.8em 0.8em 0.55em;
+    border-radius: 1.1em;
+    background: linear-gradient(180deg, #2a2a31, #0d0d11);
+    box-shadow:
+        0 2.4em 5em rgba(0, 0, 0, 0.75),
+        0 0 0 1px #000,
+        inset 0 1px 0 rgba(255, 255, 255, 0.14),
+        0 0 6em rgba(255, 190, 110, 0.12);
+}
+.tv-screen {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 0.5em;
+    background: #020203;
+    box-shadow: inset 0 0 2.5em rgba(0, 0, 0, 0.95);
+}
+.tv-content {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 1.2em 2em;
+    background:
+        radial-gradient(ellipse 70% 60% at 50% 30%, color-mix(in srgb, var(--accent-1) 28%, transparent), transparent 70%),
+        linear-gradient(180deg, #0c0e24, #05060f);
+    opacity: 0;
+    transform: scale(1.03);
+    filter: brightness(2.2) blur(4px);
+    transition: opacity 0.5s ease 0.45s, transform 0.7s ease 0.45s, filter 0.8s ease 0.45s;
+}
+.tv.is-on .tv-content { opacity: 1; transform: none; filter: none; }
+.tv-scan {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px);
+    pointer-events: none;
+    opacity: 0.45;
+}
+.tv-glare {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(118deg, rgba(255, 255, 255, 0.09), transparent 32%, transparent 70%, rgba(255, 255, 255, 0.03));
+    pointer-events: none;
+}
+.tv-power {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 3px;
+    background: #fff;
+    box-shadow: 0 0 1.4em 0.3em rgba(255, 255, 255, 0.9);
+    transform: translateY(-50%) scaleX(0);
+    opacity: 0;
+    pointer-events: none;
+}
+.tv.is-on .tv-power { animation: tv-on 0.8s ease-out; }
+@keyframes tv-on {
+    0% { transform: translateY(-50%) scaleX(0); opacity: 1; height: 3px; }
+    35% { transform: translateY(-50%) scaleX(1); opacity: 1; height: 3px; }
+    65% { transform: translateY(-50%) scaleX(1); opacity: 0.7; height: 100%; }
+    100% { transform: translateY(-50%) scaleX(1); opacity: 0; height: 100%; }
+}
+.tv-foot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8em;
+    padding-top: 0.5em;
+}
+.tv-foot .brand { font-size: 0.62em; color: #9a9aa8; }
+.tv-foot .brand-360 { background: none; color: #9a9aa8; }
+.tv-foot .brand-360::after { border-color: #9a9aa8; box-shadow: none; }
+.tv-foot .brand-mark { opacity: 0.7; }
+.tv-led { width: 0.4em; height: 0.4em; border-radius: 50%; background: #3a1010; }
+.tv.is-on .tv-led { background: #37e07b; box-shadow: 0 0 0.5em #37e07b; }
+.tv .bid-status { font-size: 0.9em; }
+.tv .bid-kicker { font-size: 1.25em; }
+.tv .bid-desc { font-size: 0.95em; }
+.tv .empty { padding: 0; }
+.bid-console { display: flex; flex-direction: column; align-items: center; gap: 0.6em; }
+.bid-controls { margin-top: 0; }
+.bid-finish { margin-top: 0; }
+
+/* ---------- Cierre sobre la fachada ---------- */
+#cierre { justify-content: flex-start; }
+#cierre .finale {
+    align-items: flex-start;
+    text-align: left;
+    gap: 1em;
+    width: min(24em, 30vw);
+    padding: 1.6em;
+    border-radius: 1.3em;
+    background: rgba(8, 6, 12, 0.72);
+    border: 1px solid rgba(255, 214, 150, 0.18);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+#cierre .finale::before { display: none; }
+#cierre .finale-title { font-size: 2.2em; }
+#cierre .finale-brand { align-items: flex-start; }
+#cierre .finale-brand .brand { font-size: 1.2em; }
+#cierre .finale-stats { align-items: flex-start; }
+#cierre .finale-winners { justify-content: flex-start; }
+
+/* Los emojis de premios no deben tomar el tamaño de caja de los íconos SVG. */
+.stage .prize-emoji.icon { width: auto; height: auto; }
+
+@media (max-width: 900px), (max-aspect-ratio: 1/1) {
+    #cierre .finale { width: 100%; }
+    .tv { width: 92vw; }
 }

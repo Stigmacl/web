@@ -65,8 +65,8 @@
         finaleStats: $('#finaleStats'),
         finaleEntregados: $('#finaleEntregados'),
         finaleWinners: $('#finaleWinners'),
-        veil: $('#veil'),
         flash: $('#flash'),
+        tv: $('#tv'),
         confetti: $('#confettiCanvas'),
     };
 
@@ -91,8 +91,7 @@
     const isSurprise = () => !state.evento || state.evento.sorpresa !== false;
 
     ui.hydrateIcons();
-    fx.beams($('#fxGrid'));
-    fx.meteors($('#fxMeteors'), 6);
+    const theater = S360.theater;
     const reactions = S360.createReactions($('#liveStream'), $('#liveFeed'));
 
     // ---------- Etapas ----------
@@ -123,6 +122,9 @@
         }
         state.current = next;
         const slide = slides[next];
+        // La cámara del teatro se mueve primero; el contenido aparece al llegar.
+        const travel = theater.go(slide.id, { instant: silent });
+        stage.style.setProperty('--enter-delay', `${travel}ms`);
         slide.classList.add('is-active');
         stage.dataset.slide = slide.id;
 
@@ -133,16 +135,11 @@
             else btn.removeAttribute('aria-current');
         });
 
-        if (!silent && !fx.reducedMotion) {
-            els.veil.classList.remove('is-playing');
-            void els.veil.offsetWidth;
-            els.veil.classList.add('is-playing');
-        }
         history.replaceState(null, '', `#${slide.id}`);
-        onEnter(slide.id);
+        onEnter(slide.id, travel);
     }
 
-    function onEnter(id) {
+    function onEnter(id, travel = 0) {
         if (id === 'premios') {
             fx.countUp(els.statPremios, state.premios.length);
             fx.countUp(els.statDisponibles, state.candidatos.length);
@@ -151,14 +148,17 @@
             els.wheel.classList.remove('is-win');
             syncWheel(true);
         }
-        if (id === 'puja') enterBid();
+        if (id === 'puja') enterBid(travel);
         if (id === 'ganador') renderWinner();
         if (id === 'cierre') renderFinale();
     }
 
     function onLeave(id) {
         if (id === 'ruleta') hideReveal();
-        if (id === 'puja') reactions.stop();
+        if (id === 'puja') {
+            reactions.stop();
+            clearTimeout(tvTimer);
+        }
     }
 
     window.addEventListener('hashchange', () => {
@@ -430,6 +430,7 @@
         }
 
         stage.classList.add('is-spinning');
+        theater.setSpinning(true);
         els.wheel.classList.remove('is-win');
         els.wheel.classList.add('is-spinning');
         renderSpinButton();
@@ -440,6 +441,7 @@
         } catch (err) {
             state.spinning = false;
             stage.classList.remove('is-spinning');
+            theater.setSpinning(false);
             els.wheel.classList.remove('is-spinning');
             if (err.status === 401) state.isAdmin = false;
             applyOperator();
@@ -472,6 +474,7 @@
         els.wheel.classList.remove('is-spinning');
         els.wheel.classList.add('is-win');
         stage.classList.remove('is-spinning');
+        theater.setSpinning(false);
         highlightInPlay(index);
 
         state.result = { giro: res.giro, premio: res.ganador, fresh: false, bidStartedAt: null, bidEndedAt: null };
@@ -534,13 +537,37 @@
         els.bid.classList.remove('is-finishing');
     }
 
-    function enterBid() {
+    let tvTimer;
+    // La pantalla baja desde arriba del telón y se enciende como una TV antigua.
+    function powerTv(travel, onReady) {
+        const tv = els.tv;
+        clearTimeout(tvTimer);
+        tv.classList.remove('is-in', 'is-on');
+        void tv.offsetWidth;
+        if (fx.reducedMotion) {
+            tv.classList.add('is-in', 'is-on');
+            onReady();
+            return;
+        }
+        tvTimer = setTimeout(() => {
+            tv.classList.add('is-in');
+            tvTimer = setTimeout(() => {
+                tv.classList.add('is-on');
+                sound.tvOn();
+                tvTimer = setTimeout(onReady, 600);
+            }, 1100);
+        }, Math.max(200, travel - 500));
+    }
+
+    function enterBid(travel = 0) {
         const r = state.result;
         els.bidEmpty.hidden = !!r;
         els.bidContent.hidden = !r;
+        els.bid.classList.toggle('has-result', !!r);
         closeFinishForm();
+        reactions.stop();
         if (!r) {
-            reactions.stop();
+            powerTv(travel, () => {});
             return;
         }
         const closed = !!(r.giro && r.giro.participante);
@@ -554,8 +581,12 @@
         els.bidDesc.textContent = r.premio.descripcion || '';
         els.bidDesc.hidden = !r.premio.descripcion;
         tickBid();
-        if (closed) reactions.stop();
-        else reactions.start();
+        powerTv(travel, () => {
+            if (!closed && slides[state.current].id === 'puja') {
+                reactions.start();
+                reactions.burst('heart', 8);
+            }
+        });
     }
 
     $$('[data-burst]').forEach((b) => b.addEventListener('click', () => reactions.burst(b.dataset.burst)));
@@ -632,6 +663,10 @@
             void els.winnerCard.offsetWidth;
             els.winnerCard.classList.add('is-revealing');
             celebrate(!!nombre);
+            if (nombre) {
+                theater.celebrate();
+                sound.applause(3.5);
+            }
         }
     }
 

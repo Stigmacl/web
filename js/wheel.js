@@ -109,13 +109,21 @@
                 if (item.mystery) {
                     // Gajo incógnito: un "?" grande, girado para leerse desde el borde.
                     c.rotate(Math.PI / 2);
+                    const disc = Math.min(baseFont * 1.5, R * seg * 0.3);
+                    c.beginPath();
+                    c.arc(0, -R * 0.64, disc, 0, TAU);
+                    c.fillStyle = 'rgba(255, 255, 255, 0.14)';
+                    c.fill();
+                    c.lineWidth = 2;
+                    c.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                    c.stroke();
                     c.textAlign = 'center';
                     c.textBaseline = 'middle';
-                    c.fillStyle = 'rgba(255, 255, 255, 0.92)';
-                    c.shadowColor = 'rgba(0, 0, 0, 0.45)';
-                    c.shadowBlur = 10;
-                    c.font = `800 ${Math.round(baseFont * 2.1)}px Sora, Inter, sans-serif`;
-                    c.fillText('?', 0, -R * 0.66);
+                    c.fillStyle = '#ffffff';
+                    c.shadowColor = 'rgba(0, 0, 0, 0.4)';
+                    c.shadowBlur = 8;
+                    c.font = `800 ${Math.round(disc * 1.25)}px Sora, Inter, sans-serif`;
+                    c.fillText('?', 0, -R * 0.64 + disc * 0.06);
                     c.restore();
                     return;
                 }

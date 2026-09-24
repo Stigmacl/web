@@ -35,31 +35,45 @@ las tipografías vienen incluidas y los datos se guardan en `api/data/*.json`.
 
 ## El escenario (`index.html`)
 
-Una presentación de 7 etapas con transiciones circulares "360°":
+Una función de teatro en 8 etapas. Una "cámara" recorre el teatro, que está
+dibujado y animado con CSS y canvas: humo con viento, telones que se mecen,
+reflectores y público en las butacas.
 
-| # | Etapa | Qué muestra |
-|---|-------|-------------|
-| 01 | Bienvenida | Emblema 360°, nombre del evento, texto de bienvenida y cuenta regresiva |
-| 02 | Cómo funciona | Lo que suma y lo que resta puntaje |
-| 03 | Premios | Tarjetas de cada premio con su stock |
+| # | Etapa | Toma |
+|---|-------|------|
+| 01 | Bienvenida | Fachada de noche: cartel de focos, marquesina con el nombre del evento y LED con la cuenta regresiva |
+| 02 | Cómo funciona | Se abren las puertas y la cámara entra a la sala (difuminada) |
+| 03 | Premios | Premios sorpresa ("Premio incógnito") o con nombre, según la configuración |
 | 04 | Preparación | Reglas de la subasta |
-| 05 | Ruleta | Ruleta con luces, sonido, cronómetro y premios en juego |
-| 06 | Ganador | Premio seleccionado → nombre del ganador, con celebración |
-| 07 | Cierre | Agradecimiento, premios entregados y ganadores |
+| 05 | Ruleta | Zoom al escenario, se abre el telón; al girar se revela el premio |
+| 06 | Puja | Pantalla colgada frente al telón: "Estamos pujando por…", con reacciones y comentarios |
+| 07 | Ganador | Telón abierto, luces de celebración, confeti y aplausos |
+| 08 | Cierre | Vuelta a la fachada con "¡Gracias por participar!" |
 
-Flujo de cada ronda: **Ruleta → Ganador → "Siguiente premio" → Ruleta**.
-El ganador se puede escribir antes de girar o después de la puja; queda
-guardado en el historial.
+Flujo de cada ronda: **Ruleta → premio revelado → Puja → "Finalizar puja" →
+Ganador → "Siguiente premio"**. El ganador queda guardado en el historial.
+
+Los comentarios y reacciones de la puja son una animación ambiental: no
+vienen de Teams. El operador puede lanzar ráfagas con los botones o con
+las teclas `H`, `L` y `A`.
+
+### Fotos o videos propios
+
+Opcional. Copia archivos en `assets/img/` con estos nombres y recarga (F5):
+`fachada` (reemplaza la fachada), `escenario` (se ve detrás del telón) y
+`humo` (video de humo que se mezcla sobre la escena). Formatos: jpg, png,
+webp, mp4 o webm. Más detalles en `assets/img/LEEME.txt`.
 
 Atajos (funcionan con presentadores inalámbricos):
 
 | Tecla | Acción |
 |-------|--------|
 | `→` / `←` (o Av Pág / Re Pág) | Siguiente / anterior etapa |
-| `Espacio` | Girar la ruleta |
+| `Espacio` | Girar la ruleta (y luego iniciar la puja) |
+| `H` `L` `A` | Durante la puja: corazones, likes o aplausos |
 | `F` | Pantalla completa (los controles se ocultan solos) |
 | `M` | Activar / silenciar sonido |
-| `1`–`7` | Ir directo a una etapa |
+| `1`–`8` | Ir directo a una etapa |
 
 ## Uso durante el evento
 
@@ -75,7 +89,7 @@ Atajos (funcionan con presentadores inalámbricos):
 
 - **Dashboard:** estado del evento, cuenta regresiva, premios, disponibles,
   entregados, estado de la ruleta, último ganador y actividad reciente.
-- **Evento:** datos del evento con vista previa 16:9 en vivo.
+- **Evento:** datos del evento, estado, modo **premios sorpresa** (activado por defecto) y vista previa 16:9 en vivo.
 - **Premios:** crear, editar y eliminar; stock rápido (−/+); peso con
   probabilidad calculada; ícono (set propio o emoji) y color.
 - **Ruleta:** vista previa y distribución de probabilidad.
@@ -102,6 +116,7 @@ login.html                Acceso admin
 css/
   base.css                Sistema de diseño: tokens, marca y componentes
   effects.css             Aurora, grilla con haces, border beam, spotlight, shimmer
+  theater.css             Teatro: fachada, sala, telón, cámara
   stage.css               Escenario (escala proporcional 16:9)
   admin.css / login.css   Panel y acceso
 js/
@@ -110,6 +125,8 @@ js/
   ui.js                   Toasts, modales, confirmaciones y formateadores
   effects.js              Spotlight, meteoros, haces y contadores animados
   wheel.js                Motor de la ruleta (canvas)
+  theater.js              Cámara del teatro, humo, público y fotos propias
+  reactions.js            Reacciones y comentarios de la puja
   sound.js / confetti.js  Sonidos sintetizados y confeti
   stage.js / admin.js / login.js
 api/
@@ -119,10 +136,11 @@ api/
   premios.php             CRUD de premios
   spin.php                Giro: elige premio por peso, descuenta stock, registra
   historial.php           Historial y asignación de ganador
+  escenas.php             Detecta fotos/videos propios en assets/img
   data/*.json             Datos (protegidos vía .htaccess en Apache/XAMPP)
 assets/
   fonts/                  Inter y Sora (licencia SIL OFL)
-  img/favicon.svg
+  img/                    favicon y fotos/videos propios (ver LEEME.txt)
 ```
 
 El resultado de cada giro lo decide el servidor (`api/spin.php`); el

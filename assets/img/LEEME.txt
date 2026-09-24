@@ -1,0 +1,28 @@
+SUBASTA 360 — Fotos y videos propios para el teatro
+=====================================================
+
+El escenario funciona sin ningún archivo aquí: dibuja y anima el teatro por
+su cuenta (fachada, sala, telón, luces y humo). Si quieres más realismo,
+copia en esta carpeta fotos o videos con estos nombres exactos:
+
+  fachada.jpg   (o .webp, .png, .mp4, .webm)
+      Reemplaza la fachada del teatro en la etapa de Bienvenida.
+      Ideal: frente de un teatro de noche, horizontal (16:9), 1920 px o más.
+      Si usas foto, la cuenta regresiva y el nombre del evento aparecen en
+      un panel sobre la imagen.
+
+  escenario.jpg (o .webp, .png, .mp4, .webm)
+      Se ve detrás del telón cuando se abre (ruleta y ganador).
+      Ideal: fondo de escenario, pantalla LED, luces de concierto.
+
+  humo.mp4      (o .webm)
+      Video de humo o partículas sobre fondo negro. Se mezcla sobre toda la
+      escena (lo negro se vuelve transparente).
+
+Dónde conseguirlos gratis y con licencia libre para uso comercial:
+  - https://www.pexels.com/es-es/videos/   (buscar "theater", "stage smoke")
+  - https://pixabay.com/es/videos/         (buscar "teatro", "humo escenario")
+  - https://unsplash.com/es                (buscar "theater facade night")
+
+Después de copiar un archivo, recarga el escenario (F5). No hace falta
+reiniciar el servidor.
