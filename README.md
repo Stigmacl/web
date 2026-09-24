@@ -1,16 +1,33 @@
 # Subasta 360
 
-Web todo-en-uno para la subasta: portada, "cómo funciona", reglas, ruleta de
-premios con cronómetro y reveal del ganador — navegable con las flechas del
-teclado, sin alternar entre Canva/Wooclap/PowerPoint. Pensada para compartir
-pantalla por Teams o proyectar a una TV.
+**Subasta 360** es la dinámica de reconocimiento donde el equipo canjea los
+puntos que ganó durante el período evaluado (Cliente Incógnito, CAMPUSBE,
+ECM, agendamientos, ausencias, atrasos, etc.) por premios, pujando en una
+subasta en vivo.
+
+Esta web es el "maestro de ceremonias" de ese evento: reemplaza el combo de
+Canva + Wooclap + PowerPoint por **una sola pestaña** con todo adentro —
+portada, cómo funciona, reglas, la ruleta de premios con cronómetro, y el
+reveal del ganador con telón y confeti — para compartir por Teams o
+proyectar en una TV sin estar abriendo y cerrando ventanas.
+
+Tiene además un panel de administración para cargar los premios (con su
+probabilidad y stock) y configurar el evento, sin tocar código.
 
 ## Requisitos
 
 - PHP 7.4+ (viene con XAMPP). No necesita MySQL: los premios y la
   configuración del evento se guardan en `api/data/*.json`.
 
-## Correr en local
+## Correr en local (Windows, doble clic)
+
+Hacé doble clic en **`Iniciar Subasta 360.cmd`** (en la raíz del proyecto).
+Levanta el servidor PHP y abre la pantalla principal en el navegador solo.
+Requiere tener PHP en el PATH o XAMPP instalado en `C:\xampp`. Dejá abierta
+la ventana negra "Subasta 360 - servidor" mientras dure el evento; cerrarla
+apaga el servidor.
+
+## Correr en local (manual / Mac / Linux)
 
 Con XAMPP: copiá esta carpeta a `htdocs/subasta360` y entrá a
 `http://localhost/subasta360/index.html`.
@@ -48,6 +65,8 @@ php -r 'echo password_hash("tu_clave_nueva", PASSWORD_DEFAULT);'
 
 ## Estructura
 
+- `Iniciar Subasta 360.cmd` — lanzador de doble clic (Windows): levanta el
+  servidor y abre el navegador.
 - `index.html` + `js/stage.js` + `css/stage.css` — pantalla principal (proyector).
 - `admin.html` + `js/admin.js` — panel para cargar premios y configurar el evento.
 - `login.html` + `js/login.js` — acceso admin.
